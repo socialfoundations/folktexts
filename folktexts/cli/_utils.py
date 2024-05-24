@@ -113,7 +113,7 @@ def cmd_line_args_to_kwargs(cmdline_args: list) -> dict:
     for arg in cmdline_args:
         parsed_arg = arg.lstrip("-").replace("-", "_")
         if "=" in parsed_arg:
-            key, val = arg.split("=")
+            key, val = parsed_arg.split("=")
             kwargs_dict[key] = _handle_str_value(val)
         else:
             kwargs_dict[parsed_arg] = True

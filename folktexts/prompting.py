@@ -49,7 +49,7 @@ Information:
 def encode_row_prompt_few_shot(
     row: pd.Series,
     dataset: Dataset,
-    n_shots: int = 3,
+    n_shots: int = 10,
     reuse_examples: bool = False,
 ) -> str:
     """Encode a question regarding a given row using few-shot prompting.
