@@ -219,6 +219,7 @@ if __name__ == '__main__':
         direct_risk_prompting=args.direct_risk_prompting,
         batch_size=args.batch_size,
         context_size=args.context_size,
+        reuse_few_shot_examples=args.reuse_few_shot_examples,
         seed=args.seed,
         all_args=vars(args) | extra_kwargs,
     )
