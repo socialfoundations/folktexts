@@ -40,7 +40,6 @@ DEFAULT_MODEL_LIST = [
     "allenai/tulu-2-dpo-70b",
     "mistralai/Mixtral-8x22B-v0.1",
     "mistralai/Mixtral-8x22B-Instruct-v0.1",
-    # "bigscience/bloom",       # Too big and too buggy
 ]
 
 

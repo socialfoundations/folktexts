@@ -200,9 +200,11 @@ class Dataset(ABC):
 
     def sample_n_train_examples(self, n: int) -> tuple[pd.DataFrame, pd.Series]:
         """Return a balanced set of samples from the training set."""
-        raise NotImplementedError("TODO: implement this method.")
-        # example_indices = self._rng.choice(self._train_indices, size=n, replace=False)
-        # return self.data.iloc[example_indices], y_train.loc[n_samples.index]
+        example_indices = self._rng.choice(self._train_indices, size=n, replace=False)
+        return (
+            self.data.iloc[example_indices][self.task.features],
+            self.data.iloc[example_indices][self.task.target],
+        )
 
     def get_test(self):
         test_data = self.data.iloc[self._test_indices]

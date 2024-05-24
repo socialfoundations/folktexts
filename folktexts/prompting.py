@@ -4,7 +4,6 @@ e.g.,
 - multiple-choice Q&A vs direct numeric Q&A;
 - zero-shot vs few-shot vs CoT;
 """
-import math
 import pandas as pd
 from transformers import AutoTokenizer
 
@@ -47,33 +46,10 @@ Information:
 {dataset.question.get_question_and_answer_key(randomize=randomize)}""")
 
 
-def sample_n_shots(dataset: Dataset, n: int, seed: int = None) -> tuple[pd.DataFrame, pd.Series]:
-    """Return a balanced set of samples from the training set."""
-    X_train, y_train = dataset.get_train()  # TODO: speed this up!
-
-    n_samples = X_train.sample(n=n, random_state=seed)
-    return n_samples, y_train.loc[n_samples.index]
-
-    # # Sample `n` examples in total, stratified per class
-    # n_per_class = [
-    #     math.floor(n / len(y_train.unique())),
-    #     math.ceil(n / len(y_train.unique())),
-    # ]
-    # assert sum(n_per_class) == n
-    # n_samples = pd.concat([
-    #     X_train[y_train == label].sample(n=curr_n, random_state=seed)
-    #     for label, curr_n in zip(y_train.unique(), n_per_class)
-    # ])
-
-    # # Return samples and corresponding labels
-    # return n_samples, y_train.loc[n_samples.index]
-
-
 def encode_row_prompt_few_shot(
     row: pd.Series,
     dataset: Dataset,
     n_shots: int = 3,
-    seed: int = 42,
 ) -> str:
     """Encode a question regarding a given row using few-shot prompting.
 
@@ -99,7 +75,7 @@ def encode_row_prompt_few_shot(
         The encoded few-shot prompt.
     """
     # Take `n_shots` random samples from the train set
-    X_examples, y_examples = sample_n_shots(dataset, n=n_shots, seed=seed)
+    X_examples, y_examples = dataset.sample_n_train_examples(n_shots)
 
     # Start with task description
     prompt = ACS_FEW_SHOT_TASK_DESCRIPTION + "\n"
