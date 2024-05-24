@@ -105,7 +105,7 @@ def make_llm_as_clf_experiment(
 
     # Set default job kwargs
     job_kwargs.setdefault("job_cpus", JOB_CPUS)
-    job_kwargs.setdefault("job_gpus", math.ceil(model_size_B / 35))     # One GPU per 40B parameters
+    job_kwargs.setdefault("job_gpus", math.ceil(model_size_B / 40))     # One GPU per 40B parameters
     job_kwargs.setdefault("job_memory_gb", JOB_MEMORY_GB)
     job_kwargs.setdefault("job_gpu_memory_gb", 35 if model_size_B < 5 else 60)
     job_kwargs.setdefault("job_bid", JOB_BID)

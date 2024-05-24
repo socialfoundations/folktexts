@@ -99,17 +99,11 @@ def run_experiment(
 
     if few_shot:
         from folktexts.prompting import encode_row_prompt_few_shot
-
-        def _encode_row_few_shot(row) -> str:
-            return encode_row_prompt_few_shot(
-                row,
-                dataset=dataset,
-                n_shots=few_shot,
-                seed=rng.integers(1e3),
-                # NOTE ^ this ensures different examples are used for each row
-            )
-
-        encode_row_function = _encode_row_few_shot
+        encode_row_function = partial(
+            encode_row_prompt_few_shot,
+            dataset=dataset,
+            n_shots=few_shot,
+        )
 
     if direct_risk_prompting:
         raise NotImplementedError("Direct risk prompting not implemented yet.")
