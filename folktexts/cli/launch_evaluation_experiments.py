@@ -199,13 +199,8 @@ if __name__ == '__main__':
     args, extra_kwargs = parser.parse_known_args()
 
     # Parse extra kwargs
-    try:
-        extra_kwargs = {
-            key.lstrip("-").replace("-", "_"): val
-            for key, val in map(lambda x: x.split("="), extra_kwargs)
-        }
-    except Exception as e:
-        raise ValueError(f"Invalid extra kwargs: {extra_kwargs}; Please use format `--key=value`") from e
+    from ._utils import cmd_line_args_to_kwargs
+    extra_kwargs = cmd_line_args_to_kwargs(extra_kwargs)
 
     models = args.model or LLM_MODELS
     tasks = args.acs_task_name or ACS_TASKS

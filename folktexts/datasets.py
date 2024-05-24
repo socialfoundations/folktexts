@@ -198,9 +198,32 @@ class Dataset(ABC):
         train_data = self.data.iloc[self._train_indices]
         return train_data[self.task.features], train_data[self.task.target]
 
-    def sample_n_train_examples(self, n: int) -> tuple[pd.DataFrame, pd.Series]:
-        """Return a balanced set of samples from the training set."""
-        example_indices = self._rng.choice(self._train_indices, size=n, replace=False)
+    def sample_n_train_examples(
+        self,
+        n: int,
+        reuse_examples: bool = False,
+    ) -> tuple[pd.DataFrame, pd.Series]:
+        """Return a set of samples from the training set.
+
+        Parameters
+        ----------
+        n : int
+            The number of example rows to return.
+        reuse_examples : bool, optional
+            Whether to reuse the same examples for consistency. By default will
+            sample new examples each time (`reuse_examples=False`).
+
+        Returns
+        -------
+        X, y : tuple[pd.DataFrame, pd.Series]
+            The features and target data for the sampled examples.
+        """
+        # TODO: make sure examples are class-balanced?
+        if reuse_examples:
+            example_indices = self._train_indices[:n]
+        else:
+            example_indices = self._rng.choice(self._train_indices, size=n, replace=False)
+
         return (
             self.data.iloc[example_indices][self.task.features],
             self.data.iloc[example_indices][self.task.target],

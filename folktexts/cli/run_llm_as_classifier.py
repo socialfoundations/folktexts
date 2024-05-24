@@ -3,6 +3,7 @@
 """
 import sys
 import logging
+import argparse
 from pathlib import Path
 from functools import partial
 from argparse import ArgumentParser
@@ -58,6 +59,13 @@ def setup_arg_parser() -> ArgumentParser:
     )
 
     parser.add_argument(
+        "--reuse-few-shot-examples",
+        help="[bool] Whether to reuse the same samples for few-shot prompting (or sample new ones every time)",
+        action="store_true",
+        default=False,
+    )
+
+    parser.add_argument(
         "--logger-level",
         type=str,
         help="[str] The logging level to use for the experiment",
@@ -76,6 +84,7 @@ def run_experiment(
         few_shot: int | bool = False,
         chat_prompt: bool = False,
         direct_risk_prompting: bool = False,
+        reuse_few_shot_examples: bool = False,
         batch_size: int = 8,
         context_size: int = 2000,
         seed: int = 42,
@@ -103,6 +112,7 @@ def run_experiment(
             encode_row_prompt_few_shot,
             dataset=dataset,
             n_shots=few_shot,
+            reuse_examples=reuse_few_shot_examples,
         )
 
     if direct_risk_prompting:
@@ -161,7 +171,13 @@ if __name__ == '__main__':
 
     # Setup parser and process cmd-line args
     parser = setup_arg_parser()
-    args = parser.parse_args()
+    args, extra_kwargs = parser.parse_known_args()
+
+    # Parse extra kwargs
+    from ._utils import cmd_line_args_to_kwargs
+    extra_kwargs = cmd_line_args_to_kwargs(extra_kwargs)
+    if extra_kwargs:
+        logging.warning(f"Received the following extra kwargs: {extra_kwargs}")
 
     logging.getLogger().setLevel(level=args.logger_level or "INFO")
     logging.info(f"Received the following cmd-line args: {args.__dict__}")
@@ -204,7 +220,7 @@ if __name__ == '__main__':
         batch_size=args.batch_size,
         context_size=args.context_size,
         seed=args.seed,
-        all_args=vars(args),
+        all_args=vars(args) | extra_kwargs,
     )
 
     from folktexts.cli._utils import get_current_timestamp

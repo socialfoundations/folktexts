@@ -50,11 +50,9 @@ def encode_row_prompt_few_shot(
     row: pd.Series,
     dataset: Dataset,
     n_shots: int = 3,
+    reuse_examples: bool = False,
 ) -> str:
     """Encode a question regarding a given row using few-shot prompting.
-
-    NOTE: the seed should be changed for each new model query, to ensure that
-    we don't reuse the same examples over and over.
 
     Parameters
     ----------
@@ -65,9 +63,9 @@ def encode_row_prompt_few_shot(
     n_shots : int, optional
         The number of example questions and answers to use before prompting
         about the given row, by default 3.
-    seed : int, optional
-        The random seed to use for sampling the few-shot examples, by default 42.
-        Using the same seed will result in the same examples being sampled.
+    reuse_examples : bool, optional
+        Whether to reuse the same examples for consistency. By default will
+        resample new examples each time (`reuse_examples=False`).
 
     Returns
     -------
@@ -75,7 +73,7 @@ def encode_row_prompt_few_shot(
         The encoded few-shot prompt.
     """
     # Take `n_shots` random samples from the train set
-    X_examples, y_examples = dataset.sample_n_train_examples(n_shots)
+    X_examples, y_examples = dataset.sample_n_train_examples(n_shots, reuse_examples=reuse_examples)
 
     # Start with task description
     prompt = ACS_FEW_SHOT_TASK_DESCRIPTION + "\n"
