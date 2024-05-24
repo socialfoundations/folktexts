@@ -1,0 +1,5 @@
+pytest
+coverage
+flake8-pyproject
+flake8
+mypy

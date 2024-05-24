@@ -1,0 +1,136 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "folktexts"
+description = "An LLM benchmark for risk-estimating capabilities."
+# description = "A multi-lingual, multi-country Q&A dataset of social facts."
+license = {file = "LICENSE"}
+authors = [
+    { name = "Andre Cruz" },
+    { name = "Ricardo Dominguez-Olmedo" },
+    { name = "Celestine Mendler-Dunner" },
+    { name = "Moritz Hardt" },
+]
+
+# Keywords to be used by PyPI search
+keywords = ["language-model", "risk-estimation", "benchmark", "machine-learning"]
+
+# PyPI classifiers, see https://pypi.org/classifiers/
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+version = "0.0.3"
+requires-python = ">=3.8"
+dynamic = [
+    "readme",
+    "dependencies",
+    "optional-dependencies",
+]   # these are defined below dynamically
+
+[tool.setuptools.dynamic]
+readme = { file = "README.md", content-type="text/markdown" }
+
+# Main package dependencies
+dependencies = {file = "requirements/main.txt"}
+
+# Optional dependencies
+optional-dependencies.tests = {file = "requirements/tests.txt"}
+optional-dependencies.docs = {file = "requirements/docs.txt"}
+optional-dependencies.cli = {file = "requirements/cli.txt"}
+
+[project.urls]
+homepage = "https://github.com/AndreFCruz/folktexts"        # TODO: eventually point to SF github
+documentation = "https://andrefcruz.github.io/folktexts/"   # TODO: eventually point to github pages (docs)
+repository = "https://github.com/AndreFCruz/folktexts"
+
+[tool.setuptools.packages.find]
+include = ["folktexts"]
+
+# flake8
+[tool.flake8]
+max-complexity = 10
+max-line-length = 127
+
+per-file-ignores = """
+# imported but unused
+__init__.py: F401
+"""
+
+exclude = [
+    "docs/",
+    ".tox/"
+]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = [
+    "tests",
+]
+
+# isort
+[tool.isort]
+profile = "hug"
+force_single_line = false
+src_paths = ["folktexts", "tests"]
+
+# Coverage
+[tool.coverage.run]
+branch = true
+source = ["folktexts"]
+omit = ["folktexts/_version.py", "tests"]
+
+[tool.coverage.report]
+show_missing = true
+
+# MyPy
+[tool.mypy]
+ignore_missing_imports = true
+exclude = ["build", "doc"]
+
+# Tox
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+env_list =
+    py38
+    py39
+    py310
+    py311
+    py312
+    lint
+    type
+
+[testenv]
+description = run unit tests
+deps =
+    pytest>=8
+commands = python -m pytest {posargs:tests}
+
+[testenv:lint]
+description = run linters
+skip_install = true
+deps =
+    flake8>=7.0
+    flake8-pyproject
+commands = flake8 {posargs:.}
+
+[testenv:type]
+description = run type checks
+deps =
+    mypy>=1.9
+commands =
+    mypy {posargs:folktexts tests}
+"""

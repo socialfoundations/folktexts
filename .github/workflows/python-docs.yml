@@ -1,0 +1,39 @@
+name: Docs
+
+on:
+  push:
+    branches:
+      - main
+      - docs
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Sphinx and dependencies
+        run: |
+          pip install ".[docs]"
+
+      - name: Build Documentation
+        run: |
+          sphinx-build docs _build
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _build/
+          publish_branch: gh-pages
+          force_orphan: true

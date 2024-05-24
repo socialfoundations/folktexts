@@ -1,0 +1,7 @@
+sphinx
+sphinx_rtd_theme
+sphinx-autopackagesummary
+myst-parser
+sphinx-copybutton
+sphinxcontrib-bibtex
+sphinxemoji

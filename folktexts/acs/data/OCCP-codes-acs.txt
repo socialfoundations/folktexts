@@ -1,0 +1,530 @@
+0010 .MGR-Chief Executives And Legislators
+0020 .MGR-General And Operations Managers
+0040 .MGR-Advertising And Promotions Managers
+0051 .MGR-Marketing Managers
+0052 .MGR-Sales Managers
+0060 .MGR-Public Relations And Fundraising Managers
+0101 .MGR-Administrative Services Managers
+0102 .MGR-Facilities Managers
+0110 .MGR-Computer And Information Systems Managers
+0120 .MGR-Financial Managers
+0135 .MGR-Compensation And Benefits Managers
+0136 .MGR-Human Resources Managers
+0137 .MGR-Training And Development Managers
+0140 .MGR-Industrial Production Managers
+0150 .MGR-Purchasing Managers
+0160 .MGR-Transportation, Storage, And Distribution Managers
+0205 .MGR-Farmers, Ranchers, And Other Agricultural Managers
+0220 .MGR-Construction Managers
+0230 .MGR-Education And Childcare Administrators
+0300 .MGR-Architectural And Engineering Managers
+0310 .MGR-Food Service Managers
+0335 .MGR-Entertainment and Recreation Managers
+0340 .MGR-Lodging Managers
+0350 .MGR-Medical And Health Services Managers
+0360 .MGR-Natural Sciences Managers
+0410 .MGR-Property, Real Estate, And Community Association Managers
+0420 .MGR-Social And Community Service Managers
+0425 .MGR-Emergency Management Directors
+0440 .MGR-Other Managers
+0500 .BUS-Agents And Business Managers Of Artists, Performers, And Athletes
+0510 .BUS-Buyers And Purchasing Agents, Farm Products
+0520 .BUS-Wholesale And Retail Buyers, Except Farm Products
+0530 .BUS-Purchasing Agents, Except Wholesale, Retail, And Farm Products
+0540 .BUS-Claims Adjusters, Appraisers, Examiners, And Investigators
+0565 .BUS-Compliance Officers
+0600 .BUS-Cost Estimators
+0630 .BUS-Human Resources Workers
+0640 .BUS-Compensation, Benefits, And Job Analysis Specialists
+0650 .BUS-Training And Development Specialists
+0700 .BUS-Logisticians
+0705 .BUS-Project Management Specialists
+0710 .BUS-Management Analysts
+0725 .BUS-Meeting, Convention, And Event Planners
+0726 .BUS-Fundraisers
+0735 .BUS-Market Research Analysts And Marketing Specialists
+0750 .BUS-Business Operations Specialists, All Other
+0800 .FIN-Accountants And Auditors
+0810 .FIN-Property Appraisers and Assessors
+0820 .FIN-Budget Analysts
+0830 .FIN-Credit Analysts
+0845 .FIN-Financial And Investment Analysts
+0850 .FIN-Personal Financial Advisors
+0860 .FIN-Insurance Underwriters
+0900 .FIN-Financial Examiners
+0910 .FIN-Credit Counselors And Loan Officers
+0930 .FIN-Tax Examiners And Collectors, And Revenue Agents
+0940 .FIN-Tax Preparers
+0960 .FIN-Other Financial Specialists
+1005 .CMM-Computer And Information Research Scientists
+1006 .CMM-Computer Systems Analysts
+1007 .CMM-Information Security Analysts
+1010 .CMM-Computer Programmers
+1021 .CMM-Software Developers
+1022 .CMM-Software Quality Assurance Analysts and Testers
+1031 .CMM-Web Developers
+1032 .CMM-Web And Digital Interface Designers
+1050 .CMM-Computer Support Specialists
+1065 .CMM-Database Administrators and Architects
+1105 .CMM-Network And Computer Systems Administrators
+1106 .CMM-Computer Network Architects
+1108 .CMM-Computer Occupations, All Other
+1200 .CMM-Actuaries
+1220 .CMM-Operations Research Analysts
+1240 .CMM-Other Mathematical Science Occupations
+1305 .ENG-Architects, Except Landscape And Naval
+1306 .ENG-Landscape Architects
+1310 .ENG-Surveyors, Cartographers, And Photogrammetrists
+1320 .ENG-Aerospace Engineers
+1340 .ENG-Biomedical And Agricultural Engineers
+1350 .ENG-Chemical Engineers
+1360 .ENG-Civil Engineers
+1400 .ENG-Computer Hardware Engineers
+1410 .ENG-Electrical And Electronics Engineers
+1420 .ENG-Environmental Engineers
+1430 .ENG-Industrial Engineers, Including Health And Safety
+1440 .ENG-Marine Engineers And Naval Architects
+1450 .ENG-Materials Engineers
+1460 .ENG-Mechanical Engineers
+1520 .ENG-Petroleum, Mining And Geological Engineers, Including Mining Safety Engineers
+1530 .ENG-Other Engineers
+1541 .ENG-Architectural And Civil Drafters
+1545 .ENG-Other Drafters
+1551 .ENG-Electrical And Electronic Engineering Technologists and Technicians
+1555 .Other Engineering Technologists And Technicians, Except Drafters
+1560 .ENG-Surveying And Mapping Technicians
+1600 .SCI-Agricultural And Food Scientists
+1610 .SCI-Biological Scientists
+1640 .SCI-Conservation Scientists And Foresters
+1650 .SCI-Other Life Scientists
+1700 .SCI-Astronomers And Physicists
+1710 .SCI-Atmospheric And Space Scientists
+1720 .SCI-Chemists And Materials Scientists
+1745 .SCI-Environmental Scientists And Specialists, Including Health
+1750 .SCI-Geoscientists And Hydrologists, Except Geographers
+1760 .SCI-Physical Scientists, All Other
+1800 .SCI-Economists
+1821 .SCI-Clinical And Counseling Psychologists
+1822 .SCI-School Psychologists
+1825 .SCI-Other Psychologists
+1840 .SCI-Urban And Regional Planners
+1860 .SCI-Other Social Scientists
+1900 .SCI-Agricultural And Food Science Technicians
+1910 .SCI-Biological Technicians
+1920 .SCI-Chemical Technicians
+1935 .SCI-Environmental Science and Geoscience Technicians, And Nuclear Technicians
+1970 .SCI-Other Life, Physical, And Social Science Technicians
+1980 .SCI-Occupational Health And Safety Specialists and Technicians
+2001 .CMS-Substance Abuse And Behavioral Disorder Counselors
+2002 .CMS-Educational, Guidance, And Career Counselors And Advisors
+2003 .CMS-Marriage And Family Therapists
+2004 .CMS-Mental Health Counselors
+2005 .CMS-Rehabilitation Counselors
+2006 .CMS-Counselors, All Other
+2011 .CMS-Child, Family, And School Social Workers
+2012 .CMS-Healthcare Social Workers
+2013 .CMS-Mental Health And Substance Abuse Social Workers
+2014 .CMS-Social Workers, All Other
+2015 .CMS-Probation Officers And Correctional Treatment Specialists
+2016 .CMS-Social And Human Service Assistants
+2025 .CMS-Other Community and Social Service Specialists
+2040 .CMS-Clergy
+2050 .CMS-Directors, Religious Activities And Education
+2060 .CMS-Religious Workers, All Other
+2100 .LGL-Lawyers, And Judges, Magistrates, And Other Judicial Workers
+2105 .LGL-Judicial Law Clerks
+2145 .LGL-Paralegals And Legal Assistants
+2170 .LGL-Title Examiners, Abstractors, and Searchers
+2180 .LGL-Legal Support Workers, All Other
+2205 .EDU-Postsecondary Teachers
+2300 .EDU-Preschool And Kindergarten Teachers
+2310 .EDU-Elementary And Middle School Teachers
+2320 .EDU-Secondary School Teachers
+2330 .EDU-Special Education Teachers
+2350 .EDU-Tutors
+2360 .EDU-Other Teachers and Instructors
+2400 .EDU-Archivists, Curators, And Museum Technicians
+2435 .EDU-Librarians And Media Collections Specialists
+2440 .EDU-Library Technicians
+2545 .EDU-Teaching Assistants
+2555 .EDU-Other Educational Instruction And Library Workers
+2600 .ENT-Artists And Related Workers
+2631 .ENT-Commercial And Industrial Designers
+2632 .ENT-Fashion Designers
+2633 .ENT-Floral Designers
+2634 .ENT-Graphic Designers
+2635 .ENT-Interior Designers
+2636 .ENT-Merchandise Displayers And Windows Trimmers
+2640 .ENT-Other Designers
+2700 .ENT-Actors
+2710 .ENT-Producers And Directors
+2721 .ENT-Athletes and Sports Competitors
+2722 .ENT-Coaches and Scouts
+2723 .ENT-Umpires, Referees, And Other Sports Officials
+2740 .ENT-Dancers And Choreographers
+2751 .ENT-Music Directors and Composers
+2752 .ENT-Musicians and Singers
+2755 .ENT-Disc Jockeys, Except Radio
+2770 .ENT-Entertainers And Performers, Sports and Related Workers, All Other
+2805 .ENT-Broadcast Announcers And Radio Disc Jockeys
+2810 .ENT-News Analysts, Reporters And Correspondents
+2825 .ENT-Public Relations Specialists
+2830 .ENT-Editors
+2840 .ENT-Technical Writers
+2850 .ENT-Writers And Authors
+2861 .ENT-Interpreters and Translators
+2862 .ENT-Court Reporters and Simultaneous Captioners
+2865 .ENT-Media And Communication Workers, All Other
+2905 .ENT-Other Media And Communication Equipment Workers
+2910 .ENT-Photographers
+2920 .ENT-Television, Video, And Motion Picture Camera Operators And Editors
+3000 .MED-Chiropractors
+3010 .MED-Dentists
+3030 .MED-Dietitians And Nutritionists
+3040 .MED-Optometrists
+3050 .MED-Pharmacists
+3090 .MED-Physicians
+3100 .MED-Surgeons
+3110 .MED-Physician Assistants
+3120 .MED-Podiatrists
+3140 .MED-Audiologists
+3150 .MED-Occupational Therapists
+3160 .MED-Physical Therapists
+3200 .MED-Radiation Therapists
+3210 .MED-Recreational Therapists
+3220 .MED-Respiratory Therapists
+3230 .MED-Speech-Language Pathologists
+3245 .MED-Other Therapists
+3250 .MED-Veterinarians
+3255 .MED-Registered Nurses
+3256 .MED-Nurse Anesthetists
+3258 .MED-Nurse Practitioners, And Nurse Midwives
+3261 .MED-Acupuncturists
+3270 .MED-Healthcare Diagnosing Or Treating Practitioners, All Other
+3300 .MED-Clinical Laboratory Technologists And Technicians
+3310 .MED-Dental Hygienists
+3321 .MED-Cardiovascular Technologists and Technicians
+3322 .MED-Diagnostic Medical Sonographers
+3323 .MED-Radiologic Technologists And Technicians
+3324 .MED-Magnetic Resonance Imaging Technologists
+3330 .MED-Nuclear Medicine Technologists and Medical Dosimetrists
+3401 .MED-Emergency Medical Technicians
+3402 .MED-Paramedics
+3421 .MED-Pharmacy Technicians
+3422 .MED-Psychiatric Technicians
+3423 .MED-Surgical Technologists
+3424 .MED-Veterinary Technologists and Technicians
+3430 .MED-Dietetic Technicians And Ophthalmic Medical Technicians
+3500 .MED-Licensed Practical And Licensed Vocational Nurses
+3515 .MED-Medical Records Specialists
+3520 .MED-Opticians, Dispensing
+3545 .MED-Miscellaneous Health Technologists and Technicians
+3550 .MED-Other Healthcare Practitioners and Technical Occupations
+3601 .HLS-Home Health Aides
+3602 .HLS-Personal Care Aides
+3603 .HLS-Nursing Assistants
+3605 .HLS-Orderlies and Psychiatric Aides
+3610 .HLS-Occupational Therapy Assistants And Aides
+3620 .HLS-Physical Therapist Assistants And Aides
+3630 .HLS-Massage Therapists
+3640 .HLS-Dental Assistants
+3645 .HLS-Medical Assistants
+3646 .HLS-Medical Transcriptionists
+3647 .HLS-Pharmacy Aides
+3648 .HLS-Veterinary Assistants And Laboratory Animal Caretakers
+3649 .HLS-Phlebotomists
+3655 .HLS-Other Healthcare Support Workers
+3700 .PRT-First-Line Supervisors Of Correctional Officers
+3710 .PRT-First-Line Supervisors Of Police And Detectives
+3720 .PRT-First-Line Supervisors Of Fire Fighting And Prevention Workers
+3725 .PRT-First-Line Supervisors of Security And Protective Service Workers, All Other
+3740 .PRT-Firefighters
+3750 .PRT-Fire Inspectors
+3801 .PRT-Bailiffs
+3802 .PRT-Correctional Officers and Jailers
+3820 .PRT-Detectives And Criminal Investigators
+3840 .PRT-Fish And Game Wardens And Parking Enforcement Officers
+3870 .PRT-Police Officers
+3900 .PRT-Animal Control Workers
+3910 .PRT-Private Detectives And Investigators
+3930 .PRT-Security Guards And Gaming Surveillance Officers
+3940 .PRT-Crossing Guards And Flaggers
+3945 .PRT-Transportation Security Screeners
+3946 .PRT-School Bus Monitors
+3960 .PRT-Other Protective Service Workers
+4000 .EAT-Chefs And Head Cooks
+4010 .EAT-First-Line Supervisors Of Food Preparation And Serving Workers
+4020 .EAT-Cooks
+4030 .EAT-Food Preparation Workers
+4040 .EAT-Bartenders
+4055 .EAT-Fast Food And Counter Workers
+4110 .EAT-Waiters And Waitresses
+4120 .EAT-Food Servers, Nonrestaurant
+4130 .EAT-Dining Room And Cafeteria Attendants And Bartender Helpers
+4140 .EAT-Dishwashers
+4150 .EAT-Hosts And Hostesses, Restaurant, Lounge, And Coffee Shop
+4160 .EAT-Food Preparation and Serving Related Workers, All Other
+4200 .CLN-First-Line Supervisors Of Housekeeping And Janitorial Workers
+4210 .CLN-First-Line Supervisors Of Landscaping, Lawn Service, And Groundskeeping Workers
+4220 .CLN-Janitors And Building Cleaners
+4230 .CLN-Maids And Housekeeping Cleaners
+4240 .CLN-Pest Control Workers
+4251 .CLN-Landscaping And Groundskeeping Workers
+4252 .CLN-Tree Trimmers and Pruners
+4255 .CLN-Other Grounds Maintenance Workers
+4330 .PRS-Supervisors Of Personal Care And Service Workers
+4340 .PRS-Animal Trainers
+4350 .PRS-Animal Caretakers
+4400 .PRS-Gambling Services Workers
+4420 .PRS-Ushers, Lobby Attendants, And Ticket Takers
+4435 .PRS-Other Entertainment Attendants And Related Workers
+4461 .PRS-Embalmers, Crematory Operators, And Funeral Attendants
+4465 .PRS-Morticians, Undertakers, And Funeral Arrangers
+4500 .PRS-Barbers
+4510 .PRS-Hairdressers, Hairstylists, And Cosmetologists
+4521 .PRS-Manicurists And Pedicurists
+4522 .PRS-Skincare Specialists
+4525 .PRS-Other Personal Appearance Workers
+4530 .PRS-Baggage Porters, Bellhops, And Concierges
+4540 .PRS-Tour And Travel Guides
+4600 .PRS-Childcare Workers
+4621 .PRS-Exercise Trainers And Group Fitness Instructors
+4622 .PRS-Recreation Workers
+4640 .PRS-Residential Advisors
+4655 .PRS-Personal Care and Service Workers, All Other
+4700 .SAL-First-Line Supervisors Of Retail Sales Workers
+4710 .SAL-First-Line Supervisors Of Non-Retail Sales Workers
+4720 .SAL-Cashiers
+4740 .SAL-Counter And Rental Clerks
+4750 .SAL-Parts Salespersons
+4760 .SAL-Retail Salespersons
+4800 .SAL-Advertising Sales Agents
+4810 .SAL-Insurance Sales Agents
+4820 .SAL-Securities, Commodities, And Financial Services Sales Agents
+4830 .SAL-Travel Agents
+4840 .SAL-Sales Representatives Of Services, Except Advertising, Insurance, Financial Services, And Travel
+4850 .SAL-Sales Representatives, Wholesale And Manufacturing
+4900 .SAL-Models, Demonstrators, And Product Promoters
+4920 .SAL-Real Estate Brokers And Sales Agents
+4930 .SAL-Sales Engineers
+4940 .SAL-Telemarketers
+4950 .SAL-Door-To-Door Sales Workers, News And Street Vendors, And Related Workers
+4965 .SAL-Sales And Related Workers, All Other
+5000 .OFF-First-Line Supervisors Of Office And Administrative Support Workers
+5010 .OFF-Switchboard Operators, Including Answering Service
+5020 .OFF-Telephone Operators
+5040 .OFF-Communications Equipment Operators, All Other
+5100 .OFF-Bill And Account Collectors
+5110 .OFF-Billing And Posting Clerks
+5120 .OFF-Bookkeeping, Accounting, And Auditing Clerks
+5140 .OFF-Payroll And Timekeeping Clerks
+5150 .OFF-Procurement Clerks
+5160 .OFF-Tellers
+5165 .OFF-Other Financial Clerks
+5220 .OFF-Court, Municipal, And License Clerks
+5230 .OFF-Credit Authorizers, Checkers, And Clerks
+5240 .OFF-Customer Service Representatives
+5250 .OFF-Eligibility Interviewers, Government Programs
+5260 .OFF-File Clerks
+5300 .OFF-Hotel, Motel, And Resort Desk Clerks
+5310 .OFF-Interviewers, Except Eligibility And Loan
+5320 .OFF-Library Assistants, Clerical
+5330 .OFF-Loan Interviewers And Clerks
+5340 .OFF-New Accounts Clerks
+5350 .OFF-Correspondence Clerks And Order Clerks
+5360 .OFF-Human Resources Assistants, Except Payroll And Timekeeping
+5400 .OFF-Receptionists And Information Clerks
+5410 .OFF-Reservation And Transportation Ticket Agents And Travel Clerks
+5420 .OFF-Other Information And Records Clerks
+5500 .OFF-Cargo And Freight Agents
+5510 .OFF-Couriers And Messengers
+5521 .OFF-Public Safety Telecommunicators
+5522 .OFF-Dispatchers, Except Police, Fire, And Ambulance
+5530 .OFF-Meter Readers, Utilities
+5540 .OFF-Postal Service Clerks
+5550 .OFF-Postal Service Mail Carriers
+5560 .OFF-Postal Service Mail Sorters, Processors, And Processing Machine Operators
+5600 .OFF-Production, Planning, And Expediting Clerks
+5610 .OFF-Shipping, Receiving, And Inventory Clerks
+5630 .OFF-Weighers, Measurers, Checkers, And Samplers, Recordkeeping
+5710 .OFF-Executive Secretaries And Executive Administrative Assistants
+5720 .OFF-Legal Secretaries and Administrative Assistants
+5730 .OFF-Medical Secretaries and Administrative Assistants
+5740 .OFF-Secretaries And Administrative Assistants, Except Legal, Medial, And Executive
+5810 .OFF-Data Entry Keyers
+5820 .OFF-Word Processors And Typists
+5840 .OFF-Insurance Claims And Policy Processing Clerks
+5850 .OFF-Mail Clerks And Mail Machine Operators, Except Postal Service
+5860 .OFF-Office Clerks, General
+5900 .OFF-Office Machine Operators, Except Computer
+5910 .OFF-Proofreaders And Copy Markers
+5920 .OFF-Statistical Assistants
+5940 .OFF-Other Office And Administrative Support Workers
+6005 .FFF-First-Line Supervisors Of Farming, Fishing, And Forestry Workers
+6010 .FFF-Agricultural Inspectors
+6040 .FFF-Graders And Sorters, Agricultural Products
+6050 .FFF-Other Agricultural Workers
+6115 .FFF-Fishing And Hunting Workers
+6120 .FFF-Forest And Conservation Workers
+6130 .FFF-Logging Workers
+6200 .CON-First-Line Supervisors Of Construction Trades And Extraction Workers
+6210 .CON-Boilermakers
+6220 .CON-Brickmasons, Blockmasons, Stonemasons, And Reinforcing Iron And Rebar Workers
+6230 .CON-Carpenters
+6240 .CON-Carpet, Floor, And Tile Installers And Finishers
+6250 .CON-Cement Masons, Concrete Finishers, And Terrazzo Workers
+6260 .CON-Construction Laborers
+6305 .CON-Construction Equipment Operators
+6330 .CON-Drywall Installers, Ceiling Tile Installers, And Tapers
+6355 .CON-Electricians
+6360 .CON-Glaziers
+6400 .CON-Insulation Workers
+6410 .CON-Painters and Paperhangers
+6441 .CON-Pipelayers
+6442 .CON-Plumbers, Pipefitters, And Steamfitters
+6460 .CON-Plasterers And Stucco Masons
+6515 .CON-Roofers
+6520 .CON-Sheet Metal Workers
+6530 .CON-Structural Iron And Steel Workers
+6540 .CON-Solar Photovoltaic Installers
+6600 .CON-Helpers, Construction Trades
+6660 .CON-Construction And Building Inspectors
+6700 .CON-Elevator Installers And Repairers
+6710 .CON-Fence Erectors
+6720 .CON-Hazardous Materials Removal Workers
+6730 .CON-Highway Maintenance Workers
+6740 .CON-Rail-Track Laying And Maintenance Equipment Operators
+6765 .CON-Other Construction And Related Workers
+6800 .EXT-Derrick, Rotary Drill, And Service Unit Operators, And Roustabouts, Oil, Gas, And Mining
+6825 .EXT-Surface Mining Machine Operators And Earth Drillers
+6835 .EXT-Explosives Workers, Ordnance Handling Experts, and Blasters
+6850 .EXT-Underground Mining Machine Operators
+6950 .EXT-Other Extraction Workers
+7000 .RPR-First-Line Supervisors Of Mechanics, Installers, And Repairers
+7010 .RPR-Computer, Automated Teller, And Office Machine Repairers
+7020 .RPR-Radio And Telecommunications Equipment Installers And Repairers
+7030 .RPR-Avionics Technicians
+7040 .RPR-Electric Motor, Power Tool, And Related Repairers
+7100 .RPR-Other Electrical And Electronic Equipment Mechanics, Installers, And Repairers.
+7120 .RPR-Electronic Home Entertainment Equipment Installers And Repairers
+7130 .RPR-Security And Fire Alarm Systems Installers
+7140 .RPR-Aircraft Mechanics And Service Technicians
+7150 .RPR-Automotive Body And Related Repairers
+7160 .RPR-Automotive Glass Installers And Repairers
+7200 .RPR-Automotive Service Technicians And Mechanics
+7210 .RPR-Bus And Truck Mechanics And Diesel Engine Specialists
+7220 .RPR-Heavy Vehicle And Mobile Equipment Service Technicians And Mechanics
+7240 .RPR-Small Engine Mechanics
+7260 .RPR-Miscellaneous Vehicle And Mobile Equipment Mechanics, Installers, And Repairers
+7300 .RPR-Control And Valve Installers And Repairers
+7315 .RPR-Heating, Air Conditioning, And Refrigeration Mechanics And Installers
+7320 .RPR-Home Appliance Repairers
+7330 .RPR-Industrial And Refractory Machinery Mechanics
+7340 .RPR-Maintenance And Repair Workers, General
+7350 .RPR-Maintenance Workers, Machinery
+7360 .RPR-Millwrights
+7410 .RPR-Electrical Power-Line Installers And Repairers
+7420 .RPR-Telecommunications Line Installers And Repairers
+7430 .RPR-Precision Instrument And Equipment Repairers
+7510 .RPR-Coin, Vending, And Amusement Machine Servicers And Repairers
+7540 .RPR-Locksmiths And Safe Repairers
+7560 .RPR-Riggers
+7610 .RPR-Helpers--Installation, Maintenance, And Repair Workers
+7640 .RPR-Other Installation, Maintenance, And Repair Workers
+7700 .PRD-First-Line Supervisors Of Production And Operating Workers
+7720 .PRD-Electrical, Electronics, And Electromechanical Assemblers
+7730 .PRD-Engine And Other Machine Assemblers
+7740 .PRD-Structural Metal Fabricators And Fitters
+7750 .PRD-Other Assemblers And Fabricators
+7800 .PRD-Bakers
+7810 .PRD-Butchers And Other Meat, Poultry, And Fish Processing Workers
+7830 .PRD-Food And Tobacco Roasting, Baking, And Drying Machine Operators And Tenders
+7840 .PRD-Food Batchmakers
+7850 .PRD-Food Cooking Machine Operators And Tenders
+7855 .PRD-Food Processing Workers, All Other
+7905 .PRD-Computer Numerically Controlled Tool Operators And Programmers
+7925 .PRD-Forming Machine Setters, Operators, And Tenders, Metal And Plastic
+7950 .PRD-Cutting, Punching, And Press Machine Setters, Operators, And Tenders, Metal And Plastic
+8000 .Grinding, Lapping, Polishing, And Buffing Machine Tool
+8025 .PRD-Other Machine Tool Setters, Operators, And Tenders, Metal and Plastic
+8030 .PRD-Machinists
+8040 .PRD-Metal Furnace Operators, Tenders, Pourers, And Casters
+8100 .PRD-Model Makers, Patternmakers, And Molding Machine Setters, Metal And Plastic
+8130 .PRD-Tool And Die Makers
+8140 .PRD-Welding, Soldering, And Brazing Workers
+8225 .PRD-Other Metal Workers And Plastic Workers
+8250 .PRD-Prepress Technicians And Workers
+8255 .PRD-Printing Press Operators
+8256 .PRD-Print Binding And Finishing Workers
+8300 .PRD-Laundry And Dry-Cleaning Workers
+8310 .PRD-Pressers, Textile, Garment, And Related Materials
+8320 .PRD-Sewing Machine Operators
+8335 .PRD-Shoe And Leather Workers
+8350 .PRD-Tailors, Dressmakers, And Sewers
+8365 .PRD-Textile Machine Setters, Operators, And Tenders
+8450 .PRD-Upholsterers
+8465 .PRD-Other Textile, Apparel, And Furnishings Workers
+8500 .PRD-Cabinetmakers And Bench Carpenters
+8510 .PRD-Furniture Finishers
+8530 .PRD-Sawing Machine Setters, Operators, And Tenders, Wood
+8540 .PRD-Woodworking Machine Setters, Operators, And Tenders, Except Sawing
+8555 .PRD-Other Woodworkers
+8600 .PRD-Power Plant Operators, Distributors, And Dispatchers
+8610 .PRD-Stationary Engineers And Boiler Operators
+8620 .PRD-Water And Wastewater Treatment Plant And System Operators
+8630 .PRD-Miscellaneous Plant And System Operators
+8640 .PRD-Chemical Processing Machine Setters, Operators, And Tenders
+8650 .PRD-Crushing, Grinding, Polishing, Mixing, And Blending Workers
+8710 .PRD-Cutting Workers
+8720 .PRD-Extruding, Forming, Pressing, And Compacting Machine Setters, Operators, And Tenders
+8730 .PRD-Furnace, Kiln, Oven, Drier, And Kettle Operators And Tenders
+8740 .PRD-Inspectors, Testers, Sorters, Samplers, And Weighers
+8750 .PRD-Jewelers And Precious Stone And Metal Workers
+8760 .PRD-Dental And Ophthalmic Laboratory Technicians And Medical Appliance Technicians
+8800 .PRD-Packaging And Filling Machine Operators And Tenders
+8810 .PRD-Painting Workers
+8830 .PRD-Photographic Process Workers And Processing Machine Operators
+8850 .PRD-Adhesive Bonding Machine Operators And Tenders
+8910 .PRD-Etchers And Engravers
+8920 .PRD-Molders, Shapers, And Casters, Except Metal And Plastic
+8930 .PRD-Paper Goods Machine Setters, Operators, And Tenders
+8940 .PRD-Tire Builders
+8950 .PRD-Helpers-Production Workers
+8990 .PRD-Miscellaneous Production Workers, Including Equipment Operators And Tenders
+9005 .TRN-Supervisors Of Transportation And Material Moving Workers
+9030 .TRN-Aircraft Pilots And Flight Engineers
+9040 .TRN-Air Traffic Controllers And Airfield Operations Specialists
+9050 .TRN-Flight Attendants
+9110 .TRN-Ambulance Drivers And Attendants, Except Emergency Medical Technicians
+9121 .TRN-Bus Drivers, School
+9122 .TRN-Bus Drivers, Transit And Intercity
+9130 .TRN-Driver/Sales Workers And Truck Drivers
+9141 .TRN-Shuttle Drivers And Chauffeurs
+9142 .TRN-Taxi Drivers
+9150 .TRN-Motor Vehicle Operators, All Other
+9210 .TRN-Locomotive Engineers And Operators
+9240 .TRN-Railroad Conductors And Yardmasters
+9265 .TRN-Other Rail Transportation Workers
+9300 .TRN-Sailors And Marine Oilers, And Ship Engineers
+9310 .TRN-Ship And Boat Captains And Operators
+9350 .TRN-Parking Lot Attendants
+9365 .TRN-Transportation Service Attendants
+9410 .TRN-Transportation Inspectors
+9415 .TRN-Passenger Attendants
+9430 .TRN-Other Transportation Workers
+9510 .TRN-Crane And Tower Operators
+9570 .TRN-Conveyor, Dredge, And Hoist and Winch Operators
+9600 .TRN-Industrial Truck And Tractor Operators
+9610 .TRN-Cleaners Of Vehicles And Equipment
+9620 .TRN-Laborers And Freight, Stock, And Material Movers, Hand
+9630 .TRN-Machine Feeders And Offbearers
+9640 .TRN-Packers And Packagers, Hand
+9645 .TRN-Stockers And Order Fillers
+9650 .TRN-Pumping Station Operators
+9720 .TRN-Refuse And Recyclable Material Collectors
+9760 .TRN-Other Material Moving Workers
+9800 .MIL-Military Officer Special And Tactical Operations Leaders
+9810 .MIL-First-Line Enlisted Military Supervisors
+9825 .MIL-Military Enlisted Tactical Operations And Air/Weapons Specialists And Crew Members
+9830 .MIL-Military, Rank Not Specified
+9920 .Unemployed And Last Worked 5 Years Ago Or Earlier Or Never Worked
