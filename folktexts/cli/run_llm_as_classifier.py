@@ -3,7 +3,6 @@
 """
 import sys
 import logging
-import argparse
 from pathlib import Path
 from functools import partial
 from argparse import ArgumentParser
@@ -11,6 +10,7 @@ from argparse import ArgumentParser
 import numpy as np
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from folktexts.datasets import Dataset
+from folktexts.cli._utils import cmd_line_args_to_kwargs
 
 
 def setup_arg_parser() -> ArgumentParser:
@@ -174,7 +174,6 @@ if __name__ == '__main__':
     args, extra_kwargs = parser.parse_known_args()
 
     # Parse extra kwargs
-    from ._utils import cmd_line_args_to_kwargs
     extra_kwargs = cmd_line_args_to_kwargs(extra_kwargs)
     if extra_kwargs:
         logging.warning(f"Received the following extra kwargs: {extra_kwargs}")
