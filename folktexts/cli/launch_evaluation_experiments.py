@@ -201,6 +201,8 @@ if __name__ == '__main__':
     # Parse extra kwargs
     from ._utils import cmd_line_args_to_kwargs
     extra_kwargs = cmd_line_args_to_kwargs(extra_kwargs)
+    # TODO: use the run_llm_as_classifier.py parser to parse extra kwargs
+    #       with `setup_arg_parser().convert_arg_line_to_args(extra_kwargs)` !!!
 
     models = args.model or LLM_MODELS
     tasks = args.acs_task_name or ACS_TASKS
