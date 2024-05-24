@@ -9,3 +9,6 @@ torch
 sentencepiece
 protobuf
 netcal
+cloudpickle
+matplotlib
+seaborn
