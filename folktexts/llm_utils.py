@@ -4,7 +4,59 @@ import logging
 from pathlib import Path
 
 import torch
+import numpy as np
 from transformers import AutoModelForCausalLM, AutoTokenizer
+
+
+def query_model_batch(
+    text_inputs: list[str],
+    model: AutoModelForCausalLM,
+    tokenizer: AutoTokenizer,
+    context_size: int
+) -> np.array:
+    """Queries the model with a batch of text inputs.
+
+    Parameters
+    ----------
+    text_inputs : list[str]
+        The inputs to the model as a list of strings.
+    model : AutoModelForCausalLM
+        The model to query.
+    tokenizer : AutoTokenizer
+        The tokenizer used to encode the text inputs.
+    context_size : int
+        The maximum context size to consider for each input (in tokens).
+
+    Returns
+    -------
+    np.array
+        Model's last token probabilities for each input as a np.array of shape
+        (len(text_inputs), vocab_size).
+    """
+    model_device = next(model.parameters()).device
+
+    # Tokenize
+    token_inputs = [tokenizer.encode(text, return_tensors="pt").flatten()[-context_size:] for text in text_inputs]
+    idx_last_token = [tok_seq.shape[0] - 1 for tok_seq in token_inputs]
+
+    # Pad
+    tensor_inputs = torch.nn.utils.rnn.pad_sequence(
+        token_inputs,
+        batch_first=True,
+        padding_value=tokenizer.pad_token_id,
+    ).to(model_device)
+
+    # Mask padded context
+    attention_mask = tensor_inputs.ne(tokenizer.pad_token_id)
+
+    # Query: run one forward pass, i.e., generate the next token
+    with torch.no_grad():
+        logits = model(input_ids=tensor_inputs, attention_mask=attention_mask).logits
+
+    # Probabilities corresponding to the last token after the prompt
+    last_token_logits = logits[torch.arange(len(idx_last_token)), idx_last_token]
+    last_token_probs = torch.nn.functional.softmax(last_token_logits, dim=-1)
+    return last_token_probs.to(dtype=torch.float16).cpu().numpy()
 
 
 def add_pad_token(tokenizer):
@@ -42,6 +94,8 @@ def load_model_tokenizer(model_name_or_path: str | Path, **kwargs) -> tuple[Auto
     tuple[AutoModelForCausalLM, AutoTokenizer]
         The loaded model and tokenizer, respectively.
     """
+    logging.info(f"Loading model '{model_name_or_path}'")
+
     # Load tokenizer from disk
     tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
 
@@ -87,6 +141,6 @@ def get_model_size_B(model_name: str, default: int = 2) -> int:
     regex = re.search(r"((?P<times>\d+)[xX])?(?P<size>\d+)[bB]", model_name)
     if regex:
         return int(regex.group("size")) * int(regex.group("times") or 1)
-    elif model_name == "bigscience/bloom":
-        return 180  # 180B parameters
+    else:
+        logging.error(f"Could not infer model size from name '{model_name}'")
     return default

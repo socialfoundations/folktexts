@@ -1,5 +1,5 @@
 executable = /home/acruz/miniconda3/envs/folktexts/bin/python
-arguments = -m folktexts.cli.download_models --save-dir /fast/acruz/huggingface-models
+arguments = -m folktexts.cli.download_models --save-dir /fast/groups/sf/huggingface-models
 request_cpus = 8
 request_gpus = 4
 request_memory = 600GB

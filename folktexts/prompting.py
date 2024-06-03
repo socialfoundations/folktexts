@@ -7,13 +7,15 @@ e.g.,
 import pandas as pd
 from transformers import AutoTokenizer
 
-from .datasets import Dataset
+from .dataset import Dataset
+from .task import TaskMetadata
 
 
 SYSTEM_PROMPT = """\
 You are a helpful assistant. You answer multiple-choice questions based on the information provided.
 """
 
+# TODO: Add population description "Survey was conducted among US residents in 2018."
 ACS_TASK_DESCRIPTION = """\
 The following data corresponds to a survey respondent. \
 Please answer the question based on the information provided. \
@@ -32,8 +34,7 @@ GEMMA_CHAT_PROMPT = """The provided information suggests that the answer is"""
 
 def encode_row_prompt(
     row: pd.Series,
-    dataset: Dataset,
-    randomize: bool = False,
+    task: TaskMetadata,
     add_task_description: bool = True,
 ) -> str:
     """Encode a question regarding a given row."""
@@ -41,13 +42,14 @@ def encode_row_prompt(
         (ACS_TASK_DESCRIPTION + "\n" if add_task_description else "")
         + f"""\
 Information:
-{dataset.get_row_description(row)}
+{task.get_row_description(row)}
 
-{dataset.question.get_question_and_answer_key(randomize=randomize)}""")
+{task.question.get_question_prompt()}""")
 
 
 def encode_row_prompt_few_shot(
     row: pd.Series,
+    task: TaskMetadata,
     dataset: Dataset,
     n_shots: int = 10,
     reuse_examples: bool = False,
@@ -58,8 +60,8 @@ def encode_row_prompt_few_shot(
     ----------
     row : pd.Series
         The row that the question will be about.
-    dataset : Dataset
-        The dataset that the row belongs to.
+    task : TaskMetadata
+        The task that the row belongs to.
     n_shots : int, optional
         The number of example questions and answers to use before prompting
         about the given row, by default 3.
@@ -81,21 +83,20 @@ def encode_row_prompt_few_shot(
     # Add `n` example rows with respective labels
     for i in range(n_shots):
         prompt += (
-            encode_row_prompt(X_examples.iloc[i], dataset=dataset, add_task_description=False)
+            encode_row_prompt(X_examples.iloc[i], task=task, add_task_description=False)
             + f" {dataset.question.get_answer_key_from_value(y_examples.iloc[i])}"
             + "\n\n"
         )
 
     # Add the target row without its label
-    prompt += encode_row_prompt(row, dataset=dataset, add_task_description=False)
+    prompt += encode_row_prompt(row, task=task, add_task_description=False)
     return prompt
 
 
 def encode_row_prompt_chat(
     row: pd.Series,
-    dataset: Dataset,
+    task: TaskMetadata,
     tokenizer: AutoTokenizer,
-    randomize: bool = False,
     **chat_template_kwargs,
 ) -> str:
     # TODO: implement two functions
@@ -105,7 +106,7 @@ def encode_row_prompt_chat(
         tokenizer,
         (
             SYSTEM_PROMPT
-            + encode_row_prompt(row, dataset, randomize=randomize)
+            + encode_row_prompt(row, task)
         ),
         **chat_template_kwargs,
     )

@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Optional
 
 import numpy as np
-import pandas as pd
 from netcal.metrics import ECE
 from sklearn.metrics import (
     confusion_matrix,
@@ -19,13 +18,10 @@ from sklearn.metrics import (
     roc_auc_score,
     log_loss,
     brier_score_loss,
-    RocCurveDisplay,
 )
-from sklearn.calibration import CalibrationDisplay
-from matplotlib import pyplot as plt
-import seaborn as sns
 
 from ._commons import safe_division, is_valid_number, join_dictionaries
+from .plotting import render_evaluation_plots
 
 
 def evaluate_binary_predictions(y_true: np.ndarray, y_pred: np.ndarray) -> dict:
@@ -193,6 +189,7 @@ def evaluate_binary_predictions_fairness(
 def compute_best_threshold(
     y_true: np.ndarray,
     y_pred_scores: np.ndarray,
+    *,
     false_pos_cost: float = 1.0,
     false_neg_cost: float = 1.0,
 ) -> float:
@@ -264,11 +261,21 @@ def evaluate_predictions(
     assert is_valid_number(threshold) and 0 <= threshold <= 1, \
         f"Invalid threshold: {threshold}"
 
+    # Save initial results' statistics
+    results = {
+        "threshold": threshold,
+        "n_samples": len(y_true),
+        "n_positives": np.sum(y_true).item(),
+        "n_negatives": len(y_true) - np.sum(y_true).item(),
+        "imgs_dir": Path(imgs_dir).resolve().as_posix() if imgs_dir is not None else None,
+        "model_name": model_name,
+    }
+
     # Compute binary predictions using the default threshold
     y_pred_binary = (y_pred_scores >= threshold).astype(int)
 
     # Evaluate binary predictions
-    results = evaluate_binary_predictions(y_true, y_pred_binary)
+    results.update(evaluate_binary_predictions(y_true, y_pred_binary))
 
     # Add loss functions as proxies for calibration
     results["log_loss"] = log_loss(y_true, y_pred_scores)
@@ -301,43 +308,14 @@ def evaluate_predictions(
 
     # Render plots if `imgs_dir` is provided
     if imgs_dir is not None:
-        def save_fig(fig, fig_name: str):
-            path = Path(imgs_dir) / f"{fig_name}.png"
-            fig.savefig(path, bbox_inches="tight", dpi=300)
-            plt.close()
-
-            results[f"{fig_name}_path"] = path.resolve().as_posix()
-
-        # Plot ROC curve
-        disp = RocCurveDisplay.from_predictions(y_true=y_true, y_pred=y_pred_scores, plot_chance_level=True)
-        disp.figure_.suptitle("ROC Curve" + (f" - {model_name}" if model_name else ""))
-        save_fig(disp.figure_, "roc_curve")
-
-        # Plot calibration curve
-        disp = CalibrationDisplay.from_predictions(y_true=y_true, y_prob=y_pred_scores, n_bins=5, strategy="quantile")
-        disp.figure_.suptitle("Calibration Curve" + (f" - {model_name}" if model_name else ""))
-        save_fig(disp.figure_, "calibration_curve")
-
-        # Plot score distribution
-        sns.histplot(y_pred_scores, kde=True)
-        plt.xlabel("Predicted Risk Score")
-        plt.ylabel("Frequency")
-        plt.gcf().suptitle("Score Distribution" + (f" - {model_name}" if model_name else ""))
-        save_fig(plt.gcf(), "score_distribution")
-
-        # Plot distribution of scores per label
-        sns.kdeplot(
-            data=pd.DataFrame(
-                {"score": y_pred_scores, "label": y_true}
-            ).reset_index(drop=True),
-            x="score",
-            hue="label",
-            multiple="fill",
-        )
-        plt.xlim(y_pred_scores.min(), y_pred_scores.max())
-        plt.xlabel("Predicted Risk Score")
-        plt.gcf().suptitle("Score Distribution per Label" + (f" - {model_name}" if model_name else ""))
-        save_fig(plt.gcf(), "score_distribution_per_label")
+        results.update(render_evaluation_plots(
+            y_true=y_true,
+            y_pred_scores=y_pred_scores,
+            sensitive_attribute=sensitive_attribute,
+            imgs_dir=imgs_dir,
+            eval_results=results,
+            model_name=model_name,
+        ))
 
     return results
 

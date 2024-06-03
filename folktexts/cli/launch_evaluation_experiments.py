@@ -7,14 +7,16 @@ import argparse
 from pathlib import Path
 from pprint import pprint
 
-from ._utils import get_current_date, save_json, load_json
-from .experiments import Experiment, launch_experiment_job
+from folktexts._io import load_json, save_json
 from folktexts.llm_utils import get_model_folder_path, get_model_size_B
+
+from ._utils import get_current_date
+from .experiments import Experiment, launch_experiment_job
 
 # All ACS prediction tasks
 ACS_TASKS = (
     "ACSIncome",
-    # "ACSEmployment",
+    # "ACSEmployment",  # Not enough data   # TODO: get other ACS tasks running
     # "ACSMobility",
     # "ACSTravelTime",
     # "ACSPublicCoverage",
@@ -23,14 +25,15 @@ ACS_TASKS = (
 ################
 # Useful paths #
 ################
-ROOT_DIR = Path("/fast/acruz")
+ROOT_DIR = Path("/fast/groups/sf")
+# ROOT_DIR = Path("/fast/acruz")
 # ROOT_DIR = Path("~").expanduser().resolve()               # on local machine
 
-# ACS data directory (contains downloaded ACS data)
-ACS_DATA_DIR = ROOT_DIR / "data" / "folktables"
+# ACS data directory
+ACS_DATA_DIR = ROOT_DIR / "data"
 
 # Directory to save results in (make sure it exists)
-RESULTS_DIR = ROOT_DIR / "llm_as_classifier" / get_current_date()
+RESULTS_DIR = ROOT_DIR / "folktexts-results" / get_current_date()
 RESULTS_DIR.mkdir(exist_ok=True, parents=False)
 
 # Models save directory
@@ -38,7 +41,7 @@ MODELS_DIR = ROOT_DIR / "huggingface-models"
 # MODELS_DIR = ROOT_DIR / "data" / "huggingface-models"     # on local machine
 
 # Path to the executable script to run
-EXECUTABLE_PATH = Path(__file__).parent.resolve() / "run_llm_as_classifier.py"
+EXECUTABLE_PATH = Path(__file__).parent.resolve() / "run_benchmark.py"
 
 ##################
 # Global configs #
@@ -50,14 +53,11 @@ VERBOSE = True
 
 JOB_CPUS = 4
 JOB_MEMORY_GB = 60
-JOB_BID = 40
+JOB_BID = 50
 
 # LLMs to evaluate
 LLM_MODELS = [
     # ** Small models **
-    "openai-community/gpt2",
-    "openai-community/gpt2-large",
-    "openai-community/gpt2-xl",
     "google/gemma-2b",
     "google/gemma-1.1-2b-it",
 
@@ -70,14 +70,14 @@ LLM_MODELS = [
     "meta-llama/Meta-Llama-3-8B-Instruct",
 
     # # ** Large models **
-    "01-ai/Yi-34B",
-    "01-ai/Yi-34B-Chat",
-    "mistralai/Mixtral-8x7B-v0.1",
-    "mistralai/Mixtral-8x7B-Instruct-v0.1",
-    "meta-llama/Meta-Llama-3-70B",
-    "meta-llama/Meta-Llama-3-70B-Instruct",
-    "mistralai/Mixtral-8x22B-v0.1",
-    "mistralai/Mixtral-8x22B-Instruct-v0.1",
+    # "01-ai/Yi-34B",
+    # "01-ai/Yi-34B-Chat",
+    # "mistralai/Mixtral-8x7B-v0.1",
+    # "mistralai/Mixtral-8x7B-Instruct-v0.1",
+    # "meta-llama/Meta-Llama-3-70B",
+    # "meta-llama/Meta-Llama-3-70B-Instruct",
+    # "mistralai/Mixtral-8x22B-v0.1",
+    # "mistralai/Mixtral-8x22B-Instruct-v0.1",
     # "Qwen/Qwen1.5-72B",
     # "Qwen/Qwen1.5-72B-Chat",
     # "allenai/tulu-2-dpo-70b",
@@ -87,7 +87,7 @@ LLM_MODELS = [
 # Function that defines common settings among all LLM-as-clf experiments
 def make_llm_as_clf_experiment(
     model_name: str,
-    acs_task_name: str,
+    task_name: str,
     **kwargs,
 ) -> Experiment:
     """Create an experiment object to run.
@@ -122,7 +122,7 @@ def make_llm_as_clf_experiment(
         executable_path=EXECUTABLE_PATH.as_posix(),
         kwargs=dict(
             model=model_path,
-            acs_task_name=acs_task_name,
+            task_name=task_name,
             **experiment_kwargs,
         ),
         **job_kwargs,
@@ -150,7 +150,7 @@ def get_llm_results_folder(exp: Experiment) -> str:
     """
     return (
         f"model-{Path(exp.model).name}."
-        f"dataset-{exp.acs_task_name}."
+        f"dataset-{exp.task_name}."
         f"seed-{exp.seed}"
     )
 
@@ -168,7 +168,7 @@ def setup_arg_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "--acs-task-name",
+        "--task-name",
         type=str,
         help="[string] ACS task name to run experiments on - can provide multiple!",
         required=False,
@@ -201,11 +201,11 @@ if __name__ == '__main__':
     # Parse extra kwargs
     from ._utils import cmd_line_args_to_kwargs
     extra_kwargs = cmd_line_args_to_kwargs(extra_kwargs)
-    # TODO: use the run_llm_as_classifier.py parser to parse extra kwargs
+    # TODO: use the run_benchmark.py parser to parse extra kwargs
     #       with `setup_arg_parser().convert_arg_line_to_args(extra_kwargs)` !!!
 
     models = args.model or LLM_MODELS
-    tasks = args.acs_task_name or ACS_TASKS
+    tasks = args.task_name or ACS_TASKS
 
     # Load experiment from JSON file if provided
     if args.experiment_json:
@@ -216,7 +216,7 @@ if __name__ == '__main__':
     # Otherwise, run all experiments planned
     else:
         all_experiments = [
-            make_llm_as_clf_experiment(model_name=model, acs_task_name=task, **extra_kwargs)
+            make_llm_as_clf_experiment(model_name=model, task_name=task, **extra_kwargs)
             for model in models
             for task in tasks
         ]

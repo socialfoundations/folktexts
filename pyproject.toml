@@ -4,8 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "folktexts"
-description = "An LLM benchmark for risk-estimating capabilities."
-# description = "A multi-lingual, multi-country Q&A dataset of social facts."
+description = "A benchmark on LLM calibration to human populations."
 license = {file = "LICENSE"}
 authors = [
     { name = "Andre Cruz" },
@@ -19,7 +18,7 @@ keywords = ["language-model", "risk-estimation", "benchmark", "machine-learning"
 
 # PyPI classifiers, see https://pypi.org/classifiers/
 classifiers = [
-    "Development Status :: 1 - Planning",
+    "Development Status :: 3 - Alpha",
     "License :: OSI Approved :: MIT License",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
@@ -32,7 +31,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 
-version = "0.0.3"
+version = "0.0.4"
 requires-python = ">=3.8"
 dynamic = [
     "readme",

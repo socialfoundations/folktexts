@@ -5,7 +5,8 @@ Python script to re-run a single experiment locally.
 from subprocess import call
 from argparse import ArgumentParser
 
-from ._utils import load_json
+from folktexts._io import load_json
+
 from .experiments import Experiment
 
 

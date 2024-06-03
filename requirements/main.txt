@@ -1,8 +1,8 @@
+folktables~=0.0.12
 numpy
 pandas
 tqdm
 scikit-learn
-folktables
 accelerate
 transformers
 torch

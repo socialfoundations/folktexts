@@ -1,3 +1,4 @@
+"""Common set of utility functions and constants used across the project."""
 import logging
 import operator
 from functools import reduce

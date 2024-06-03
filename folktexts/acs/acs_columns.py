@@ -1,16 +1,20 @@
 """Module to hold ACS column mappings from values to natural text.
 """
-
-import re
-import logging
 from pathlib import Path
 from functools import partial
-from typing import Callable
 
-from ..datasets import ColumnToText
-from ..questions import Question, Choice
+from ..col_to_text import ColumnToText
+from ..qa_interface import MultipleChoiceQA, DirectNumericQA, Choice
 
-# Defining ACS Columns
+from ._utils import get_thresholded_column_name, parse_pums_code
+
+
+# Path to ACS codebook files
+ACS_OCCP_FILE = Path(__file__).parent / "data" / "OCCP-codes-acs.txt"
+ACS_POBP_FILE = Path(__file__).parent / "data" / "POBP-codes-acs.txt"
+
+
+# Describing ACS columns and corresponding questions
 acs_age = ColumnToText(
     "AGEP",
     short_description="age",
@@ -20,7 +24,8 @@ acs_age = ColumnToText(
 acs_class_of_worker = ColumnToText(
     "COW",
     short_description="current employment status",
-    question=Question(
+    question=MultipleChoiceQA(
+        column="COW",
         text=(
             "Which one of the following best describes this person's employment "
             "last week or the most recent employment in the past 5 years?",
@@ -42,9 +47,12 @@ acs_class_of_worker = ColumnToText(
 acs_schooling = ColumnToText(
     "SCHL",
     short_description="highest grade completed",
-    question=Question(
-        "What is this person's highest grade or level of school completed?",
+    question=MultipleChoiceQA(
+        column="SCHL",
+        text="What is this person's highest grade or level of school completed?",
         choices=[
+            Choice("N/A - no schooling completed", 1),
+            Choice("nursery school / preschool", 2),
             Choice("kindergarten", 3),
             Choice("1st grade only", 4),
             Choice("2nd grade", 5),
@@ -83,43 +91,6 @@ acs_marital_status = ColumnToText(
     },
 )
 
-
-def parse_pums_code(
-    value: int,
-    file: str | Path,
-    postprocess: Callable[[str], str] = None,
-    cache={},
-) -> str:
-    # Check if file already loaded into cache
-    if file not in cache:
-        line_re = re.compile(r"(?P<code>\d+)\s+[.](?P<description>.+)$")
-
-        file_cache = {}
-        with open(file) as f:
-            for line in f:
-                m = line_re.match(line)
-                if m is None:
-                    logging.error(f"Could not parse line: {line}")
-                    continue
-
-                code, description = m.group("code"), m.group("description")
-                file_cache[int(code)] = postprocess(description) if postprocess else description
-
-        cache[file] = file_cache
-
-    # Get file cache
-    file_cache = cache[file]
-
-    # Return the value from cache, or "N/A" if not found
-    if value not in file_cache:
-        logging.warning(f"Could not find code '{value}' in file '{file}'")
-        return "N/A"
-
-    return file_cache[value]
-
-
-ACS_OCCP_FILE = Path(__file__).parent / "data/OCCP-codes-acs.txt"
-
 acs_occupation = ColumnToText(
     "OCCP",
     short_description="occupation",
@@ -130,9 +101,6 @@ acs_occupation = ColumnToText(
     ),
 )
 
-
-ACS_POBP_FILE = Path(__file__).parent / "data/POBP-codes-acs.txt"
-
 acs_place_of_birth = ColumnToText(
     "POBP",
     short_description="place of birth",
@@ -142,29 +110,26 @@ acs_place_of_birth = ColumnToText(
 acs_relationship = ColumnToText(
     "RELP",
     short_description="relationship to the reference person in the household",
-    question=Question(
-        text="What is this person's relationship to the reference person in the household?",
-        choices=[
-            Choice("the 'reference person' itself", 0),
-            Choice("husband/wife", 1),
-            Choice("biological son or daughter", 2),
-            Choice("adopted son or daughter", 3),
-            Choice("stepson or stepdaughter", 4),
-            Choice("brother or sister", 5),
-            Choice("father or mother", 6),
-            Choice("grandchild", 7),
-            Choice("parent-in-law", 8),
-            Choice("son-in-law or daughter-in-law", 9),
-            Choice("other relative", 10),
-            Choice("roomer or boarder", 11),
-            Choice("housemate or roommate", 12),
-            Choice("unmarried partner", 13),
-            Choice("foster child", 14),
-            Choice("other non-relative", 15),
-            Choice("institutionalized group quarters population", 16),
-            Choice("non-institutionalized group quarters population", 17),
-        ],
-    )
+    value_map={
+        0: "the 'reference person' itself",
+        1: "husband/wife",
+        2: "biological son or daughter",
+        3: "adopted son or daughter",
+        4: "stepson or stepdaughter",
+        5: "brother or sister",
+        6: "father or mother",
+        7: "grandchild",
+        8: "parent-in-law",
+        9: "son-in-law or daughter-in-law",
+        10: "other relative",
+        11: "roomer or boarder",
+        12: "housemate or roommate",
+        13: "unmarried partner",
+        14: "foster child",
+        15: "other non-relative",
+        16: "institutionalized group quarters population",
+        17: "non-institutionalized group quarters population",
+    },
 )
 
 acs_work_hours = ColumnToText(
@@ -177,13 +142,10 @@ acs_work_hours = ColumnToText(
 acs_sex = ColumnToText(
     "SEX",
     short_description="sex",
-    question=Question(
-        text="What is this person's sex?",
-        choices=[
-            Choice("Male", 1),
-            Choice("Female", 2),
-        ]
-    ),
+    value_map={
+        1: "Male",
+        2: "Female",
+    },
 )
 
 acs_race = ColumnToText(
@@ -207,32 +169,47 @@ acs_income = ColumnToText(
     "PINCP",
     short_description="yearly income",
     missing_value_fill="N/A (less than 15 years old)",
+    value_map=lambda x: f"${int(x):,}",
+)
+
+acs_income_binary_qa = MultipleChoiceQA(
+    column=get_thresholded_column_name("PINCP", 50_000),
+    text="What is this person's estimated yearly income?",
+    choices=[
+        Choice("Below $50,000", 0),
+        Choice("Above $50,000", 1),
+    ],
+)
+
+acs_income_numeric_qa = DirectNumericQA(
+    column=get_thresholded_column_name("PINCP", 50_000),
+    text=(
+        "What is the probability that this person's estimated yearly income is "
+        "above $50,000 ?"
+    ),
+    answer_probability=True,
+    num_forward_passes=2,
 )
 
 acs_income = ColumnToText(
-    "PINCP_binary",
+    name=get_thresholded_column_name("PINCP", 50_000),
     short_description="yearly income",
     missing_value_fill="N/A (less than 15 years old)",
-    question=Question(
-        text="What is this person's estimated yearly income?",
-        choices=[
-            Choice("Below $50,000", 0),
-            Choice("Above $50,000", 1),
-        ],
-    ),
+    question=acs_income_binary_qa,
 )
 
 acs_income_brackets = ColumnToText(
     "PINCP_brackets",
     short_description="yearly income",
     missing_value_fill="N/A (less than 15 years old)",
-    question=Question(
+    question=MultipleChoiceQA(
+        column="PINCP_brackets",
         text="What is this person's estimated yearly income?",
         choices=[
-            Choice("Less than $25,000", "(0.0, 25000.0]", numeric_value=12_500),
-            Choice("Between $25,000 and $50,000", "(25000.0, 50000.0]", numeric_value=37_500),
-            Choice("Between $50,000 and $100,000", "(50000.0, 100000.0]", numeric_value=75_000),
-            Choice("Above $100,000", "(100000.0, inf]", numeric_value=150_000),
+            Choice("Less than $25,000", data_value="(0.0, 25000.0]", numeric_value=12_500),
+            Choice("Between $25,000 and $50,000", data_value="(25000.0, 50000.0]", numeric_value=37_500),
+            Choice("Between $50,000 and $100,000", data_value="(50000.0, 100000.0]", numeric_value=75_000),
+            Choice("Above $100,000", data_value="(100000.0, inf]", numeric_value=150_000),
         ],
     ),
 )
@@ -240,7 +217,8 @@ acs_income_brackets = ColumnToText(
 acs_pubcov = ColumnToText(
     "PUBCOV",
     short_description="public health insurance coverage",
-    question=Question(
+    question=MultipleChoiceQA(
+        column="PUBCOV",
         text="Does this person have public health insurance coverage?",
         choices=[
             Choice("No, individual is not covered by public health insurance", 0),

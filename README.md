@@ -12,8 +12,6 @@ Repo to host the `folktexts` project.
 
 Package documentation can be found [here](https://andrefcruz.github.io/folktexts/)!
 
-Code based on the [socialfoundations/surveying-language-models](https://github.com/socialfoundations/surveying-language-models) repository.
-
 **Table of contents:**
 - [Installing](#installing)
 - [Usage](#usage)
