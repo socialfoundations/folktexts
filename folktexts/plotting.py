@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -52,7 +53,6 @@ def render_evaluation_plots(
     *,
     imgs_dir: str | Path,
     eval_results: dict = {},
-    sensitive_attribute: np.ndarray = None,
     model_name: str = None,
 ) -> dict:
     """Renders evaluation plots for the given predictions."""
@@ -113,17 +113,6 @@ def render_evaluation_plots(
     plt.gcf().suptitle("Score Distribution per Label" + (f" - {model_name}" if model_name else ""))
     results["score_distribution_per_label_path"] = save_fig(plt.gcf(), "score_distribution_per_label", imgs_dir)
 
-    # Plot fairness plots if sensitive attribute is provided
-    if sensitive_attribute is not None:
-        results.update(render_fairness_plots(
-            y_true=y_true,
-            y_pred_scores=y_pred_scores,
-            sensitive_attribute=sensitive_attribute,
-            imgs_dir=imgs_dir,
-            eval_results=eval_results,
-            model_name=model_name,
-        ))
-
     return results
 
 
@@ -135,8 +124,8 @@ def render_fairness_plots(
     imgs_dir: str | Path,
     eval_results: dict = {},
     model_name: str = None,
+    group_value_map: Callable[[int], str],
     group_size_threshold: float = GROUP_SIZE_THRESHOLD,
-    # TODO: add a text value map for each sensitive attr value
 ) -> dict:
     """Renders fairness plots for the given predictions."""
 
@@ -197,7 +186,7 @@ def render_fairness_plots(
             # Group-specific visuals
             linestyle=group_line_styles[idx],
             color=group_colors[idx],
-            name=f"Group {s_value}",
+            name=group_value_map(s_value),
         )
 
         # Plot group-specific ROC point
@@ -214,7 +203,7 @@ def render_fairness_plots(
                 group_fpr, group_tpr,
                 marker="X", markersize=5, lw=0,
                 color=group_colors[idx],
-                # label=f"Group {s_value}",
+                # label=group_value_map(s_value),
             )
 
     plt.legend()
@@ -247,7 +236,7 @@ def render_fairness_plots(
             # Group-specific visuals
             linestyle=group_line_styles[idx],
             color=group_colors[idx],
-            name=f"Group {s_value}",
+            name=group_value_map(s_value),
         )
 
     plt.legend()
@@ -263,17 +252,15 @@ def render_fairness_plots(
     #     group_indices = np.argwhere(sensitive_attribute == s_value).flatten()
     #     group_y_pred_scores = y_pred_scores[group_indices]
     #     is_first_group = (idx == 0)
-
     #     if is_first_group:
     #         fig, ax = plt.subplots()
-
     #     sns.histplot(
     #         group_y_pred_scores,
     #         bins=hist_bin_edges,
     #         stat="density",
     #         kde=False,
     #         color=group_colors[idx],
-    #         label=f"Group {s_value}",
+    #         label=group_value_map(s_value),
     #         ax=ax,
     #     )
 

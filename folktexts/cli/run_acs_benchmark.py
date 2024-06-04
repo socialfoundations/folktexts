@@ -9,6 +9,7 @@ from pathlib import Path
 DEFAULT_BATCH_SIZE = 30
 DEFAULT_CONTEXT_SIZE = 500
 DEFAULT_SEED = 42
+DEFAULT_CORRECT_ORDER_BIAS = True
 
 
 def setup_arg_parser() -> ArgumentParser:
@@ -26,7 +27,7 @@ def setup_arg_parser() -> ArgumentParser:
         ("--batch-size",    int, "[int] The batch size to use for inference", False, DEFAULT_BATCH_SIZE),
         ("--context-size",  int, "[int] The maximum context size when prompting the LLM", False, DEFAULT_CONTEXT_SIZE),
         ("--fit-threshold", int, "[int] Whether to fit the prediction threshold, and on how many samples", False),
-        # ("--subsampling",   float, "[float] Which fraction of the dataset to use (if omitted will use all data)", False),
+        ("--subsampling",   float, "[float] Which fraction of the dataset to use (if omitted will use all data)", False),
     ]
 
     for arg in cli_args:
@@ -39,13 +40,6 @@ def setup_arg_parser() -> ArgumentParser:
         )
 
     # Add special arguments (e.g., boolean flags or multiple-choice args)
-    parser.add_argument(
-        "--correct-order-bias",
-        help="[bool] Whether to correct answer ordering bias",
-        action="store_true",
-        default=False,
-    )
-
     parser.add_argument(
         "--chat-prompt",
         help="[bool] Whether to use chat-based prompting (for instruct models)",
@@ -112,7 +106,8 @@ if __name__ == '__main__':
         reuse_few_shot_examples=args.reuse_few_shot_examples,
         batch_size=args.batch_size,
         context_size=args.context_size,
-        correct_order_bias=args.correct_order_bias,
+        correct_order_bias=DEFAULT_CORRECT_ORDER_BIAS,
+        subsampling=args.subsampling,
     )
 
     # Run benchmark

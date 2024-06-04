@@ -16,7 +16,8 @@ from .acs.acs_questions import acs_multiple_choice_qa_map, acs_numeric_qa_map
 from .acs.acs_tasks import ACSTaskMetadata
 from .classifier import LLMClassifier
 from .dataset import Dataset
-from .evaluation import evaluate_predictions, render_evaluation_plots
+from .evaluation import evaluate_predictions
+from .plotting import render_evaluation_plots, render_fairness_plots
 from .prompting import encode_row_prompt, encode_row_prompt_chat, encode_row_prompt_few_shot
 
 DEFAULT_SEED = 42
@@ -159,16 +160,30 @@ class CalibrationBenchmark:
     def plot_results(self, imgs_dir: str | Path = None):
         """Render and save evaluation plots."""
 
+        imgs_dir = Path(imgs_dir) if imgs_dir else self.imgs_dir
         _, y_test = self.dataset.get_test()
 
         plots_paths = render_evaluation_plots(
             y_true=y_test.to_numpy(),
             y_pred_scores=self._y_test_scores,
             eval_results=self.results,
-            imgs_dir=imgs_dir or self.imgs_dir,
-            sensitive_attribute=self.task.sensitive_attribute,
+            imgs_dir=imgs_dir,
             model_name=self.llm_clf.model_name,
         )
+
+        # Plot fairness plots if sensitive attribute is provided
+        if self.task.sensitive_attribute is not None:
+            s_test = self.dataset.get_sensitive_attribute_data().loc[y_test.index]
+
+            plots_paths.update(render_fairness_plots(
+                y_true=y_test.to_numpy(),
+                y_pred_scores=self._y_test_scores,
+                sensitive_attribute=s_test,
+                imgs_dir=imgs_dir,
+                eval_results=self.results,
+                model_name=self.llm_clf.model_name,
+                group_value_map=self.task.sensitive_attribute_value_map(),
+            ))
 
         self._results["plots"] = plots_paths
 
@@ -196,22 +211,22 @@ class CalibrationBenchmark:
     ) -> CalibrationBenchmark:
         """Create a standardized calibration benchmark on ACS data."""
 
+        # Handle non-standard ACS arguments
+        acs_dataset_configs = cls.ACS_DATASET_CONFIGS.copy()
+        for arg in acs_dataset_configs:
+            if arg in kwargs:
+                logging.warning(
+                    f"Received non-standard ACS argument '{arg}' (using "
+                    f"{arg}={kwargs[arg]} instead of default {arg}={cls.ACS_DATASET_CONFIGS[arg]}). "
+                    f"This may affect reproducibility.")
+                acs_dataset_configs[arg] = kwargs.pop(arg)
+
         # Fetch ACS task and dataset
         acs_task = ACSTaskMetadata.get_task(task_name)
         acs_dataset = ACSDataset(
             task=acs_task,
             cache_dir=data_dir,
-            **cls.ACS_DATASET_CONFIGS)
-
-        # Handle non-standard seed value
-        if "seed" in kwargs:
-            seed = kwargs["seed"]
-            logging.warning(
-                f"Received non-standard seed value for ACS benchmark (using "
-                f"seed={seed} instead of default seed={cls.ACS_DATASET_CONFIGS['seed']}). "
-                f"This may affect reproducibility.")
-        else:
-            kwargs["seed"] = cls.ACS_DATASET_CONFIGS["seed"]
+            **acs_dataset_configs)
 
         return cls.make_benchmark(
             model=model,
@@ -219,6 +234,7 @@ class CalibrationBenchmark:
             task=acs_task,
             dataset=acs_dataset,
             results_dir=results_dir,
+            seed=acs_dataset_configs["seed"],
             **kwargs,
         )
 

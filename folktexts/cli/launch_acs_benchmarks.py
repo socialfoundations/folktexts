@@ -41,19 +41,22 @@ MODELS_DIR = ROOT_DIR / "huggingface-models"
 # MODELS_DIR = ROOT_DIR / "data" / "huggingface-models"     # on local machine
 
 # Path to the executable script to run
-EXECUTABLE_PATH = Path(__file__).parent.resolve() / "run_benchmark.py"
+EXECUTABLE_PATH = Path(__file__).parent.resolve() / "run_acs_benchmark.py"
 
 ##################
 # Global configs #
 ##################
 BATCH_SIZE = 30
 CONTEXT_SIZE = 500
-SEED = 42
+CORRECT_ORDER_BIAS = True
+FIT_THRESHOLD = 100
+
 VERBOSE = True
 
 JOB_CPUS = 4
 JOB_MEMORY_GB = 60
-JOB_BID = 100
+# JOB_BID = 50
+JOB_BID = 250
 
 # LLMs to evaluate
 LLM_MODELS = [
@@ -61,13 +64,13 @@ LLM_MODELS = [
     "google/gemma-2b",
     "google/gemma-1.1-2b-it",
 
-    # ** Medium models **
-    "google/gemma-7b",
-    "google/gemma-1.1-7b-it",
-    "mistralai/Mistral-7B-v0.1",
-    "mistralai/Mistral-7B-Instruct-v0.2",
-    "meta-llama/Meta-Llama-3-8B",
-    "meta-llama/Meta-Llama-3-8B-Instruct",
+    # # ** Medium models **
+    # "google/gemma-7b",
+    # "google/gemma-1.1-7b-it",
+    # "mistralai/Mistral-7B-v0.1",
+    # "mistralai/Mistral-7B-Instruct-v0.2",
+    # "meta-llama/Meta-Llama-3-8B",
+    # "meta-llama/Meta-Llama-3-8B-Instruct",
 
     # # ** Large models **
     # "01-ai/Yi-34B",
@@ -78,9 +81,6 @@ LLM_MODELS = [
     # "meta-llama/Meta-Llama-3-70B-Instruct",
     # "mistralai/Mixtral-8x22B-v0.1",
     # "mistralai/Mixtral-8x22B-Instruct-v0.1",
-    # "Qwen/Qwen1.5-72B",
-    # "Qwen/Qwen1.5-72B-Chat",
-    # "allenai/tulu-2-dpo-70b",
 ]
 
 
@@ -115,7 +115,7 @@ def make_llm_as_clf_experiment(
     experiment_kwargs.setdefault("batch_size", math.ceil(BATCH_SIZE / n_shots))
     experiment_kwargs.setdefault("context_size", CONTEXT_SIZE * n_shots)
     experiment_kwargs.setdefault("data_dir", ACS_DATA_DIR.as_posix())
-    experiment_kwargs.setdefault("seed", SEED)
+    experiment_kwargs.setdefault("fit_threshold", FIT_THRESHOLD)
 
     # Define experiment
     exp = Experiment(
@@ -130,10 +130,6 @@ def make_llm_as_clf_experiment(
 
     # Create LLM results directory
     exp_results_dir = RESULTS_DIR / get_llm_results_folder(exp)
-    exp_results_dir.mkdir(exist_ok=True, parents=False)
-
-    # Create experiment sub-directory
-    exp_results_dir = exp_results_dir / f"exp-hash-{exp.hash()}"
     exp_results_dir.mkdir(exist_ok=True, parents=False)
     exp.kwargs["results_dir"] = exp_results_dir.as_posix()
     save_json(
@@ -150,8 +146,7 @@ def get_llm_results_folder(exp: Experiment) -> str:
     """
     return (
         f"model-{Path(exp.model).name}."
-        f"dataset-{exp.task_name}."
-        f"seed-{exp.seed}"
+        f"dataset-{exp.task_name}"
     )
 
 
@@ -201,7 +196,7 @@ if __name__ == '__main__':
     # Parse extra kwargs
     from ._utils import cmd_line_args_to_kwargs
     extra_kwargs = cmd_line_args_to_kwargs(extra_kwargs)
-    # TODO: use the run_benchmark.py parser to parse extra kwargs
+    # TODO: use the run_acs_benchmark.py parser to parse extra kwargs
     #       with `setup_arg_parser().convert_arg_line_to_args(extra_kwargs)` !!!
 
     models = args.model or LLM_MODELS

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import asdict, dataclass, field
-from typing import ClassVar
+from typing import Callable, ClassVar
 
 import pandas as pd
 
@@ -80,6 +80,13 @@ class TaskMetadata:
                 for col, val in row.items()
             )
         )
+
+    def sensitive_attribute_value_map(self) -> Callable:
+        """Returns a mapping between sensitive attribute values and their descriptions."""
+        if self.sensitive_attribute is None:
+            logging.warning("No sensitive attribute provided for this task.")
+            return {}
+        return self.cols_to_text[self.sensitive_attribute].value_map
 
     def create_task_with_feature_subset(self):
         """Creates a new task with a subset of the original features."""

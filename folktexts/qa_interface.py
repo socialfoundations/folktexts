@@ -6,10 +6,10 @@
 """
 from __future__ import annotations
 
+import dataclasses
 import itertools
 import logging
 from abc import ABC
-import dataclasses
 from dataclasses import dataclass
 from typing import Iterator
 

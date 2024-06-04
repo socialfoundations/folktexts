@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import logging
 import statistics
-from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -17,7 +16,6 @@ from netcal.metrics import ECE
 from sklearn.metrics import brier_score_loss, confusion_matrix, log_loss, roc_auc_score, roc_curve
 
 from ._utils import is_valid_number, join_dictionaries, safe_division
-from .plotting import render_evaluation_plots
 
 
 def evaluate_binary_predictions(y_true: np.ndarray, y_pred: np.ndarray) -> dict:
@@ -285,11 +283,6 @@ def evaluate_predictions(
     class_preds = np.stack([1 - y_pred_scores, y_pred_scores], axis=1)
     n_bins = 10
     results["ece"] = ECE(bins=n_bins, equal_intervals=True).measure(class_preds, y_true)
-
-    # Compute ECE after scaling the scores to the full [0, 1] range
-    y_pred_scores_scaled = (y_pred_scores - y_pred_scores.min()) / (y_pred_scores.max() - y_pred_scores.min())
-    class_preds_scaled = np.stack([1 - y_pred_scores_scaled, y_pred_scores_scaled], axis=1)
-    results["ece_scaled"] = ECE(bins=n_bins, equal_intervals=True).measure(class_preds_scaled, y_true)
 
     # Try to compute ECE with quantile bins
     try:

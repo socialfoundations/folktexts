@@ -16,8 +16,8 @@ from folktexts.dataset import Dataset
 from folktexts.evaluation import compute_best_threshold
 from folktexts.llm_utils import query_model_batch
 from folktexts.prompting import encode_row_prompt as default_encode_row_prompt
+from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA
 from folktexts.task import TaskMetadata
-from folktexts.qa_interface import MultipleChoiceQA, DirectNumericQA
 
 from ._utils import hash_dict, hash_function
 

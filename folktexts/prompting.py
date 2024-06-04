@@ -8,8 +8,8 @@ import pandas as pd
 from transformers import AutoTokenizer
 
 from .dataset import Dataset
-from .task import TaskMetadata
 from .qa_interface import QAInterface
+from .task import TaskMetadata
 
 SYSTEM_PROMPT = """\
 You are a helpful assistant. You answer multiple-choice questions based on the information provided.
