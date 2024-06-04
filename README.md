@@ -26,6 +26,53 @@ Install package from [PyPI](https://pypi.org/project/folktexts/):
 pip install folktexts
 ```
 
+## Developer mode
+
+1. Create condo environment
+
+```
+conda create -n folktexts python=3.11      
+conda activate folktexts
+```
+
+2. clone git repo
+
+```
+git clone git@github.com:AndreFCruz/folktexts.git  
+```
+
+2. Install folk texts package in edit mode
+
+```
+cd folktexts
+pip install -e .
+```
+
+3. Create models dataset and results folder
+
+```
+mkdir results
+mkdir models
+mkdir datasets
+```
+
+3. Download models into models folder
+(make sure you have Huggingface permission)
+
+```
+python -m folktexts.cli.download_models --model "google/gemma-2b" --save-dir models
+```
+
+4. Run benchmark
+(It downloads dataset and runs benchmarking)
+
+```
+python folktexts/cli/run_llm_as_classifier.py --results-dir results --data-dir datasets --acs-task-name "ACSIncome" --model models/google--gemma-2b --subsampling 0.01
+```
+
+NOTE: saves results to results folder, not a subfolder!
+
+
 ## Usage
 
 *This is a template of how we envision the API -- not yet fully implemented!*
@@ -58,6 +105,8 @@ clf.predict(dataset)
 # Compute a variety of evaluation metrics on calibration and accuracy
 benchmark_results = run_llm_as_clf_benchmark(clf, dataset)
 ```
+
+
 
 ## License and terms of use
 
