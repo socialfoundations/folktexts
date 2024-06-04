@@ -17,6 +17,7 @@ from folktexts.evaluation import compute_best_threshold
 from folktexts.llm_utils import query_model_batch
 from folktexts.prompting import encode_row_prompt as default_encode_row_prompt
 from folktexts.task import TaskMetadata
+from folktexts.qa_interface import MultipleChoiceQA, DirectNumericQA
 
 from ._utils import hash_dict, hash_function
 
@@ -37,6 +38,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         tokenizer: AutoTokenizer,
         task: TaskMetadata | str,
         encode_row: Callable[[pd.Series], str] = None,
+        correct_order_bias: bool = DEFAULT_CORRECT_ORDER_BIAS,
         threshold: float = 0.5,
         **inference_kwargs,
     ):
@@ -68,11 +70,12 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         )
         self._threshold = threshold
 
+        self.correct_order_bias = correct_order_bias
+
         # Default inference kwargs
         self._inference_kwargs = inference_kwargs
         self._inference_kwargs.setdefault("context_size", DEFAULT_CONTEXT_SIZE)
         self._inference_kwargs.setdefault("batch_size", DEFAULT_BATCH_SIZE)
-        self._inference_kwargs.setdefault("correct_order_bias", DEFAULT_CORRECT_ORDER_BIAS)
 
     @property
     def model(self) -> AutoModelForCausalLM:
@@ -110,6 +113,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
             model_size=self.model.num_parameters(),
             tokenizer_vocab_size=self.tokenizer.vocab_size,
             task_hash=hash(self.task),
+            correct_order_bias=self.correct_order_bias,
             threshold=self.threshold,
             encode_row_hash=hash_function(self.encode_row),
         )
@@ -321,15 +325,18 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
 
         batch_size = batch_size or self._inference_kwargs["batch_size"]
         context_size = context_size or self._inference_kwargs["context_size"]
-        correct_order_bias = self._inference_kwargs["correct_order_bias"]
-
-        # Adjust batch size if `correct_order_bias` is enabled
-        # > we need to run inference twice for each sample
-        if correct_order_bias:
-            batch_size = math.ceil(batch_size / 2)
-            raise NotImplementedError  # TODO
-
         num_batches = math.ceil(len(df) / batch_size)
+
+        # Get questions to ask
+        q = self.task.question
+        questions = [q]
+        if self.correct_order_bias:
+            if isinstance(q, DirectNumericQA):
+                logging.info("No need to correct ordering bias for DirectNumericQA prompting.")
+            elif isinstance(q, MultipleChoiceQA):
+                questions = list(MultipleChoiceQA.create_answer_keys_permutations(q))
+            else:
+                logging.error(f"Unknown question type '{type(q)}'; cannot correct ordering bias.")
 
         # Compute risk estimates per batch
         for batch_idx in tqdm(range(num_batches), desc="Computing risk estimates"):
@@ -337,30 +344,36 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
             end_idx = min((batch_idx + 1) * batch_size, len(df))
             batch_data = df.iloc[start_idx:end_idx]
 
-            # Encode batch data into natural text prompts
-            data_texts_batch = [
-                self.encode_row(row)
-                for _, row in batch_data.iterrows()
-            ]
+            batch_risk_scores = np.empty((len(batch_data), len(questions)))
+            for idx, q in enumerate(questions):
 
-            # Query model
-            last_token_probs_batch = query_model_batch(
-                data_texts_batch,
-                self.model,
-                self.tokenizer,
-                context_size=context_size,
-            )
+                # Encode batch data into natural text prompts
+                data_texts_batch = [
+                    self.encode_row(row, question=q)
+                    for _, row in batch_data.iterrows()
+                ]
 
-            # Decode model output
-            risk_estimates_batch = [
-                self.task.question.get_answer_from_model_output(
-                    ltp,
-                    tokenizer=self.tokenizer,
+                # Query model
+                last_token_probs_batch = query_model_batch(
+                    data_texts_batch,
+                    self.model,
+                    self.tokenizer,
+                    context_size=context_size,
                 )
-                for ltp in last_token_probs_batch
-            ]
 
-            risk_scores[start_idx:end_idx] = risk_estimates_batch
+                # Decode model output
+                risk_estimates_batch = [
+                    q.get_answer_from_model_output(
+                        ltp,
+                        tokenizer=self.tokenizer,
+                    )
+                    for ltp in last_token_probs_batch
+                ]
+
+                # Store risk estimates for current question
+                batch_risk_scores[:, idx] = risk_estimates_batch
+
+            risk_scores[start_idx:end_idx] = batch_risk_scores.mean(axis=1)
 
         # Check that all risk scores were computed
         assert not np.isclose(risk_scores, fill_value).any()

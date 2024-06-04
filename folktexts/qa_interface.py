@@ -9,6 +9,7 @@ from __future__ import annotations
 import itertools
 import logging
 from abc import ABC
+import dataclasses
 from dataclasses import dataclass
 from typing import Iterator
 
@@ -19,38 +20,17 @@ from transformers import AutoTokenizer
 # > small models will be worse at using valid answers...
 ANSWER_PROB_THRESHOLD = 0.1
 
+# Default answer keys for multiple-choice questions
+_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
+
+@dataclass(frozen=True, eq=True)
 class QAInterface(ABC):
     """An interface for a question-answering system."""
 
-    def __init__(self, column: str, text: str, num_forward_passes: int = 1):
-        """Initializes a question-answering interface.
-
-        Parameters
-        ----------
-        column : str
-            The name of the column this question refers to.
-        text : str
-            The specific text to be used in the question.
-        num_forward_passes : int, optional
-            The number of forward passes to run to generate an answer to this
-            question, by default 1.
-        """
-        self._column = column
-        self._text = text
-        self._num_forward_passes = num_forward_passes
-
-    @property
-    def column(self) -> str:
-        return self._column
-
-    @property
-    def text(self) -> str:
-        return self._text
-
-    @property
-    def num_forward_passes(self) -> int:
-        return self._num_forward_passes
+    column: str
+    text: str
+    num_forward_passes: int
 
     def get_question_prompt(self) -> str:
         """Returns a question and answer key."""
@@ -78,6 +58,7 @@ class QAInterface(ABC):
         raise NotImplementedError
 
 
+@dataclass(frozen=True, eq=True)
 class DirectNumericQA(QAInterface):
     """Represents a direct numeric question.
 
@@ -100,19 +81,12 @@ class DirectNumericQA(QAInterface):
     numeric answers.
     """
 
-    def __init__(
-        self,
-        column: str,
-        text: str,
-        num_forward_passes: int = 2,    # By default, require 2 forward passes (2 tokens)
-        answer_probability: bool = True,
-    ):
-        super().__init__(column=column, text=text, num_forward_passes=num_forward_passes)
-        self._answer_probability = answer_probability
+    num_forward_passes: int = 2     # NOTE: overrides superclass default
+    answer_probability: bool = True
 
     def get_question_prompt(self) -> str:
         question_prompt = f"""Question: {self.text}\n"""
-        if self._answer_probability:
+        if self.answer_probability:
             question_prompt += "Answer (between 0 and 1): 0."
         else:
             question_prompt += "Answer: "
@@ -181,10 +155,10 @@ class DirectNumericQA(QAInterface):
 
             logging.debug(f"Total prob. assigned to numeric tokens: {sum(number_probs.values()):.2%}")
 
-        return int(answer_text) if not self._answer_probability else float(f"0.{answer_text}")
+        return int(answer_text) if not self.answer_probability else float(f"0.{answer_text}")
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=True)
 class Choice:
     """Represents a choice in multiple-choice Q&A.
 
@@ -209,27 +183,13 @@ class Choice:
         return self.numeric_value if self.numeric_value is not None else float(self.data_value)
 
 
+@dataclass(frozen=True, eq=True, kw_only=True)
 class MultipleChoiceQA(QAInterface):
     """Represents a multiple-choice question and its answer keys."""
 
-    def __init__(
-        self,
-        column: str,
-        text: str,
-        choices: list[Choice],
-        answer_keys: list[str] = None,
-    ):
-        # Save question data
-        super().__init__(column=column, text=text, num_forward_passes=1)
-        self.choices = choices
-
-        # Construct answer keys (default to A, B, C, ...)
-        ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        self.answer_keys = answer_keys or ALPHABET[:len(choices)]
-
-        # Construct mapping from answer key to choice
-        self._key_to_choice = dict(zip(self.answer_keys, self.choices))
-        self._choice_to_key = {choice: key for key, choice in self._key_to_choice.items()}
+    num_forward_passes: int = 1     # NOTE: overrides superclass default
+    choices: list[Choice]
+    _answer_keys_source: list[str] = _ALPHABET
 
     @classmethod
     def create_question_from_value_map(
@@ -265,20 +225,20 @@ class MultipleChoiceQA(QAInterface):
         permutations : Iterator[Question]
             A generator of questions with all permutations of answer keys.
         """
-        for perm in itertools.permutations(question.answer_keys):
-            yield cls(
-                text=question.text,
-                choices=question.choices,
-                answer_keys=perm,
-            )
+        for perm in itertools.permutations(question.choices):
+            yield dataclasses.replace(question, choices=perm)
+
+    @property
+    def answer_keys(self) -> list[str]:
+        return self._answer_keys_source[:len(self.choices)]
 
     @property
     def key_to_choice(self) -> dict[str, Choice]:
-        return self._key_to_choice
+        return dict(zip(self.answer_keys, self.choices))
 
     @property
     def choice_to_key(self) -> dict[Choice, str]:
-        return self._choice_to_key
+        return {choice: key for key, choice in self.key_to_choice.items()}
 
     def get_value_to_text_map(self) -> dict[object, str]:
         """Returns the map from choice data value to choice textual representation."""
@@ -296,16 +256,16 @@ class MultipleChoiceQA(QAInterface):
 
     def get_answer_from_text(self, text: str) -> Choice:
         text = text.strip().upper()
-        if text in self._key_to_choice:
-            return self._key_to_choice[text]
+        if text in self.key_to_choice:
+            return self.key_to_choice[text]
 
         logging.error(f"Could not find answer for text: {text}")
         return None
 
     def get_question_prompt(self) -> str:
         choice_str = "\n".join(
-            f"{key}. {self._key_to_choice[key].text}."
-            for key in self.answer_keys
+            f"{key}. {choice.text}."
+            for key, choice in self.key_to_choice.items()
         )
 
         return (f"""\

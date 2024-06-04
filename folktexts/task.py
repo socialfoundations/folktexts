@@ -56,6 +56,7 @@ class TaskMetadata:
     def __hash__(self) -> int:
         hashable_params = asdict(self)
         hashable_params.pop("cols_to_text")
+        hashable_params["question_hash"] = hash(self.question)
         return int(hash_dict(hashable_params), 16)
 
     @classmethod

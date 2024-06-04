@@ -9,6 +9,7 @@ from transformers import AutoTokenizer
 
 from .dataset import Dataset
 from .task import TaskMetadata
+from .qa_interface import QAInterface
 
 SYSTEM_PROMPT = """\
 You are a helpful assistant. You answer multiple-choice questions based on the information provided.
@@ -36,15 +37,18 @@ def encode_row_prompt(
     row: pd.Series,
     task: TaskMetadata,
     add_task_description: bool = True,
+    question: QAInterface = None,
 ) -> str:
     """Encode a question regarding a given row."""
+    # Get the question to ask
+    question = question or task.question
     return (
         (ACS_TASK_DESCRIPTION + "\n" if add_task_description else "")
         + f"""\
 Information:
 {task.get_row_description(row)}
 
-{task.question.get_question_prompt()}""")
+{question.get_question_prompt()}""")
 
 
 def encode_row_prompt_few_shot(
@@ -53,6 +57,7 @@ def encode_row_prompt_few_shot(
     dataset: Dataset,
     n_shots: int = 10,
     reuse_examples: bool = False,
+    question: QAInterface = None,
 ) -> str:
     """Encode a question regarding a given row using few-shot prompting.
 
@@ -80,16 +85,24 @@ def encode_row_prompt_few_shot(
     # Start with task description
     prompt = ACS_FEW_SHOT_TASK_DESCRIPTION + "\n"
 
+    # Get the question to ask
+    question = question or task.question
+
     # Add `n` example rows with respective labels
     for i in range(n_shots):
         prompt += (
             encode_row_prompt(X_examples.iloc[i], task=task, add_task_description=False)
-            + f" {dataset.question.get_answer_key_from_value(y_examples.iloc[i])}"
+            + f" {question.get_answer_key_from_value(y_examples.iloc[i])}"
             + "\n\n"
         )
 
     # Add the target row without its label
-    prompt += encode_row_prompt(row, task=task, add_task_description=False)
+    prompt += encode_row_prompt(
+        row,
+        task=task,
+        add_task_description=False,
+        question=question,
+    )
     return prompt
 
 
@@ -97,6 +110,7 @@ def encode_row_prompt_chat(
     row: pd.Series,
     task: TaskMetadata,
     tokenizer: AutoTokenizer,
+    question: QAInterface = None,
     **chat_template_kwargs,
 ) -> str:
     # TODO: implement two functions
@@ -106,7 +120,7 @@ def encode_row_prompt_chat(
         tokenizer,
         (
             SYSTEM_PROMPT
-            + encode_row_prompt(row, task)
+            + encode_row_prompt(row, task, question=question)
         ),
         **chat_template_kwargs,
     )

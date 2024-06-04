@@ -47,7 +47,7 @@ class ACSTaskMetadata(TaskMetadata):
             features=folktables_task.features,
             target=folktables_task.target,
             cols_to_text=_acs_columns_map,
-            # sensitive_attribute=folktables_task.group,    # NOTE: by default do not run fairness evaluation
+            sensitive_attribute=folktables_task.group,
             target_threshold=target_threshold,
             folktables_obj=folktables_task,
         )
