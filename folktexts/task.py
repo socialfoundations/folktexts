@@ -1,6 +1,10 @@
+"""Definition of a generic TaskMetadata class.
+"""
+from __future__ import annotations
+
 import logging
-from typing import ClassVar
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 import pandas as pd
 

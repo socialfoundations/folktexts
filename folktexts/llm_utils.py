@@ -1,10 +1,12 @@
 """Common functions to use with transformer LLMs."""
-import re
+from __future__ import annotations
+
 import logging
+import re
 from pathlib import Path
 
-import torch
 import numpy as np
+import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 

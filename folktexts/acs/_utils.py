@@ -1,6 +1,8 @@
 """Helper functions for ACS data processing."""
-import re
+from __future__ import annotations
+
 import logging
+import re
 from pathlib import Path
 from typing import Callable
 
@@ -14,7 +16,7 @@ def get_thresholded_column_name(column_name: str, threshold: float | int) -> str
 def parse_pums_code(
     value: int,
     file: str | Path,
-    postprocess: Callable[[str], str] = None,
+    postprocess: Callable[[str], str] | None = None,
     cache={},
 ) -> str:
     # Check if file already loaded into cache

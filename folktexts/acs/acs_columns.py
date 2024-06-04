@@ -1,13 +1,11 @@
 """Module to hold ACS column mappings from values to natural text.
 """
-from pathlib import Path
 from functools import partial
+from pathlib import Path
 
 from ..col_to_text import ColumnToText
-from ..qa_interface import MultipleChoiceQA, DirectNumericQA, Choice
-
+from ..qa_interface import Choice, DirectNumericQA, MultipleChoiceQA
 from ._utils import get_thresholded_column_name, parse_pums_code
-
 
 # Path to ACS codebook files
 ACS_OCCP_FILE = Path(__file__).parent / "data" / "OCCP-codes-acs.txt"
@@ -156,7 +154,9 @@ acs_race = ColumnToText(
         2: "Black or African American",
         3: "American Indian",
         4: "Alaska Native",
-        5: "American Indian and Alaska Native tribes specified, or American Indian or Alaska Native, not specified and no other races",
+        5: (
+            "American Indian and Alaska Native tribes specified, or American "
+            "Indian or Alaska Native, not specified and no other races"),
         6: "Asian",
         7: "Native Hawaiian and Other Pacific Islander",
         # 8: "Some other race alone",

@@ -1,7 +1,7 @@
-import json
 import hashlib
-from pathlib import Path
+import json
 from datetime import datetime
+from pathlib import Path
 
 
 def get_current_timestamp() -> str:
@@ -40,7 +40,7 @@ def standardize_path(path: str | Path) -> str:
 
 def cmd_line_args_to_kwargs(cmdline_args: list) -> dict:
     """Converts a list of command-line arguments to a dictionary of keyword arguments."""
-    def _handle_str_value(val: str) -> str | bool:
+    def _handle_str_value(val: str) -> int | float | str | bool:
         # Try bool
         if val.lower() in ("true", "false"):
             return val.lower() == "true"

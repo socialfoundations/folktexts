@@ -1,13 +1,15 @@
 """Module to plot evaluation results.
 """
+from __future__ import annotations
+
 import logging
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from sklearn import metrics
-from sklearn.metrics import RocCurveDisplay
 from sklearn.calibration import CalibrationDisplay
+from sklearn.metrics import RocCurveDisplay
 
 from ._commons import safe_division
 

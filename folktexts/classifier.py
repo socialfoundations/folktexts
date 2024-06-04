@@ -1,22 +1,24 @@
-import math
+from __future__ import annotations
+
 import logging
+import math
+from functools import partial
 from pathlib import Path
 from typing import Callable
-from functools import partial
 
 import numpy as np
 import pandas as pd
-from tqdm.auto import tqdm
 from sklearn.base import BaseEstimator, ClassifierMixin
-from sklearn.metrics import roc_curve
+from tqdm.auto import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from folktexts.acs import acs_tasks                  # noqa # process ACS tasks
 from folktexts.dataset import Dataset
-from folktexts.task import TaskMetadata
-from folktexts.prompting import encode_row_prompt as default_encode_row_prompt
-from folktexts.llm_utils import query_model_batch
 from folktexts.evaluation import compute_best_threshold
+from folktexts.llm_utils import query_model_batch
+from folktexts.prompting import encode_row_prompt as default_encode_row_prompt
+from folktexts.task import TaskMetadata
+
+from .acs import acs_tasks  # noqa # process ACS tasks
 
 DEFAULT_CONTEXT_SIZE = 500
 DEFAULT_BATCH_SIZE = 16

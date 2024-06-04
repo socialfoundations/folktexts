@@ -1,10 +1,11 @@
 """A collection of instantiated ACS column objects and ACS tasks."""
+from __future__ import annotations
+
+from folktexts.qa_interface import DirectNumericQA as _DirectNumericQA
+from folktexts.qa_interface import MultipleChoiceQA as _MultipleChoiceQA
 
 from . import acs_columns
 from .acs_tasks import _acs_columns_map
-from folktexts.qa_interface import MultipleChoiceQA as _MultipleChoiceQA
-from folktexts.qa_interface import DirectNumericQA as _DirectNumericQA
-
 
 # Map of numeric ACS questions
 acs_numeric_qa_map: dict[str, object] = {

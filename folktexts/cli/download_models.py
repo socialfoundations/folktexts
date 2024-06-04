@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 import gc
 import logging
-from pathlib import Path
 from argparse import ArgumentParser
+from pathlib import Path
 
 import torch
 from tqdm import tqdm
-
 
 # Temporary directory to use as download cache
 TMP_DIR = Path("/tmp/")

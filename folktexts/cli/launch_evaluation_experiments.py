@@ -2,8 +2,8 @@
 """
 Python script to launch condor jobs for all experiments.
 """
-import math
 import argparse
+import math
 from pathlib import Path
 from pprint import pprint
 

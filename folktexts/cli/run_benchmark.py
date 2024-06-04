@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """Runs the LLM calibration benchmark from the command line.
 """
-import sys
 import logging
-from pathlib import Path
-from functools import partial
+import sys
 from argparse import ArgumentParser
+from functools import partial
+from pathlib import Path
 
 from folktexts._io import save_json
-from folktexts.dataset import Dataset
-from folktexts.task import TaskMetadata
 from folktexts.classifier import LLMClassifier
+from folktexts.dataset import Dataset
 from folktexts.evaluation import evaluate_predictions
 from folktexts.prompting import (
     encode_row_prompt,
     encode_row_prompt_chat,
     encode_row_prompt_few_shot,
 )
+from folktexts.task import TaskMetadata
 
 DEFAULT_BATCH_SIZE = 16
 DEFAULT_CONTEXT_SIZE = 500
@@ -87,11 +87,11 @@ def setup_arg_parser() -> ArgumentParser:
 
 
 def run_llm_risk_scores_evaluation(     # TODO! RUN AND CHECK IF THIS WORKS!
-        llm_clf: LLMClassifier,
-        dataset: Dataset,
-        results_dir: Path,
-        seed: int = DEFAULT_SEED,
-    ) -> dict:
+    llm_clf: LLMClassifier,
+    dataset: Dataset,
+    results_dir: Path,
+    seed: int = DEFAULT_SEED,
+) -> dict:
 
     # Get test data
     X_test, y_test = dataset.get_test()
@@ -209,7 +209,7 @@ if __name__ == '__main__':
         )
 
     # Load the QA interface to be used for risk-score prompting
-    from folktexts.acs.acs_questions import acs_numeric_qa_map, acs_multiple_choice_qa_map
+    from folktexts.acs.acs_questions import acs_multiple_choice_qa_map, acs_numeric_qa_map
     if args.direct_risk_prompting:
         question = acs_numeric_qa_map[task.target]
     else:

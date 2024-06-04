@@ -1,13 +1,14 @@
 """General Dataset functionality for text-based datasets."""
+from __future__ import annotations
+
 import logging
 from abc import ABC
 
 import numpy as np
 import pandas as pd
 
-from .task import TaskMetadata
 from ._commons import is_valid_number
-
+from .task import TaskMetadata
 
 DEFAULT_TEST_SIZE = 0.1
 DEFAULT_VAL_SIZE = None
@@ -15,14 +16,14 @@ DEFAULT_VAL_SIZE = None
 
 class Dataset(ABC):
     def __init__(
-            self,
-            data: pd.DataFrame,
-            task: TaskMetadata,
-            test_size: float = DEFAULT_TEST_SIZE,
-            val_size: float = DEFAULT_VAL_SIZE,
-            subsampling: float = None,
-            seed: int = 42,
-        ):
+        self,
+        data: pd.DataFrame,
+        task: TaskMetadata,
+        test_size: float = DEFAULT_TEST_SIZE,
+        val_size: float = DEFAULT_VAL_SIZE,
+        subsampling: float = None,
+        seed: int = 42,
+    ):
         """Construct a Dataset object.
 
         Parameters

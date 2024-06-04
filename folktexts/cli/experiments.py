@@ -1,16 +1,15 @@
 """General constants and helper classes to run the main experiments on htcondor.
 """
-import sys
 import logging
+import sys
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import ClassVar
-from dataclasses import dataclass, field, asdict
 
-import htcondor
 import classad
+import htcondor
 
 from ._utils import hash_dict
-
 
 # Cluster settings
 DEFAULT_JOB_BID = 25            # htcondor bid (min. is 15 apparently...)
@@ -47,7 +46,7 @@ class Experiment:
         else:
             raise AttributeError(f"Attribute '{name}' not found in Experiment.")
 
-    def hash(self) -> int:
+    def hash(self) -> str:
         """Generate a hexadecimal hash that uniquely identifies the experiment's arguments.
         """
         # Get hash of the experiment's arguments

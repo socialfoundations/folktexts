@@ -3,11 +3,12 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'folktexts'
-copyright = '2023, AndreFCruz'
+copyright = '2024, Social Foundations of Computation, at MPI-IS'
 author = 'AndreFCruz'
 
 # Import package version programmatically
@@ -17,6 +18,7 @@ sys.path.insert(0, Path(__file__).parent.as_posix())
 from folktexts._version import __version__
 release = __version__
 version = __version__
+
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -37,7 +39,6 @@ extensions = [
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-
 
 
 # -- Options for HTML output -------------------------------------------------

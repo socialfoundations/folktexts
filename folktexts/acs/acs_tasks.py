@@ -1,12 +1,15 @@
+"""A collection of ACS prediction tasks based on the folktables package.
+"""
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 import folktables
 from folktables import BasicProblem
 
-from ..task import TaskMetadata
 from ..col_to_text import ColumnToText as _ColumnToText
+from ..task import TaskMetadata
 from . import acs_columns
-
 
 # Map of ACS column names to ColumnToText objects
 _acs_columns_map: dict[str, object] = {

@@ -5,6 +5,8 @@ Notes
 Code based on the `error_parity.evaluation` module,
 at: https://github.com/socialfoundations/error-parity/blob/main/error_parity/evaluation.py
 """
+from __future__ import annotations
+
 import logging
 import statistics
 from pathlib import Path
@@ -12,15 +14,9 @@ from typing import Optional
 
 import numpy as np
 from netcal.metrics import ECE
-from sklearn.metrics import (
-    confusion_matrix,
-    roc_curve,
-    roc_auc_score,
-    log_loss,
-    brier_score_loss,
-)
+from sklearn.metrics import brier_score_loss, confusion_matrix, log_loss, roc_auc_score, roc_curve
 
-from ._commons import safe_division, is_valid_number, join_dictionaries
+from ._commons import is_valid_number, join_dictionaries, safe_division
 from .plotting import render_evaluation_plots
 
 

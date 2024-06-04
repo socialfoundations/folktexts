@@ -4,15 +4,16 @@
 - Encode questions and decode model outputs.
 - Compute risk-estimate from model outputs.
 """
-import logging
+from __future__ import annotations
+
 import itertools
+import logging
 from abc import ABC
-from typing import Iterator
 from dataclasses import dataclass
+from typing import Iterator
 
 import torch
 from transformers import AutoTokenizer
-
 
 # Minimum probability density assigned to all valid answers
 # > small models will be worse at using valid answers...
@@ -115,6 +116,8 @@ class DirectNumericQA(QAInterface):
             question_prompt += "Answer (between 0 and 1): 0."
         else:
             question_prompt += "Answer: "
+
+        return question_prompt
 
     def _get_numeric_tokens(self, tokenizer: AutoTokenizer, cache: dict = {}) -> dict[str, int]:
         """Returns the indices of tokens that correspond to numbers.

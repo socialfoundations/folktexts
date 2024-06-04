@@ -1,4 +1,6 @@
-"""Module for ACS datasets and tasks."""
+"""Module to access ACS data using the folktables package.
+"""
+from __future__ import annotations
 
 from pathlib import Path
 
@@ -7,9 +9,7 @@ from folktables.load_acs import state_list
 
 from ..dataset import Dataset
 from ..task import TaskMetadata
-
 from ._utils import get_thresholded_column_name
-
 
 DEFAULT_ACS_DATA_DIR = Path("~/data").expanduser().resolve()
 
@@ -18,11 +18,11 @@ class ACSDataset(Dataset):
     """Wrapper for ACS folktables datasets."""
 
     def __init__(
-            self,
-            task_name: str,
-            cache_dir: str | Path = DEFAULT_ACS_DATA_DIR,
-            **kwargs,
-        ):
+        self,
+        task_name: str,
+        cache_dir: str | Path = DEFAULT_ACS_DATA_DIR,
+        **kwargs,
+    ):
 
         # Create "folktables" sub-folder under the given cache dir
         cache_dir = Path(cache_dir).expanduser().resolve() / "folktables"

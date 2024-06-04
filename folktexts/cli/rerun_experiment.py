@@ -2,8 +2,8 @@
 """
 Python script to re-run a single experiment locally.
 """
-from subprocess import call
 from argparse import ArgumentParser
+from subprocess import call
 
 from folktexts._io import load_json
 

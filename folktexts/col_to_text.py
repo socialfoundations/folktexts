@@ -1,21 +1,23 @@
+from __future__ import annotations
+
 import logging
 from typing import Callable
 
-from .qa_interface import QAInterface, MultipleChoiceQA
+from .qa_interface import MultipleChoiceQA, QAInterface
 
 
 class ColumnToText:
     """Maps a single column's values to natural text."""
 
     def __init__(
-            self,
-            name: str,
-            short_description: str,
-            value_map: dict[object, str] | Callable = None,
-            question: QAInterface = None,
-            connector_verb: str = "is",
-            missing_value_fill: str = "N/A",
-        ):
+        self,
+        name: str,
+        short_description: str,
+        value_map: dict[object, str] | Callable = None,
+        question: QAInterface = None,
+        connector_verb: str = "is",
+        missing_value_fill: str = "N/A",
+    ):
         """Constructs a `ColumnToText` object.
 
         Parameters

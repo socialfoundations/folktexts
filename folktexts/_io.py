@@ -1,8 +1,8 @@
 import json
-import pickle
 import logging
-from pathlib import Path
+import pickle
 from collections.abc import Collection
+from pathlib import Path
 
 import cloudpickle
 
