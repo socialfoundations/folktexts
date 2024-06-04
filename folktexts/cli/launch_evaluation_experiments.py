@@ -8,9 +8,9 @@ from pathlib import Path
 from pprint import pprint
 
 from folktexts._io import load_json, save_json
+from folktexts._utils import get_current_date
 from folktexts.llm_utils import get_model_folder_path, get_model_size_B
 
-from ._utils import get_current_date
 from .experiments import Experiment, launch_experiment_job
 
 # All ACS prediction tasks
@@ -46,14 +46,14 @@ EXECUTABLE_PATH = Path(__file__).parent.resolve() / "run_benchmark.py"
 ##################
 # Global configs #
 ##################
-BATCH_SIZE = 32
-CONTEXT_SIZE = 400
+BATCH_SIZE = 30
+CONTEXT_SIZE = 500
 SEED = 42
 VERBOSE = True
 
 JOB_CPUS = 4
 JOB_MEMORY_GB = 60
-JOB_BID = 50
+JOB_BID = 100
 
 # LLMs to evaluate
 LLM_MODELS = [

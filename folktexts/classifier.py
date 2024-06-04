@@ -18,10 +18,11 @@ from folktexts.llm_utils import query_model_batch
 from folktexts.prompting import encode_row_prompt as default_encode_row_prompt
 from folktexts.task import TaskMetadata
 
-from .acs import acs_tasks  # noqa # process ACS tasks
+from ._utils import hash_dict, hash_function
 
 DEFAULT_CONTEXT_SIZE = 500
 DEFAULT_BATCH_SIZE = 16
+DEFAULT_CORRECT_ORDER_BIAS = False  # TODO: change default to `True`
 
 SCORE_COL_NAME = "risk_score"
 LABEL_COL_NAME = "label"
@@ -71,6 +72,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         self._inference_kwargs = inference_kwargs
         self._inference_kwargs.setdefault("context_size", DEFAULT_CONTEXT_SIZE)
         self._inference_kwargs.setdefault("batch_size", DEFAULT_BATCH_SIZE)
+        self._inference_kwargs.setdefault("correct_order_bias", DEFAULT_CORRECT_ORDER_BIAS)
 
     @property
     def model(self) -> AutoModelForCausalLM:
@@ -92,11 +94,27 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
     def threshold(self) -> float:
         return self._threshold
 
+    @property
+    def model_name(self) -> str:
+        return Path(self.model.name_or_path).name
+
     @threshold.setter
     def threshold(self, value: float) -> float:
         assert 0 <= value <= 1, "Threshold must be between 0 and 1."
         logging.debug(f"Setting threshold to {value}.")
         self._threshold = value
+
+    def __hash__(self) -> int:
+        hash_params = dict(
+            model_name=self.model_name,
+            model_size=self.model.num_parameters(),
+            tokenizer_vocab_size=self.tokenizer.vocab_size,
+            task_hash=hash(self.task),
+            threshold=self.threshold,
+            encode_row_hash=hash_function(self.encode_row),
+        )
+
+        return int(hash_dict(hash_params), 16)
 
     def fit(self, X, y, *, false_pos_cost=1.0, false_neg_cost=1.0):
         """Uses the provided data sample to fit the prediction threshold."""
@@ -303,6 +321,13 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
 
         batch_size = batch_size or self._inference_kwargs["batch_size"]
         context_size = context_size or self._inference_kwargs["context_size"]
+        correct_order_bias = self._inference_kwargs["correct_order_bias"]
+
+        # Adjust batch size if `correct_order_bias` is enabled
+        # > we need to run inference twice for each sample
+        if correct_order_bias:
+            batch_size = math.ceil(batch_size / 2)
+            raise NotImplementedError  # TODO
 
         num_batches = math.ceil(len(df) / batch_size)
 

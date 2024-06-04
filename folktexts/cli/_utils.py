@@ -1,41 +1,6 @@
-import hashlib
-import json
-from datetime import datetime
-from pathlib import Path
-
-
-def get_current_timestamp() -> str:
-    """Return a timestamp representing the current time up to the second."""
-    return datetime.now().strftime("%Y.%m.%d-%H.%M.%S")
-
-
-def get_current_date() -> str:
-    """Return a timestamp representing the current time up to the second."""
-    return datetime.now().strftime("%Y-%m-%d")
-
-
-def hash_dict(d: dict, length: int = 8) -> str:
-    """Hashes a dictionary using SHAKE-256 and returns the hexdigest.
-
-    Parameters
-    ----------
-    d : dict
-        The dictionary to hash.
-    length : int, optional
-        The length of the hexdigest in number of text characters, by default 8.
-
-    Returns
-    -------
-    hexdigest : str
-        A string representing the hash in hexadecimal format.
-    """
-    d_enc = json.dumps(d, sort_keys=True).encode()
-    return hashlib.shake_256(d_enc).hexdigest(length // 2)
-
-
-def standardize_path(path: str | Path) -> str:
-    """Represents a posix path as a standardized string."""
-    return Path(path).expanduser().resolve().as_posix()
+"""Utils for the folktexts cmd-line interface.
+"""
+from __future__ import annotations
 
 
 def cmd_line_args_to_kwargs(cmdline_args: list) -> dict:

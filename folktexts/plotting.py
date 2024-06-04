@@ -11,7 +11,7 @@ from sklearn import metrics
 from sklearn.calibration import CalibrationDisplay
 from sklearn.metrics import RocCurveDisplay
 
-from ._commons import safe_division
+from ._utils import safe_division
 
 try:
     import matplotlib.pyplot as plt
@@ -50,9 +50,9 @@ def render_evaluation_plots(
     y_true: np.ndarray,
     y_pred_scores: np.ndarray,
     *,
-    sensitive_attribute: np.ndarray,
     imgs_dir: str | Path,
     eval_results: dict = {},
+    sensitive_attribute: np.ndarray = None,
     model_name: str = None,
 ) -> dict:
     """Renders evaluation plots for the given predictions."""

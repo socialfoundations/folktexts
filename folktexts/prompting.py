@@ -14,15 +14,16 @@ SYSTEM_PROMPT = """\
 You are a helpful assistant. You answer multiple-choice questions based on the information provided.
 """
 
-# TODO: Add population description "Survey was conducted among US residents in 2018."
 ACS_TASK_DESCRIPTION = """\
 The following data corresponds to a survey respondent. \
+The survey was conducted among US residents in 2018. \
 Please answer the question based on the information provided. \
 The data provided is enough to reach an approximate answer.
 """
 
 ACS_FEW_SHOT_TASK_DESCRIPTION = """\
 The following data corresponds to different survey respondents. \
+The survey was conducted among US residents in 2018. \
 Please answer each question based on the information provided. \
 The data provided is enough to reach an approximate answer for each person.
 """

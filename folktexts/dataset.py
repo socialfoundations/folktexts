@@ -1,13 +1,14 @@
 """General Dataset functionality for text-based datasets."""
 from __future__ import annotations
 
+import copy
 import logging
 from abc import ABC
 
 import numpy as np
 import pandas as pd
 
-from ._commons import is_valid_number
+from ._utils import hash_dict, is_valid_number
 from .task import TaskMetadata
 
 DEFAULT_TEST_SIZE = 0.1
@@ -71,7 +72,7 @@ class Dataset(ABC):
 
         # Subsample the train/test/val data (if requested)
         if self._subsampling is not None:
-            self.subsample(self._subsampling)
+            self._subsample_inplace(self._subsampling)
 
     @property
     def data(self) -> pd.DataFrame:
@@ -101,8 +102,26 @@ class Dataset(ABC):
     def seed(self) -> int:
         return self._seed
 
-    def subsample(self, subsampling: float) -> "Dataset":
+    def __copy__(self) -> "Dataset":
+        dataset = Dataset(
+            data=self.data,
+            task=self.task,
+            test_size=self.test_size,
+            val_size=self.val_size,
+            subsampling=self.subsampling,
+            seed=self.seed,
+        )
+        dataset._train_indices = self._train_indices.copy()
+        dataset._test_indices = self._test_indices.copy()
+        dataset._val_indices = self._val_indices.copy()
+        dataset._rng = copy.deepcopy(self._rng)
+
+        return dataset
+
+    def _subsample_inplace(self, subsampling: float) -> "Dataset":
         """Subsample the dataset in-place."""
+
+        # Check argument is valid
         if not is_valid_number(subsampling) or not (0 < subsampling <= 1):
             raise ValueError(f"`subsampling={subsampling}` must be in the range (0, 1]")
 
@@ -121,7 +140,7 @@ class Dataset(ABC):
 
         # Log new dataset size
         msg = (
-            f"Subsampled dataset to {self.subsampling:.3f} of the original size. "
+            f"Subsampled dataset to {self.subsampling:.1%} of the original size. "
             f"Train size: {len(self._train_indices)}, "
             f"Test size: {len(self._test_indices)}, "
             f"Val size: {len(self._val_indices) if self._val_indices is not None else 0};"
@@ -130,10 +149,57 @@ class Dataset(ABC):
 
         return self
 
+    def subsample(self, subsampling: float) -> "Dataset":
+        """Create a new dataset whose samples are a fraction of this dataset."""
+        return copy.copy(self)._subsample_inplace(subsampling)
+
+    def _filter_inplace(
+        self,
+        population_feature_values: dict,
+    ) -> "Dataset":
+        """Subset the dataset in-place: keep only samples with the given feature values."""
+
+        # Check argument is of valid type
+        if not isinstance(population_feature_values, dict):
+            raise ValueError(
+                f"Invalid `population_feature_values` type: "
+                f"{type(population_feature_values)}.")
+
+        # Check argument keys are valid columns
+        if not all(key in self.data.columns for key in population_feature_values.keys()):
+            raise ValueError(
+                f"Invalid `population_feature_values` keys: "
+                f"{population_feature_values.keys()}.")
+
+        # Create boolean filter based on the given feature values
+        population_filter = pd.Series(True, index=self.data.index)
+        for key, value in population_feature_values.items():
+            population_filter &= (self.data[key] == value)
+
+        # Update train/test/val indices
+        train_pop_filter = population_filter.iloc[self._train_indices]
+        test_pop_filter = population_filter.iloc[self._test_indices]
+        val_pop_filter = population_filter.iloc[self._val_indices] if self._val_indices is not None else None
+
+        self._train_indices = self._train_indices[train_pop_filter]
+        self._test_indices = self._test_indices[test_pop_filter]
+        self._val_indices = self._val_indices[val_pop_filter] if self._val_indices is not None else None
+
+        return self
+
+    def subset_population(
+        self,
+        population_feature_values: dict,
+    ) -> "Dataset":
+        """Create a new dataset whose samples are a subset of this dataset."""
+        return copy.copy(self)._filter_inplace(population_feature_values)
+
     def get_name(self) -> str:
+        """A unique name for this dataset."""
         subsampling_str = f"subsampled-{self.subsampling:.3}" if self.subsampling else "full"
         seed_str = f"seed-{self._seed}"
-        return f"{self.task.name}_{subsampling_str}_{seed_str}"
+        hash_str = f"hash-{hash(self)}"
+        return f"{self.task.name}_{subsampling_str}_{seed_str}_{hash_str}"
 
     def get_features_data(self) -> pd.DataFrame:
         return self.data[self.task.features]
@@ -200,3 +266,30 @@ class Dataset(ABC):
             return None
         val_data = self.data.iloc[self._val_indices]
         return val_data[self.task.features], val_data[self.task.target]
+
+    def __getitem__(self, i) -> tuple[pd.DataFrame, pd.Series]:
+        """Returns the i-th training sample."""
+        curr_indices = self._train_indices[i]
+        curr_data = self.data.iloc[curr_indices]
+        return curr_data[self.task.features], curr_data[self.task.target]
+
+    def __iter__(self):
+        """Iterates over the training data."""
+        for i in range(len(self._train_indices)):
+            yield self[i]
+
+    def __len__(self) -> int:
+        return len(self.data)
+
+    def __hash__(self) -> int:
+        hashable_params = {
+            "data_shape": self.data.shape,
+            "task": hash(self.task),
+            "train_size": len(self._train_indices),
+            "test_size": len(self._test_indices),
+            "val_size": len(self._val_indices) if self._val_indices is not None else 0,
+            "subsampling": self.subsampling or 1,
+            "seed": self.seed,
+        }
+
+        return int(hash_dict(hashable_params), 16)

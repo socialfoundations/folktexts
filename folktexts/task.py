@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import ClassVar
 
 import pandas as pd
 
+from ._utils import hash_dict
 from .col_to_text import ColumnToText
 
 
@@ -52,6 +53,11 @@ class TaskMetadata:
         # Add this task to the class-level dictionary
         TaskMetadata._tasks[self.name] = self
 
+    def __hash__(self) -> int:
+        hashable_params = asdict(self)
+        hashable_params.pop("cols_to_text")
+        return int(hash_dict(hashable_params), 16)
+
     @classmethod
     def get_task(cls, name: str) -> "TaskMetadata":
         if name not in cls._tasks:
@@ -73,3 +79,7 @@ class TaskMetadata:
                 for col, val in row.items()
             )
         )
+
+    def create_task_with_feature_subset(self):
+        """Creates a new task with a subset of the original features."""
+        raise NotImplementedError # TODO: create tasks that use subset of these features?

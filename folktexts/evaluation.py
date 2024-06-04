@@ -16,7 +16,7 @@ import numpy as np
 from netcal.metrics import ECE
 from sklearn.metrics import brier_score_loss, confusion_matrix, log_loss, roc_auc_score, roc_curve
 
-from ._commons import is_valid_number, join_dictionaries, safe_division
+from ._utils import is_valid_number, join_dictionaries, safe_division
 from .plotting import render_evaluation_plots
 
 
@@ -225,7 +225,6 @@ def evaluate_predictions(
     *,
     sensitive_attribute: np.ndarray = None,
     threshold: float | str = "best",
-    imgs_dir: str | Path = None,
     model_name: str = None,
 ) -> dict:
     """Evaluates predictions on common performance and fairness metrics.
@@ -241,8 +240,6 @@ def evaluate_predictions(
     threshold : float | str, optional
         The threshold to use for binarizing the predictions, or "best" to infer
         which threshold maximizes accuracy.
-    imgs_dir : str | Path, optional
-        If provided, will save evaluation plot to this directory, by default None.
     model_name : str, optional
         The name of the model to be used on the plots, by default None.
 
@@ -263,7 +260,6 @@ def evaluate_predictions(
         "n_samples": len(y_true),
         "n_positives": np.sum(y_true).item(),
         "n_negatives": len(y_true) - np.sum(y_true).item(),
-        "imgs_dir": Path(imgs_dir).resolve().as_posix() if imgs_dir is not None else None,
         "model_name": model_name,
     }
 
@@ -301,17 +297,6 @@ def evaluate_predictions(
     except Exception as err:
         logging.warning(f"Failed to compute ECE quantile: {err}")
         results["ece_quantile"] = None
-
-    # Render plots if `imgs_dir` is provided
-    if imgs_dir is not None:
-        results.update(render_evaluation_plots(
-            y_true=y_true,
-            y_pred_scores=y_pred_scores,
-            sensitive_attribute=sensitive_attribute,
-            imgs_dir=imgs_dir,
-            eval_results=results,
-            model_name=model_name,
-        ))
 
     return results
 

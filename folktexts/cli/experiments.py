@@ -9,7 +9,7 @@ from typing import ClassVar
 import classad
 import htcondor
 
-from ._utils import hash_dict
+from folktexts._utils import hash_dict
 
 # Cluster settings
 DEFAULT_JOB_BID = 25            # htcondor bid (min. is 15 apparently...)

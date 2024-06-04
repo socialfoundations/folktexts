@@ -2,11 +2,12 @@
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 
 import folktables
 from folktables import BasicProblem
 
+from .._utils import hash_dict
 from ..col_to_text import ColumnToText as _ColumnToText
 from ..task import TaskMetadata
 from . import acs_columns
@@ -46,12 +47,18 @@ class ACSTaskMetadata(TaskMetadata):
             features=folktables_task.features,
             target=folktables_task.target,
             cols_to_text=_acs_columns_map,
-            sensitive_attribute=folktables_task.group,
+            # sensitive_attribute=folktables_task.group,    # NOTE: by default do not run fairness evaluation
             target_threshold=target_threshold,
             folktables_obj=folktables_task,
         )
 
         return acs_task
+
+    def __hash__(self) -> int:
+        hashable_params = asdict(self)
+        hashable_params.pop("cols_to_text")
+        hashable_params.pop("folktables_obj")
+        return int(hash_dict(hashable_params), 16)
 
 
 # Instantiate folktables tasks
