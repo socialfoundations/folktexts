@@ -17,7 +17,7 @@ DEFAULT_JOB_CPUS = 4            # number of CPUs per experiment (per cluster job
 DEFAULT_JOB_MEMORY_GB = 62      # GBs of memory
 DEFAULT_GPU_MEMORY_GB = 30      # GBs of GPU memory
 
-MAX_RUNNING_PRICE = 1000
+MAX_RUNNING_PRICE = 1500        # Max price for running a job
 
 
 @dataclass
@@ -97,7 +97,7 @@ def launch_experiment_job(exp: Experiment):
 
         # Concurrency limits:
         # > each job uses this amount of resources out of a pool of 10k
-        "concurrency_limits": "user.llm_clf:500",     # 20 jobs in parallel
+        "concurrency_limits": "user.folktexts:100",     # 100 jobs in parallel
 
         "+MaxRunningPrice": MAX_RUNNING_PRICE,
         "+RunningPriceExceededAction": classad.quote("restart"),

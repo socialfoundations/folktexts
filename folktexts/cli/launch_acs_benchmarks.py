@@ -8,7 +8,6 @@ from pathlib import Path
 from pprint import pprint
 
 from folktexts._io import load_json, save_json
-from folktexts._utils import get_current_date
 from folktexts.llm_utils import get_model_folder_path, get_model_size_B
 
 from .experiments import Experiment, launch_experiment_job
@@ -16,7 +15,7 @@ from .experiments import Experiment, launch_experiment_job
 # All ACS prediction tasks
 ACS_TASKS = (
     "ACSIncome",
-    # "ACSEmployment",          # TODO: get other ACS tasks running
+    # "ACSEmployment",          # TODO: run on other ACS tasks
     # "ACSMobility",
     # "ACSTravelTime",
     # "ACSPublicCoverage",
@@ -26,14 +25,13 @@ ACS_TASKS = (
 # Useful paths #
 ################
 ROOT_DIR = Path("/fast/groups/sf")
-# ROOT_DIR = Path("/fast/acruz")
 # ROOT_DIR = Path("~").expanduser().resolve()               # on local machine
 
 # ACS data directory
 ACS_DATA_DIR = ROOT_DIR / "data"
 
 # Directory to save results in (make sure it exists)
-RESULTS_DIR = ROOT_DIR / "folktexts-results" / get_current_date()
+RESULTS_DIR = ROOT_DIR / "folktexts-results"
 RESULTS_DIR.mkdir(exist_ok=True, parents=False)
 
 # Models save directory
@@ -49,14 +47,12 @@ EXECUTABLE_PATH = Path(__file__).parent.resolve() / "run_acs_benchmark.py"
 BATCH_SIZE = 30
 CONTEXT_SIZE = 500
 CORRECT_ORDER_BIAS = True
-FIT_THRESHOLD = 100
 
 VERBOSE = True
 
 JOB_CPUS = 4
 JOB_MEMORY_GB = 60
-# JOB_BID = 50
-JOB_BID = 505
+JOB_BID = 250
 
 # LLMs to evaluate
 LLM_MODELS = [
@@ -65,20 +61,20 @@ LLM_MODELS = [
     "google/gemma-1.1-2b-it",
 
     # # ** Medium models **
-    # "google/gemma-7b",
-    # "google/gemma-1.1-7b-it",
-    # "mistralai/Mistral-7B-v0.1",
-    # "mistralai/Mistral-7B-Instruct-v0.2",
-    # "meta-llama/Meta-Llama-3-8B",
-    # "meta-llama/Meta-Llama-3-8B-Instruct",
+    "google/gemma-7b",
+    "google/gemma-1.1-7b-it",
+    "mistralai/Mistral-7B-v0.1",
+    "mistralai/Mistral-7B-Instruct-v0.2",
+    "meta-llama/Meta-Llama-3-8B",
+    "meta-llama/Meta-Llama-3-8B-Instruct",
 
     # # ** Large models **
-    # "01-ai/Yi-34B",
-    # "01-ai/Yi-34B-Chat",
-    # "mistralai/Mixtral-8x7B-v0.1",
-    # "mistralai/Mixtral-8x7B-Instruct-v0.1",
-    # "meta-llama/Meta-Llama-3-70B",
-    # "meta-llama/Meta-Llama-3-70B-Instruct",
+    "01-ai/Yi-34B",
+    "01-ai/Yi-34B-Chat",
+    "mistralai/Mixtral-8x7B-v0.1",
+    "mistralai/Mixtral-8x7B-Instruct-v0.1",
+    "meta-llama/Meta-Llama-3-70B",
+    "meta-llama/Meta-Llama-3-70B-Instruct",
     # "mistralai/Mixtral-8x22B-v0.1",
     # "mistralai/Mixtral-8x22B-Instruct-v0.1",
 ]
@@ -115,7 +111,7 @@ def make_llm_as_clf_experiment(
     experiment_kwargs.setdefault("batch_size", math.ceil(BATCH_SIZE / n_shots))
     experiment_kwargs.setdefault("context_size", CONTEXT_SIZE * n_shots)
     experiment_kwargs.setdefault("data_dir", ACS_DATA_DIR.as_posix())
-    experiment_kwargs.setdefault("fit_threshold", FIT_THRESHOLD)
+    # experiment_kwargs.setdefault("fit_threshold", FIT_THRESHOLD)
 
     # Define experiment
     exp = Experiment(

@@ -59,7 +59,6 @@ class Dataset(ABC):
         self._test_size = test_size
         self._val_size = val_size or 0
         self._train_size = 1 - self._test_size - self._val_size
-        self._subsampling = subsampling
         assert self._train_size > 0
 
         self._seed = seed
@@ -79,8 +78,9 @@ class Dataset(ABC):
             self._val_indices = None
 
         # Subsample the train/test/val data (if requested)
-        if self._subsampling is not None:
-            self._subsample_inplace(self._subsampling)
+        self._subsampling = None
+        if subsampling is not None:
+            self._subsample_inplace(subsampling)
 
     @property
     def data(self) -> pd.DataFrame:
@@ -115,7 +115,7 @@ class Dataset(ABC):
 
     @property
     def subsampling(self) -> float:
-        return self._subsampling
+        return getattr(self, "_subsampling", None)
 
     @property
     def seed(self) -> int:
@@ -155,7 +155,7 @@ class Dataset(ABC):
             self._val_indices = self._val_indices[: new_val_size]
 
         # Update subsampling factor
-        self._subsampling = (self._subsampling or 1) * subsampling
+        self._subsampling = (getattr(self, "_subsampling", None) or 1) * subsampling
 
         # Log new dataset size
         msg = (
@@ -177,8 +177,6 @@ class Dataset(ABC):
         population_feature_values: dict,
     ) -> "Dataset":
         """Subset the dataset in-place: keep only samples with the given feature values."""
-        import ipdb; ipdb.set_trace()
-
         # Check argument is of valid type
         if not isinstance(population_feature_values, dict):
             raise ValueError(
@@ -188,8 +186,8 @@ class Dataset(ABC):
         # Check argument keys are valid columns
         if not all(key in self.data.columns for key in population_feature_values.keys()):
             raise ValueError(
-                f"Invalid `population_feature_values` keys: "
-                f"{population_feature_values.keys()}.")
+                f"Invalid `population_feature_values` keys; columns don't exist "
+                f"in the dataset: {list(population_feature_values.keys())}.")
 
         # Create boolean filter based on the given feature values
         population_filter = pd.Series(True, index=self.data.index)

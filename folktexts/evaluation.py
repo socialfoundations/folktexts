@@ -268,7 +268,7 @@ def evaluate_predictions(
     results.update(evaluate_binary_predictions(y_true, y_pred_binary))
 
     # Add loss functions as proxies for calibration
-    results["log_loss"] = log_loss(y_true, y_pred_scores)
+    results["log_loss"] = log_loss(y_true, y_pred_scores, labels=[0, 1])
     results["brier_score_loss"] = brier_score_loss(y_true, y_pred_scores)
 
     # Evaluate fairness metrics

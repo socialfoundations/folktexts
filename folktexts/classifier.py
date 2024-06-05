@@ -103,9 +103,12 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
 
     @threshold.setter
     def threshold(self, value: float) -> float:
-        assert 0 <= value <= 1, "Threshold must be between 0 and 1."
-        logging.debug(f"Setting threshold to {value}.")
-        self._threshold = value
+        if not 0 <= value <= 1:
+            logging.error(f"Threshold must be between 0 and 1; got {value}.")
+
+        # Clip threshold to valid range
+        self._threshold = np.clip(value, 0, 1)
+        logging.info(f"Set threshold to {self._threshold}.")
 
     def __hash__(self) -> int:
         """Generate a unique hash for the LLMClassifier object."""

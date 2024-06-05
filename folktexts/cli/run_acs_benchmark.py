@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Runs the LLM calibration benchmark from the command line.
 """
-import logging
 import json
+import logging
 import sys
 from argparse import ArgumentParser
 from pathlib import Path
@@ -119,11 +119,8 @@ if __name__ == '__main__':
     # Parse population filter if provided
     population_filter_dict = None
     if args.use_population_filter:
-        import ipdb; ipdb.set_trace()   # TODO: debug
-        population_filter_dict = dict()
-        for filter_str in args.use_population_filter:   # TODO: split by whitespace?
-            col_name, col_value = filter_str.split("=")
-            population_filter_dict[col_name] = col_value
+        from ._utils import cmd_line_args_to_kwargs
+        population_filter_dict = cmd_line_args_to_kwargs(args.use_population_filter)
 
     # Load model and tokenizer
     from folktexts.llm_utils import load_model_tokenizer
@@ -139,7 +136,7 @@ if __name__ == '__main__':
         batch_size=args.batch_size,
         context_size=args.context_size,
         correct_order_bias=not args.dont_correct_order_bias,
-        feature_subset=tuple(args.use_feature_subset) or None,
+        feature_subset=args.use_feature_subset or None,
         population_filter=population_filter_dict,
         seed=args.seed,
     )

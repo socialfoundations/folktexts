@@ -2,25 +2,25 @@
 """
 from __future__ import annotations
 
+import dataclasses
 import logging
 from functools import partial
 from pathlib import Path
-import dataclasses
 
 import numpy as np
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from ._io import save_json, load_json
+from ._io import load_json, save_json
 from ._utils import hash_dict, is_valid_number
 from .acs.acs_dataset import ACSDataset
 from .acs.acs_questions import acs_multiple_choice_qa_map, acs_numeric_qa_map
 from .acs.acs_tasks import ACSTaskMetadata
-from .task import TaskMetadata
 from .classifier import LLMClassifier
 from .dataset import Dataset
 from .evaluation import evaluate_predictions
 from .plotting import render_evaluation_plots, render_fairness_plots
 from .prompting import encode_row_prompt, encode_row_prompt_chat, encode_row_prompt_few_shot
+from .task import TaskMetadata
 
 DEFAULT_SEED = 42
 
@@ -36,7 +36,7 @@ class BenchmarkConfig:
     batch_size: int | None = None
     context_size: int | None = None
     correct_order_bias: bool = True
-    feature_subset: tuple[str] | None = None
+    feature_subset: list[str] | None = None
     population_filter: dict | None = None
     seed: int = DEFAULT_SEED
 
@@ -52,6 +52,15 @@ class BenchmarkConfig:
     def save_to_disk(self, path: str | Path):
         """Save the configuration to disk."""
         save_json(dataclasses.asdict(self), path)
+
+    def __hash__(self) -> int:
+        cfg = dataclasses.asdict(self)
+        cfg["feature_subset"] = tuple(cfg["feature_subset"]) if cfg["feature_subset"] else None
+        cfg["population_filter_hash"] = (
+            hash_dict(cfg["population_filter"])
+            if cfg["population_filter"] else None
+        )
+        return int(hash_dict(cfg), 16)
 
 
 class CalibrationBenchmark:
@@ -163,9 +172,10 @@ class CalibrationBenchmark:
             s_test = self.dataset.get_sensitive_attribute_data().loc[y_test.index]
 
         # Get LLM risk-estimate predictions for each row in the test set
+        test_predictions_save_path = self._get_predictions_save_path("test")
         self._y_test_scores = self.llm_clf.predict_proba(
             data=X_test,
-            predictions_save_path=self._get_predictions_save_path("test"),
+            predictions_save_path=test_predictions_save_path,
             labels=y_test,  # used only to save alongside predictions in disk
         )
 
@@ -189,6 +199,9 @@ class CalibrationBenchmark:
             threshold=self.llm_clf.threshold,
             model_name=self.llm_clf.model_name,
         )
+
+        # Save predictions save path
+        self._results["predictions_path"] = test_predictions_save_path.as_posix()
 
         # Log main results
         msg = (
@@ -305,7 +318,7 @@ class CalibrationBenchmark:
             task = TaskMetadata.get_task(task)
 
         if config.feature_subset is not None and len(config.feature_subset) > 0:
-            task = task.create_task_with_feature_subset(list(config.feature_subset))
+            task = task.create_task_with_feature_subset(config.feature_subset)
             dataset.task = task
 
         # Check dataset is compatible with task

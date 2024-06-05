@@ -24,15 +24,16 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
+    # "Programming Language :: Python :: 3.8",      # TODO: add compatibility with py3.8
+    # "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
 
 version = "0.0.4"
-requires-python = ">=3.8"
+# requires-python = ">=3.8"
+requires-python = ">=3.10"
 dynamic = [
     "readme",
     "dependencies",
@@ -104,8 +105,8 @@ exclude = ["build", "doc"]
 legacy_tox_ini = """
 [tox]
 env_list =
-    py38
-    py39
+    # py38
+    # py39
     py310
     py311
     py312
