@@ -2,6 +2,7 @@
 """Runs the LLM calibration benchmark from the command line.
 """
 import logging
+import json
 import sys
 from argparse import ArgumentParser
 from pathlib import Path
@@ -9,7 +10,6 @@ from pathlib import Path
 DEFAULT_BATCH_SIZE = 30
 DEFAULT_CONTEXT_SIZE = 500
 DEFAULT_SEED = 42
-DEFAULT_CORRECT_ORDER_BIAS = True
 
 
 def setup_arg_parser() -> ArgumentParser:
@@ -28,6 +28,7 @@ def setup_arg_parser() -> ArgumentParser:
         ("--context-size",  int, "[int] The maximum context size when prompting the LLM", False, DEFAULT_CONTEXT_SIZE),
         ("--fit-threshold", int, "[int] Whether to fit the prediction threshold, and on how many samples", False),
         ("--subsampling",   float, "[float] Which fraction of the dataset to use (if omitted will use all data)", False),
+        ("--seed",          int, "[int] Random seed -- to set for reproducibility", False, DEFAULT_SEED),
     ]
 
     for arg in cli_args:
@@ -40,6 +41,13 @@ def setup_arg_parser() -> ArgumentParser:
         )
 
     # Add special arguments (e.g., boolean flags or multiple-choice args)
+    parser.add_argument(
+        "--dont-correct-order-bias",
+        help="[bool] Whether to avoid correcting ordering bias, by default will correct it",
+        action="store_false",
+        default=True,
+    )
+
     parser.add_argument(
         "--chat-prompt",
         help="[bool] Whether to use chat-based prompting (for instruct models)",
@@ -69,6 +77,26 @@ def setup_arg_parser() -> ArgumentParser:
         required=False,
     )
 
+    # Optionally, receive a list of features to use (subset of original list)
+    parser.add_argument(
+        "--use-feature-subset",
+        type=str,
+        nargs="*",
+        help="[str] Optional subset of features to use for prediction",
+        required=False,
+    )
+
+    parser.add_argument(
+        "--use-population-filter",
+        type=str,
+        nargs="*",
+        help=(
+            "[str] Optional population filter for this benchmark; must follow "
+            "the format 'column_name=value' to filter the dataset by a specific value."
+        ),
+        required=False,
+    )
+
     return parser
 
 
@@ -80,17 +108,41 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     logging.getLogger().setLevel(level=args.logger_level or "INFO")
-    logging.info(f"Received the following cmd-line args: {args.__dict__}")
-    logging.info(f"Current python executable: '{sys.executable}'\n")
+    pretty_args_str = json.dumps(vars(args), indent=4, sort_keys=True)
+    logging.info(f"Current python executable: '{sys.executable}'")
+    logging.info(f"Received the following cmd-line args: {pretty_args_str}")
 
     # Create results directory if needed
     results_dir = Path(args.results_dir).expanduser().resolve()
     results_dir.mkdir(parents=False, exist_ok=True)
 
+    # Parse population filter if provided
+    population_filter_dict = None
+    if args.use_population_filter:
+        import ipdb; ipdb.set_trace()   # TODO: debug
+        population_filter_dict = dict()
+        for filter_str in args.use_population_filter:   # TODO: split by whitespace?
+            col_name, col_value = filter_str.split("=")
+            population_filter_dict[col_name] = col_value
+
     # Load model and tokenizer
     from folktexts.llm_utils import load_model_tokenizer
-    print("\nLoading model and tokenizer...")
     model, tokenizer = load_model_tokenizer(args.model)
+
+    # Fill ACS Benchmark config
+    from folktexts.benchmark import BenchmarkConfig
+    config = BenchmarkConfig(
+        few_shot=args.few_shot,
+        chat_prompt=args.chat_prompt,
+        direct_risk_prompting=args.direct_risk_prompting,
+        reuse_few_shot_examples=args.reuse_few_shot_examples,
+        batch_size=args.batch_size,
+        context_size=args.context_size,
+        correct_order_bias=not args.dont_correct_order_bias,
+        feature_subset=tuple(args.use_feature_subset) or None,
+        population_filter=population_filter_dict,
+        seed=args.seed,
+    )
 
     # Create ACS Benchmark object
     from folktexts.benchmark import CalibrationBenchmark
@@ -100,13 +152,7 @@ if __name__ == '__main__':
         task_name=args.task_name,
         results_dir=results_dir,
         data_dir=args.data_dir,
-        few_shot=args.few_shot,
-        chat_prompt=args.chat_prompt,
-        direct_risk_prompting=args.direct_risk_prompting,
-        reuse_few_shot_examples=args.reuse_few_shot_examples,
-        batch_size=args.batch_size,
-        context_size=args.context_size,
-        correct_order_bias=DEFAULT_CORRECT_ORDER_BIAS,
+        config=config,
         subsampling=args.subsampling,
     )
 
@@ -119,6 +165,7 @@ if __name__ == '__main__':
     # Save results
     import pprint
     pprint.pprint(bench.results, indent=4, sort_dicts=True)
+    bench.save_results()
 
     # Finish
     from folktexts._utils import get_current_timestamp

@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import asdict, dataclass, field
-from typing import Callable, ClassVar
+import dataclasses
+from dataclasses import dataclass, field
+from typing import Callable, ClassVar, Iterable
 
 import pandas as pd
 
@@ -54,7 +55,7 @@ class TaskMetadata:
         TaskMetadata._tasks[self.name] = self
 
     def __hash__(self) -> int:
-        hashable_params = asdict(self)
+        hashable_params = dataclasses.asdict(self)
         hashable_params.pop("cols_to_text")
         hashable_params["question_hash"] = hash(self.question)
         return int(hash_dict(hashable_params), 16)
@@ -73,7 +74,7 @@ class TaskMetadata:
 
     def get_row_description(self, row: pd.Series) -> str:
         """Encode a description of a given data row in textual form."""
-        # TODO: add different encodings other than bullet point?
+        row = row[self.features]
         return (
             "\n".join(
                 "- " + self.cols_to_text[col].get_text(val)
@@ -88,6 +89,18 @@ class TaskMetadata:
             return {}
         return self.cols_to_text[self.sensitive_attribute].value_map
 
-    def create_task_with_feature_subset(self):
+    def create_task_with_feature_subset(self, feature_subset: Iterable[str]):
         """Creates a new task with a subset of the original features."""
-        raise NotImplementedError # TODO: create tasks that use subset of these features?
+        # Convert iterable to list
+        feature_subset = list(feature_subset)
+
+        # Check if features are a subset of the original features
+        if not set(feature_subset).issubset(self.features):
+            raise ValueError("`feature_subset` must be a subset of the original features.")
+
+        # Return new TaskMetadata object
+        return dataclasses.replace(
+            self,
+            name=f"{self.name}_" + "_".join(sorted(feature_subset)),
+            features=feature_subset,
+        )

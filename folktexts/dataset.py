@@ -1,4 +1,12 @@
-"""General Dataset functionality for text-based datasets."""
+"""General Dataset functionality for text-based datasets.
+
+TODO
+----
+- Re-assess if the Dataset needs permanent access to the task;
+    - The task is already in the LLMClassifier;
+    - Maybe the Dataset should simply receive the `task` object whenever a
+    method needs it.
+"""
 from __future__ import annotations
 
 import copy
@@ -19,7 +27,7 @@ class Dataset(ABC):
     def __init__(
         self,
         data: pd.DataFrame,
-        task: TaskMetadata,
+        task: TaskMetadata,     # TODO: remove this from the Dataset
         test_size: float = DEFAULT_TEST_SIZE,
         val_size: float = DEFAULT_VAL_SIZE,
         subsampling: float = None,
@@ -81,6 +89,17 @@ class Dataset(ABC):
     @property
     def task(self) -> TaskMetadata:
         return self._task
+
+    @task.setter
+    def task(self, task: TaskMetadata):
+        logging.info(f"Updating dataset's task from '{self.task.name}' to '{task.name}'.")
+        # Check if task columns are in the data
+        if not all(col in self.data.columns for col in (task.features + [task.target])):
+            raise ValueError(
+                f"Task columns not found in dataset: "
+                f"features={task.features}, target={task.target}")
+
+        self._task = task
 
     @property
     def train_size(self) -> float:
@@ -158,6 +177,7 @@ class Dataset(ABC):
         population_feature_values: dict,
     ) -> "Dataset":
         """Subset the dataset in-place: keep only samples with the given feature values."""
+        import ipdb; ipdb.set_trace()
 
         # Check argument is of valid type
         if not isinstance(population_feature_values, dict):
@@ -187,10 +207,7 @@ class Dataset(ABC):
 
         return self
 
-    def subset_population(
-        self,
-        population_feature_values: dict,
-    ) -> "Dataset":
+    def filter(self, population_feature_values: dict) -> "Dataset":
         """Create a new dataset whose samples are a subset of this dataset."""
         return copy.copy(self)._filter_inplace(population_feature_values)
 

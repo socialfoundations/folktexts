@@ -16,7 +16,7 @@ from .experiments import Experiment, launch_experiment_job
 # All ACS prediction tasks
 ACS_TASKS = (
     "ACSIncome",
-    # "ACSEmployment",  # Not enough data   # TODO: get other ACS tasks running
+    # "ACSEmployment",          # TODO: get other ACS tasks running
     # "ACSMobility",
     # "ACSTravelTime",
     # "ACSPublicCoverage",
@@ -56,7 +56,7 @@ VERBOSE = True
 JOB_CPUS = 4
 JOB_MEMORY_GB = 60
 # JOB_BID = 50
-JOB_BID = 250
+JOB_BID = 505
 
 # LLMs to evaluate
 LLM_MODELS = [

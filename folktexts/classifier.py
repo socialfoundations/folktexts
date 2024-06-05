@@ -108,6 +108,9 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         self._threshold = value
 
     def __hash__(self) -> int:
+        """Generate a unique hash for the LLMClassifier object."""
+
+        # All parameters that affect the model's behavior
         hash_params = dict(
             model_name=self.model_name,
             model_size=self.model.num_parameters(),
