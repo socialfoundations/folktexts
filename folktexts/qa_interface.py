@@ -183,13 +183,19 @@ class Choice:
         return self.numeric_value if self.numeric_value is not None else float(self.data_value)
 
 
-@dataclass(frozen=True, eq=True, kw_only=True)
+@dataclass(frozen=True, eq=True)    # NOTE: kw_only=True requires Python 3.10
 class MultipleChoiceQA(QAInterface):
     """Represents a multiple-choice question and its answer keys."""
 
     num_forward_passes: int = 1     # NOTE: overrides superclass default
-    choices: list[Choice]
+    choices: list[Choice] = dataclasses.field(default_factory=list)
     _answer_keys_source: list[str] = _ALPHABET
+
+    def __post_init__(self):
+        if not self.choices:
+            raise ValueError("Choices must be provided.")
+        if len(self.choices) > len(self._answer_keys_source):
+            raise ValueError("Number of choices must be less than or equal to the number of answer keys.")
 
     @classmethod
     def create_question_from_value_map(
