@@ -5,7 +5,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "folktexts"
 description = "A benchmark on LLM calibration to human populations."
-license = {file = "LICENSE"}
+license = "MIT"
+# license = {file = "LICENSE"}
 authors = [
     { name = "Andre Cruz" },
     { name = "Ricardo Dominguez-Olmedo" },
