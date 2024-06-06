@@ -52,9 +52,9 @@ optional-dependencies.docs = {file = "requirements/docs.txt"}
 optional-dependencies.cli = {file = "requirements/cli.txt"}
 
 [project.urls]
-homepage = "https://github.com/AndreFCruz/folktexts"        # TODO: eventually point to SF github
-documentation = "https://andrefcruz.github.io/folktexts/"   # TODO: eventually point to github pages (docs)
-repository = "https://github.com/AndreFCruz/folktexts"
+homepage = "https://github.com/socialfoundations/folktexts"
+documentation = "https://socialfoundations.github.io/folktexts/"
+repository = "https://github.com/socialfoundations/folktexts"
 
 [tool.setuptools.packages.find]
 include = ["folktexts"]

@@ -1,19 +1,20 @@
 # :book: folktexts   <!-- omit in toc -->
 > :construction: Package under construction
 
-![Tests status](https://github.com/AndreFCruz/folktexts/actions/workflows/python-tests.yml/badge.svg)
-![PyPI status](https://github.com/AndreFCruz/folktexts/actions/workflows/python-publish.yml/badge.svg)
-![Documentation status](https://github.com/AndreFCruz/folktexts/actions/workflows/python-docs.yml/badge.svg)
+![Tests status](https://github.com/socialfoundations/folktexts/actions/workflows/python-tests.yml/badge.svg)
+![PyPI status](https://github.com/socialfoundations/folktexts/actions/workflows/python-publish.yml/badge.svg)
+![Documentation status](https://github.com/socialfoundations/folktexts/actions/workflows/python-docs.yml/badge.svg)
 ![PyPI version](https://badgen.net/pypi/v/folktexts)
 ![OSI license](https://badgen.net/pypi/license/folktexts)
 ![Python compatibility](https://badgen.net/pypi/python/folktexts)
 
 Repo to host the `folktexts` project.
 
-Package documentation can be found [here](https://andrefcruz.github.io/folktexts/)!
+Package documentation can be found [here](https://socialfoundations.github.io/folktexts/)!
 
 **Table of contents:**
 - [Installing](#installing)
+- [Basic setup](#basic-setup)
 - [Usage](#usage)
 - [License and terms of use](#license-and-terms-of-use)
 
@@ -26,26 +27,19 @@ Install package from [PyPI](https://pypi.org/project/folktexts/):
 pip install folktexts
 ```
 
-## Developer mode
+## Basic setup
 
 1. Create condo environment
 
 ```
-conda create -n folktexts python=3.11      
-conda activate folktexts
+$ conda create -n folktexts python=3.11      
+$ conda activate folktexts
 ```
 
-2. clone git repo
+2. Install folktexts package
 
 ```
-git clone git@github.com:AndreFCruz/folktexts.git  
-```
-
-2. Install folk texts package in edit mode
-
-```
-cd folktexts
-pip install -e .
+$ pip install folktexts
 ```
 
 3. Create models dataset and results folder
@@ -56,42 +50,37 @@ mkdir models
 mkdir datasets
 ```
 
-3. Download models into models folder
-(make sure you have Huggingface permission)
+3. Download transformers models into models folder
 
 ```
 python -m folktexts.cli.download_models --model "google/gemma-2b" --save-dir models
 ```
 
 4. Run benchmark
-(It downloads dataset and runs benchmarking)
 
 ```
-python folktexts/cli/run_llm_as_classifier.py --results-dir results --data-dir datasets --acs-task-name "ACSIncome" --model models/google--gemma-2b --subsampling 0.01
+python -m folktexts.cli.run_acs_benchmark --results-dir results --data-dir datasets --acs-task-name "ACSIncome" --model models/google--gemma-2b [other-optional-flags]
 ```
 
-NOTE: saves results to results folder, not a subfolder!
+Run `python -m folktexts.cli.run_acs_benchmark --help` to get a list of all
+available benchmark flags.
 
 
 ## Usage
 
-*This is a template of how we envision the API -- not yet fully implemented!*
-
 ```py
-from folktexts.datasets import ACSDataset
-from folktexts.acs import acs_income_task
-from folktexts.qa_interface import BinaryQA
+from folktexts.acs import ACSDataset, ACSTaskMetadata
+acs_task_name = "ACSIncome"
 
 # Create an object that classifies data using an LLM
 clf = LLMClassifier(
     model=model,
     tokenizer=tokenizer,
-    task=acs_income_task,   # NOTE: the task should know how to map itself to text!
-    qa_interface=BinaryQA,  # How to frame the question and extract outputs from the model
+    task=ACSTaskMetadata.get_task(acs_task_name),
 )
 
 # Use a dataset or feed in your own data
-dataset = ACSDataset(name="ACSIncome")
+dataset = ACSDataset(acs_task_name)
 
 # Get risk score predictions out of the model
 y_scores = clf.predict_proba(dataset)
@@ -103,9 +92,9 @@ clf.fit(dataset[0:100])
 clf.predict(dataset)
 
 # Compute a variety of evaluation metrics on calibration and accuracy
-benchmark_results = run_llm_as_clf_benchmark(clf, dataset)
+from folktexts.benchmark import CalibrationBenchmark
+benchmark_results = CalibrationBenchmark(clf, dataset, results_dir="results").run()
 ```
-
 
 
 ## License and terms of use
