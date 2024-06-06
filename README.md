@@ -1,5 +1,4 @@
 # :book: folktexts   <!-- omit in toc -->
-> :construction: Package under construction
 
 ![Tests status](https://github.com/socialfoundations/folktexts/actions/workflows/python-tests.yml/badge.svg)
 ![PyPI status](https://github.com/socialfoundations/folktexts/actions/workflows/python-publish.yml/badge.svg)
@@ -8,9 +7,17 @@
 ![OSI license](https://badgen.net/pypi/license/folktexts)
 ![Python compatibility](https://badgen.net/pypi/python/folktexts)
 
-Repo to host the `folktexts` project.
+Folktexts is a python package to evaluate and benchmark calibration of large
+language models.
+It enables using any transformers model as a classifier for tabular data tasks, 
+and extracting risk score estimates from the model's output log-odds.
 
-Package documentation can be found [here](https://socialfoundations.github.io/folktexts/)!
+Several benchmark tasks are provided based on data from the American Community Survey.
+Namely, each prediction task from the popular 
+[folktables](https://github.com/socialfoundations/folktables) package is made available 
+as a natural-language prompting task.
+
+Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
 
 **Table of contents:**
 - [Installing](#installing)
@@ -32,14 +39,14 @@ pip install folktexts
 1. Create condo environment
 
 ```
-$ conda create -n folktexts python=3.11      
-$ conda activate folktexts
+conda create -n folktexts python=3.11
+conda activate folktexts
 ```
 
 2. Install folktexts package
 
 ```
-$ pip install folktexts
+pip install folktexts
 ```
 
 3. Create models dataset and results folder
@@ -50,7 +57,7 @@ mkdir models
 mkdir datasets
 ```
 
-3. Download transformers models into models folder
+3. Download transformers model and tokenizer into models folder
 
 ```
 python -m folktexts.cli.download_models --model "google/gemma-2b" --save-dir models
@@ -59,7 +66,7 @@ python -m folktexts.cli.download_models --model "google/gemma-2b" --save-dir mod
 4. Run benchmark
 
 ```
-python -m folktexts.cli.run_acs_benchmark --results-dir results --data-dir datasets --acs-task-name "ACSIncome" --model models/google--gemma-2b [other-optional-flags]
+python -m folktexts.cli.run_acs_benchmark --results-dir results --data-dir datasets --task-name "ACSIncome" --model models/google--gemma-2b
 ```
 
 Run `python -m folktexts.cli.run_acs_benchmark --help` to get a list of all
