@@ -4,7 +4,9 @@
 ![PyPI status](https://github.com/socialfoundations/folktexts/actions/workflows/python-publish.yml/badge.svg)
 ![Documentation status](https://github.com/socialfoundations/folktexts/actions/workflows/python-docs.yml/badge.svg)
 ![PyPI version](https://badgen.net/pypi/v/folktexts)
-![OSI license](https://badgen.net/pypi/license/folktexts)
+![PyPI - License](https://img.shields.io/pypi/l/folktexts)
+<!-- ![OSI license](https://badgen.net/pypi/license/folktexts) -->
+<!-- [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) -->
 ![Python compatibility](https://badgen.net/pypi/python/folktexts)
 
 Folktexts is a python package to evaluate and benchmark calibration of large
