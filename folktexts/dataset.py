@@ -132,7 +132,7 @@ class Dataset(ABC):
         )
         dataset._train_indices = self._train_indices.copy()
         dataset._test_indices = self._test_indices.copy()
-        dataset._val_indices = self._val_indices.copy()
+        dataset._val_indices = self._val_indices.copy() if self._val_indices is not None else None
         dataset._rng = copy.deepcopy(self._rng)
 
         return dataset

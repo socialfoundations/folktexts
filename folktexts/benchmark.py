@@ -23,6 +23,7 @@ from .prompting import encode_row_prompt, encode_row_prompt_chat, encode_row_pro
 from .task import TaskMetadata
 
 DEFAULT_SEED = 42
+DEFAULT_FIT_THRESHOLD_N = 100
 
 
 @dataclasses.dataclass(frozen=True, eq=True)
@@ -41,8 +42,9 @@ class BenchmarkConfig:
     seed: int = DEFAULT_SEED
 
     @classmethod
-    def default_config(cls):
-        return cls()
+    def default_config(cls, **changes):
+        """Returns the default configuration with optional changes."""
+        return cls(**changes)
 
     @classmethod
     def load_from_disk(cls, path: str | Path):
@@ -54,6 +56,7 @@ class BenchmarkConfig:
         save_json(dataclasses.asdict(self), path)
 
     def __hash__(self) -> int:
+        """Generates a unique hash for the configuration."""
         cfg = dataclasses.asdict(self)
         cfg["feature_subset"] = tuple(cfg["feature_subset"]) if cfg["feature_subset"] else None
         cfg["population_filter_hash"] = (
@@ -159,7 +162,7 @@ class CalibrationBenchmark:
         assert data_split in ("train", "val", "test")
         return self.results_dir / f"{self.dataset.get_name()}.{data_split}_predictions.csv"
 
-    def run(self, fit_threshold: int | False = False) -> float:
+    def run(self, fit_threshold: int | bool = False) -> float:
         """Run the calibration benchmark experiment."""
 
         # Get test data
@@ -181,15 +184,14 @@ class CalibrationBenchmark:
 
         # If requested, fit the threshold on a small portion of the train set
         if fit_threshold:
-            if not is_valid_number(fit_threshold):
+            if fit_threshold is True:
+                fit_threshold = DEFAULT_FIT_THRESHOLD_N
+            elif not is_valid_number(fit_threshold) or fit_threshold <= 0:
                 raise ValueError(f"Invalid fit_threshold={fit_threshold}")
 
+            logging.info(f"Fitting threshold on {fit_threshold} train samples")
             X_train, y_train = self.dataset.sample_n_train_examples(fit_threshold)
             self.llm_clf.fit(X_train, y_train)
-            logging.info(
-                f"Fitted threshold on {len(y_train)} train examples; "
-                f"threshold={self.llm_clf.threshold:.3f};"
-            )
 
         # Evaluate test risk scores
         self._results = evaluate_predictions(

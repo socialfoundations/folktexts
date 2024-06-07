@@ -25,6 +25,7 @@ Package documentation can be found [here](https://socialfoundations.github.io/fo
 - [Installing](#installing)
 - [Basic setup](#basic-setup)
 - [Usage](#usage)
+- [Benchmark options](#benchmark-options)
 - [License and terms of use](#license-and-terms-of-use)
 
 
@@ -37,8 +38,9 @@ pip install folktexts
 ```
 
 ## Basic setup
+> You'll need to go through these steps to run the benchmark tasks.
 
-1. Create condo environment
+1. Create conda environment
 
 ```
 conda create -n folktexts python=3.11
@@ -56,19 +58,18 @@ pip install folktexts
 ```
 mkdir results
 mkdir models
-mkdir datasets
+mkdir data
 ```
 
-3. Download transformers model and tokenizer into models folder
-
+4. Download transformers model and tokenizer
 ```
 python -m folktexts.cli.download_models --model "google/gemma-2b" --save-dir models
 ```
 
-4. Run benchmark
+5. Run benchmark on a given task
 
 ```
-python -m folktexts.cli.run_acs_benchmark --results-dir results --data-dir datasets --task-name "ACSIncome" --model models/google--gemma-2b
+python -m folktexts.cli.run_acs_benchmark --results-dir results --data-dir data --task-name "ACSIncome" --model models/google--gemma-2b
 ```
 
 Run `python -m folktexts.cli.run_acs_benchmark --help` to get a list of all
@@ -76,6 +77,9 @@ available benchmark flags.
 
 
 ## Usage
+
+To use one of the pre-defined survey prediction tasks, simply use the following
+code snippet:
 
 ```py
 from folktexts.acs import ACSDataset, ACSTaskMetadata
@@ -94,7 +98,7 @@ dataset = ACSDataset(acs_task_name)
 # Get risk score predictions out of the model
 y_scores = clf.predict_proba(dataset)
 
-# Optionally, can fit the threshold based on a small portion of the data
+# Optionally, you can fit the threshold based on a small portion of the data
 clf.fit(dataset[0:100])
 
 # ...in order to get more accurate binary predictions
@@ -103,6 +107,48 @@ clf.predict(dataset)
 # Compute a variety of evaluation metrics on calibration and accuracy
 from folktexts.benchmark import CalibrationBenchmark
 benchmark_results = CalibrationBenchmark(clf, dataset, results_dir="results").run()
+```
+
+## Benchmark options
+
+```
+usage: run_acs_benchmark.py [-h] --model MODEL --task-name TASK_NAME --results-dir RESULTS_DIR --data-dir DATA_DIR [--few-shot FEW_SHOT] [--batch-size BATCH_SIZE] [--context-size CONTEXT_SIZE] [--fit-threshold FIT_THRESHOLD]
+                            [--subsampling SUBSAMPLING] [--seed SEED] [--dont-correct-order-bias] [--chat-prompt] [--direct-risk-prompting] [--reuse-few-shot-examples] [--logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
+                            [--use-feature-subset [USE_FEATURE_SUBSET ...]] [--use-population-filter [USE_POPULATION_FILTER ...]]
+
+Run an LLM as a classifier experiment.
+
+options:
+  -h, --help            show this help message and exit
+  --model MODEL         [str] Model name or path to model saved on disk
+  --task-name TASK_NAME
+                        [str] Name of the ACS task to run the experiment on
+  --results-dir RESULTS_DIR
+                        [str] Directory under which this experiment's results will be saved
+  --data-dir DATA_DIR   [str] Root folder to find datasets on
+  --few-shot FEW_SHOT   [int] Use few-shot prompting with the given number of shots
+  --batch-size BATCH_SIZE
+                        [int] The batch size to use for inference
+  --context-size CONTEXT_SIZE
+                        [int] The maximum context size when prompting the LLM
+  --fit-threshold FIT_THRESHOLD
+                        [int] Whether to fit the prediction threshold, and on how many samples
+  --subsampling SUBSAMPLING
+                        [float] Which fraction of the dataset to use (if omitted will use all data)
+  --seed SEED           [int] Random seed -- to set for reproducibility
+  --dont-correct-order-bias
+                        [bool] Whether to avoid correcting ordering bias, by default will correct it
+  --chat-prompt         [bool] Whether to use chat-based prompting (for instruct models)
+  --direct-risk-prompting
+                        [bool] Whether to directly prompt for risk-estimates instead of multiple-choice Q&A
+  --reuse-few-shot-examples
+                        [bool] Whether to reuse the same samples for few-shot prompting (or sample new ones every time)
+  --logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
+                        [str] The logging level to use for the experiment
+  --use-feature-subset [USE_FEATURE_SUBSET ...]
+                        [str] Optional subset of features to use for prediction
+  --use-population-filter [USE_POPULATION_FILTER ...]
+                        [str] Optional population filter for this benchmark; must follow the format 'column_name=value' to filter the dataset by a specific value.
 ```
 
 

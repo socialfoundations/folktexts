@@ -31,7 +31,7 @@ ROOT_DIR = Path("/fast/groups/sf")
 ACS_DATA_DIR = ROOT_DIR / "data"
 
 # Directory to save results in (make sure it exists)
-RESULTS_DIR = ROOT_DIR / "folktexts-results"
+RESULTS_DIR = ROOT_DIR / "folktexts-results" / "acs-benchmarks"
 RESULTS_DIR.mkdir(exist_ok=True, parents=False)
 
 # Models save directory
@@ -75,8 +75,8 @@ LLM_MODELS = [
     "mistralai/Mixtral-8x7B-Instruct-v0.1",
     "meta-llama/Meta-Llama-3-70B",
     "meta-llama/Meta-Llama-3-70B-Instruct",
-    # "mistralai/Mixtral-8x22B-v0.1",
-    # "mistralai/Mixtral-8x22B-Instruct-v0.1",
+    "mistralai/Mixtral-8x22B-v0.1",
+    "mistralai/Mixtral-8x22B-Instruct-v0.1",
 ]
 
 

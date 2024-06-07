@@ -2,6 +2,7 @@
 """
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from folktables import ACSDataSource
@@ -34,7 +35,9 @@ class ACSDataset(Dataset):
     ):
         # Create "folktables" sub-folder under the given cache dir
         cache_dir = Path(cache_dir or DEFAULT_ACS_DATA_DIR).expanduser().resolve() / "folktables"
-        cache_dir.mkdir(exist_ok=True, parents=False)
+        if not cache_dir.exists():
+            logging.warning(f"Creating cache directory '{cache_dir}' for ACS data.")
+            cache_dir.mkdir(exist_ok=True, parents=False)
 
         # Load ACS data source
         print("Loading ACS data...")
