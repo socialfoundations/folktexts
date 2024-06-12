@@ -93,7 +93,7 @@ class CalibrationBenchmark:
         self,
         llm_clf: LLMClassifier,
         dataset: Dataset | str,
-        config: BenchmarkConfig,
+        config: BenchmarkConfig = BenchmarkConfig.default_config(),
     ):
         self.llm_clf = llm_clf
         self.dataset = dataset
@@ -457,12 +457,12 @@ class CalibrationBenchmark:
         # Load the QA interface to be used for risk-score prompting
         if config.direct_risk_prompting:
             logging.warning(f"Untested feature: direct_risk_prompting={config.direct_risk_prompting}")  # TODO!
-            question = acs_numeric_qa_map[task.target]
+            question = acs_numeric_qa_map[task.get_target()]
         else:
-            question = acs_multiple_choice_qa_map[task.target]
+            question = acs_multiple_choice_qa_map[task.get_target()]
 
         # Set the task's target question
-        task.cols_to_text[task.target]._question = question
+        task.cols_to_text[task.get_target()]._question = question
 
         # Construct the LLMClassifier object
         llm_inference_kwargs = {"correct_order_bias": config.correct_order_bias}

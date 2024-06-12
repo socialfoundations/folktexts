@@ -24,7 +24,7 @@ Package documentation can be found [here](https://socialfoundations.github.io/fo
 **Table of contents:**
 - [Installing](#installing)
 - [Basic setup](#basic-setup)
-- [Usage](#usage)
+- [Example usage](#example-usage)
 - [Benchmark options](#benchmark-options)
 - [License and terms of use](#license-and-terms-of-use)
 
@@ -63,43 +63,43 @@ mkdir data
 
 4. Download transformers model and tokenizer
 ```
-python -m folktexts.cli.download_models --model "google/gemma-2b" --save-dir models
+download_models --model "google/gemma-2b" --save-dir models
 ```
 
 5. Run benchmark on a given task
 
 ```
-python -m folktexts.cli.run_acs_benchmark --results-dir results --data-dir data --task-name "ACSIncome" --model models/google--gemma-2b
+run_acs_benchmark --results-dir results --data-dir data --task-name "ACSIncome" --model models/google--gemma-2b
 ```
 
-Run `python -m folktexts.cli.run_acs_benchmark --help` to get a list of all
-available benchmark flags.
+Run `run_acs_benchmark --help` to get a list of all available benchmark flags.
 
 
-## Usage
-
-To use one of the pre-defined survey prediction tasks, simply use the following
-code snippet:
+## Example usage
 
 ```py
-from folktexts.acs import ACSDataset, ACSTaskMetadata
+from folktexts.llm_utils import load_model_tokenizer
+model, tokenizer = load_model_tokenizer("gpt2")   # using tiny model as an example
+
+from folktexts.acs import ACSDataset
 acs_task_name = "ACSIncome"
 
 # Create an object that classifies data using an LLM
+from folktexts import LLMClassifier
 clf = LLMClassifier(
     model=model,
     tokenizer=tokenizer,
-    task=ACSTaskMetadata.get_task(acs_task_name),
+    task=acs_task_name,
 )
 
 # Use a dataset or feed in your own data
-dataset = ACSDataset(acs_task_name)
+dataset = ACSDataset(acs_task_name)   # use `.subsample(0.01)` to get faster approximate results
 
 # Get risk score predictions out of the model
 y_scores = clf.predict_proba(dataset)
 
 # Optionally, you can fit the threshold based on a small portion of the data
-clf.fit(dataset[0:100])
+clf.fit(*dataset[0:100])
 
 # ...in order to get more accurate binary predictions
 clf.predict(dataset)
@@ -109,12 +109,15 @@ from folktexts.benchmark import CalibrationBenchmark
 benchmark_results = CalibrationBenchmark(clf, dataset).run(results_root_dir=".")
 ```
 
+<!-- TODO: add code to show-case example functionalities, including the
+LLMClassifier (maybe the above code is fine for this), the benchmark, and
+creating a custom ACS prediction task -->
+
 ## Benchmark options
 
 ```
-usage: run_acs_benchmark.py [-h] --model MODEL --task-name TASK_NAME --results-dir RESULTS_DIR --data-dir DATA_DIR [--few-shot FEW_SHOT] [--batch-size BATCH_SIZE] [--context-size CONTEXT_SIZE] [--fit-threshold FIT_THRESHOLD]
-                            [--subsampling SUBSAMPLING] [--seed SEED] [--dont-correct-order-bias] [--chat-prompt] [--direct-risk-prompting] [--reuse-few-shot-examples] [--use-feature-subset [USE_FEATURE_SUBSET ...]]
-                            [--use-population-filter [USE_POPULATION_FILTER ...]] [--logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
+usage: run_acs_benchmark [-h] --model MODEL --task-name TASK_NAME --results-dir RESULTS_DIR --data-dir DATA_DIR [--few-shot FEW_SHOT] [--batch-size BATCH_SIZE] [--context-size CONTEXT_SIZE] [--fit-threshold FIT_THRESHOLD] [--subsampling SUBSAMPLING] [--seed SEED] [--dont-correct-order-bias] [--chat-prompt] [--direct-risk-prompting] [--reuse-few-shot-examples] [--use-feature-subset [USE_FEATURE_SUBSET ...]]
+                         [--use-population-filter [USE_POPULATION_FILTER ...]] [--logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
 
 Run an LLM as a classifier experiment.
 

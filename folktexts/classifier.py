@@ -445,7 +445,6 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         results = {
             data_type: self._compute_risk_estimates_for_dataframe(
                 df=df,
-                dataset=dataset,
                 batch_size=batch_size,
                 context_size=context_size,
             )

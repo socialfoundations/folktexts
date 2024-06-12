@@ -74,7 +74,7 @@ def is_bf16_compatible() -> bool:
     return torch.cuda.is_available() and torch.cuda.is_bf16_supported()
 
 
-if __name__ == "__main__":
+def main():
     # Parse command-line arguments
     parser = setup_arg_parser()
     args = parser.parse_args()
@@ -114,3 +114,7 @@ if __name__ == "__main__":
         # Empty VRAM if GPU is available
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
+
+
+if __name__ == "__main__":
+    main()

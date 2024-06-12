@@ -238,7 +238,7 @@ def render_fairness_plots(  # noqa: C901
 
         # If the group is too small of a fraction, skip (curve will be too erratic)
         if len(group_indices) / len(sensitive_attribute) < group_size_threshold:
-            logging.warning(f"Skipping group {s_value} plot as it's too small.")
+            logging.warning(f"Skipping group {group_value_map(s_value)} plot as it's too small.")
             continue
 
         # Plot global calibration curve

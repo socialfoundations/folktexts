@@ -5,7 +5,8 @@ from pathlib import Path
 
 from ..col_to_text import ColumnToText
 from ..qa_interface import Choice, DirectNumericQA, MultipleChoiceQA
-from ._utils import get_thresholded_column_name, parse_pums_code
+from .._utils import get_thresholded_column_name
+from ._utils import parse_pums_code
 
 # Path to ACS codebook files
 ACS_OCCP_FILE = Path(__file__).parent / "data" / "OCCP-codes-acs.txt"

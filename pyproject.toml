@@ -32,7 +32,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 
-version = "0.0.10"
+version = "0.0.11"
 requires-python = ">=3.8"
 dynamic = [
     "readme",
@@ -63,6 +63,7 @@ documentation = "https://socialfoundations.github.io/folktexts/"
 
 [project.scripts]
 run_acs_benchmark = "folktexts.cli.run_acs_benchmark:main"
+download_models = "folktexts.cli.download_models:main"
 
 # flake8
 [tool.flake8]
