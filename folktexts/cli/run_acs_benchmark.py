@@ -100,7 +100,7 @@ def setup_arg_parser() -> ArgumentParser:
     return parser
 
 
-if __name__ == '__main__':
+def main():
     """Prepare and launch the LLM-as-classifier experiment using ACS data."""
 
     # Setup parser and process cmd-line args
@@ -163,3 +163,7 @@ if __name__ == '__main__':
     # Finish
     from folktexts._utils import get_current_timestamp
     print(f"\nFinished experiment successfully at {get_current_timestamp()}\n")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -32,13 +32,18 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 
-version = "0.0.7"
+version = "0.0.8"
 requires-python = ">=3.8"
 dynamic = [
     "readme",
     "dependencies",
     "optional-dependencies",
 ]   # these are defined below dynamically
+
+[tool.setuptools]
+# NOTE! If you have multiple source directories, you can specify them here:
+packages = ["folktexts", "folktexts.acs", "folktexts.cli"]
+include-package-data = true
 
 [tool.setuptools.dynamic]
 readme = { file = "README.md", content-type="text/markdown" }
@@ -53,11 +58,11 @@ optional-dependencies.cli = {file = "requirements/cli.txt"}
 
 [project.urls]
 homepage = "https://github.com/socialfoundations/folktexts"
-documentation = "https://socialfoundations.github.io/folktexts/"
 repository = "https://github.com/socialfoundations/folktexts"
+documentation = "https://socialfoundations.github.io/folktexts/"
 
-[tool.setuptools.packages.find]
-include = ["folktexts"]
+[project.scripts]
+run_acs_benchmark = "folktexts.cli.run_acs_benchmark:main"
 
 # flake8
 [tool.flake8]

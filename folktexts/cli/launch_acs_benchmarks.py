@@ -31,8 +31,7 @@ ROOT_DIR = Path("/fast/groups/sf")
 ACS_DATA_DIR = ROOT_DIR / "data"
 
 # Directory to save results in (make sure it exists)
-RESULTS_DIR = ROOT_DIR / "folktexts-results" / "acs-benchmarks"
-RESULTS_DIR.mkdir(exist_ok=True, parents=False)
+RESULTS_ROOT_DIR = ROOT_DIR / "folktexts-results" / "acs-benchmarks"
 
 # Models save directory
 MODELS_DIR = ROOT_DIR / "huggingface-models"
@@ -84,6 +83,7 @@ LLM_MODELS = [
 def make_llm_as_clf_experiment(
     model_name: str,
     task_name: str,
+    results_root_dir: str = RESULTS_ROOT_DIR,
     **kwargs,
 ) -> Experiment:
     """Create an experiment object to run.
@@ -125,8 +125,8 @@ def make_llm_as_clf_experiment(
     )
 
     # Create LLM results directory
-    exp_results_dir = RESULTS_DIR / get_llm_results_folder(exp)
-    exp_results_dir.mkdir(exist_ok=True, parents=False)
+    exp_results_dir = results_root_dir / get_llm_results_folder(exp)
+    exp_results_dir.mkdir(exist_ok=True, parents=True)
     exp.kwargs["results_dir"] = exp_results_dir.as_posix()
     save_json(
         obj=exp.to_dict(),
@@ -167,6 +167,14 @@ def setup_arg_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "--results-root-dir",
+        type=str,
+        help="[string] Directory under which results will be saved.",
+        required=False,
+        default=RESULTS_ROOT_DIR.as_posix(),
+    )
+
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Construct folder structure and print experiments without launching them.",
@@ -183,8 +191,7 @@ def setup_arg_parser() -> argparse.ArgumentParser:
     return parser
 
 
-if __name__ == '__main__':
-
+def main():
     # Parse command-line arguments
     parser = setup_arg_parser()
     args, extra_kwargs = parser.parse_known_args()
@@ -218,3 +225,7 @@ if __name__ == '__main__':
         cluster_id = launch_experiment_job(exp).cluster() if not args.dry_run else None
         print(f"{i:2}. cluster-id={cluster_id}")
         pprint(exp.to_dict(), indent=4)
+
+
+if __name__ == "__main__":
+    main()
