@@ -106,15 +106,15 @@ clf.predict(dataset)
 
 # Compute a variety of evaluation metrics on calibration and accuracy
 from folktexts.benchmark import CalibrationBenchmark
-benchmark_results = CalibrationBenchmark(clf, dataset, results_dir="results").run()
+benchmark_results = CalibrationBenchmark(clf, dataset).run(results_root_dir=".")
 ```
 
 ## Benchmark options
 
 ```
 usage: run_acs_benchmark.py [-h] --model MODEL --task-name TASK_NAME --results-dir RESULTS_DIR --data-dir DATA_DIR [--few-shot FEW_SHOT] [--batch-size BATCH_SIZE] [--context-size CONTEXT_SIZE] [--fit-threshold FIT_THRESHOLD]
-                            [--subsampling SUBSAMPLING] [--seed SEED] [--dont-correct-order-bias] [--chat-prompt] [--direct-risk-prompting] [--reuse-few-shot-examples] [--logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
-                            [--use-feature-subset [USE_FEATURE_SUBSET ...]] [--use-population-filter [USE_POPULATION_FILTER ...]]
+                            [--subsampling SUBSAMPLING] [--seed SEED] [--dont-correct-order-bias] [--chat-prompt] [--direct-risk-prompting] [--reuse-few-shot-examples] [--use-feature-subset [USE_FEATURE_SUBSET ...]]
+                            [--use-population-filter [USE_POPULATION_FILTER ...]] [--logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
 
 Run an LLM as a classifier experiment.
 
@@ -143,12 +143,12 @@ options:
                         [bool] Whether to directly prompt for risk-estimates instead of multiple-choice Q&A
   --reuse-few-shot-examples
                         [bool] Whether to reuse the same samples for few-shot prompting (or sample new ones every time)
-  --logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
-                        [str] The logging level to use for the experiment
   --use-feature-subset [USE_FEATURE_SUBSET ...]
                         [str] Optional subset of features to use for prediction
   --use-population-filter [USE_POPULATION_FILTER ...]
                         [str] Optional population filter for this benchmark; must follow the format 'column_name=value' to filter the dataset by a specific value.
+  --logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
+                        [str] The logging level to use for the experiment
 ```
 
 

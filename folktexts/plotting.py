@@ -29,7 +29,7 @@ _error_msg = (
 
 
 # Minimum fraction of the dataset size to consider a group for plotting
-GROUP_SIZE_THRESHOLD = 0.01
+GROUP_SIZE_THRESHOLD = 0.03
 
 
 def _check_plotting_deps() -> bool:
@@ -51,9 +51,10 @@ def render_evaluation_plots(
     y_true: np.ndarray,
     y_pred_scores: np.ndarray,
     *,
-    imgs_dir: str | Path,
     eval_results: dict = {},
     model_name: str = None,
+    imgs_dir: str | Path = None,
+    show_plots: bool = False,
 ) -> dict:
     """Renders evaluation plots for the given predictions."""
     # Check if plotting dependencies are available
@@ -63,6 +64,13 @@ def render_evaluation_plots(
     # Initialize vars
     results = {}
     model_str = f" - {model_name}" if model_name else ""
+
+    # Helper function to show or save plot
+    def show_or_save(fig, fig_name: str):
+        if show_plots:
+            plt.show()
+        if imgs_dir:
+            results[f"{fig_name}_path"] = save_fig(fig, fig_name, imgs_dir)
 
     # ### ### ### ###
     # Plot ROC curve
@@ -78,15 +86,14 @@ def render_evaluation_plots(
             label=f"threshold={eval_results['threshold']:.2f}")
         plt.legend()
 
-    # Save plot
-    results["roc_curve_path"] = save_fig(disp.figure_, "roc_curve", imgs_dir)
+    show_or_save(disp.figure_, "roc_curve")
 
     # ### ### ### ### ### ###
     # Plot calibration curve
     # ### ### ### ### ### ###
     disp = CalibrationDisplay.from_predictions(y_true=y_true, y_prob=y_pred_scores, n_bins=5, strategy="quantile")
     disp.figure_.suptitle("Calibration Curve" + model_str)
-    results["calibration_curve_path"] = save_fig(disp.figure_, "calibration_curve", imgs_dir)
+    show_or_save(disp.figure_, "calibration_curve")
 
     # ### ### ### ### ### ###
     # Plot score distribution
@@ -95,7 +102,7 @@ def render_evaluation_plots(
     plt.xlabel("Predicted Risk Score")
     plt.ylabel("Frequency")
     plt.gcf().suptitle("Score Distribution" + model_str)
-    results["score_distribution_path"] = save_fig(plt.gcf(), "score_distribution", imgs_dir)
+    show_or_save(plt.gcf(), "score_distribution")
 
     # ### ### ### ### ### ### ### ### ### ###
     # Plot distribution of scores per label #
@@ -111,24 +118,24 @@ def render_evaluation_plots(
     plt.xlim(y_pred_scores.min(), y_pred_scores.max())
     plt.xlabel("Predicted Risk Score")
     plt.gcf().suptitle("Score Distribution per Label" + (f" - {model_name}" if model_name else ""))
-    results["score_distribution_per_label_path"] = save_fig(plt.gcf(), "score_distribution_per_label", imgs_dir)
+    show_or_save(plt.gcf(), "score_distribution_per_label")
 
     return results
 
 
-def render_fairness_plots(
+def render_fairness_plots(  # noqa: C901
     y_true: np.ndarray,
     y_pred_scores: np.ndarray,
     *,
     sensitive_attribute: np.ndarray,
-    imgs_dir: str | Path,
     eval_results: dict = {},
     model_name: str = None,
     group_value_map: Callable[[int], str],
     group_size_threshold: float = GROUP_SIZE_THRESHOLD,
+    imgs_dir: str | Path = None,
+    show_plots: bool = False,
 ) -> dict:
     """Renders fairness plots for the given predictions."""
-
     # Check if plotting dependencies are available
     if _check_plotting_deps() is False:
         return {}
@@ -142,6 +149,13 @@ def render_fairness_plots(
     model_str = f" - {model_name}" if model_name else ""
     n_groups = len(np.unique(sensitive_attribute))
     assert n_groups > 1, "At least 2 groups are required for fairness plots."
+
+    # Helper function to show or save plot
+    def show_or_save(fig, fig_name: str):
+        if show_plots:
+            plt.show()
+        if imgs_dir:
+            results[f"{fig_name}_path"] = save_fig(fig, fig_name, imgs_dir)
 
     # Set group-wise colors and global color
     palette = sns.color_palette(n_colors=n_groups + 1)
@@ -158,7 +172,7 @@ def render_fairness_plots(
 
         # If it's the first group
         if is_first_group:
-            fig, ax = plt.subplots()
+            fig, ax = plt.subplots(figsize=(5, 4))
 
             # Plot global ROC point
             if "fpr" in eval_results and "tpr" in eval_results:
@@ -174,7 +188,7 @@ def render_fairness_plots(
 
         # If the group is too small of a fraction, skip (curve will be too erratic)
         if len(group_indices) / len(sensitive_attribute) < group_size_threshold:
-            logging.info(f"Skipping group {s_value} plot as it's too small.")
+            logging.info(f"Skipping group '{group_value_map(s_value)}' as it's too small.")
             continue
 
         # Plot group-specific ROC curve
@@ -208,7 +222,7 @@ def render_fairness_plots(
 
     plt.legend()
     plt.title("ROC curve per sub-group" + model_str)
-    results["roc_curve_per_subgroup_path"] = save_fig(fig, "roc_curve_per_subgroup", imgs_dir)
+    show_or_save(fig, "roc_curve_per_subgroup")
 
     # ###
     # Plot group-specific calibration curves
@@ -220,7 +234,7 @@ def render_fairness_plots(
         is_first_group = (idx == 0)
 
         if is_first_group:
-            fig, ax = plt.subplots()
+            fig, ax = plt.subplots(figsize=(5, 4))
 
         # If the group is too small of a fraction, skip (curve will be too erratic)
         if len(group_indices) / len(sensitive_attribute) < group_size_threshold:
@@ -241,12 +255,12 @@ def render_fairness_plots(
 
     plt.legend()
     plt.title("Calibration curve per sub-group" + model_str)
-    results["calibration_curve_per_subgroup_path"] = save_fig(fig, "calibration_curve_per_subgroup", imgs_dir)
+    show_or_save(fig, "calibration_curve_per_subgroup")
 
     # ###
     # Plot scores distribution per group
     # ###
-    # TODO: make a decent score-distribution plot...
+    # TODO: make a decent score-distribution plot... # TODO: try score CDFs!
     # hist_bin_edges = np.histogram_bin_edges(y_pred_scores, bins=10)
     # for idx, s_value in enumerate(np.unique(sensitive_attribute)):
     #     group_indices = np.argwhere(sensitive_attribute == s_value).flatten()

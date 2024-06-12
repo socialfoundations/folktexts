@@ -20,7 +20,7 @@ def is_valid_number(num) -> bool:
 def safe_division(a: float, b: float, *, worst_result: float):
     """Try to divide the given arguments and return `worst_result` if unsuccessful."""
     if b == 0 or not is_valid_number(a) or not is_valid_number(b):
-        logging.info(
+        logging.debug(
             f"Using `worst_result={worst_result}` in place of the following "
             f"division: {a} / {b}")
         return worst_result

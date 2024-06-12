@@ -93,32 +93,22 @@ class CalibrationBenchmark:
         self,
         llm_clf: LLMClassifier,
         dataset: Dataset | str,
-        results_dir: str | Path,
         config: BenchmarkConfig,
     ):
         self.llm_clf = llm_clf
         self.dataset = dataset
         self.config = config
 
-        # Create sub-folder under the given root folder
-        subfolder_name = f"{self.llm_clf.model_name}_bench-{hash(self)}"
-        self.results_dir = Path(results_dir).resolve() / subfolder_name
-        self.results_dir.mkdir(exist_ok=True, parents=False)
-
-        # Create sub-folder for images
-        self.imgs_dir = self.results_dir / "imgs"
-        self.imgs_dir.mkdir(exist_ok=True, parents=False)
-
         self._y_test_scores: np.ndarray = None
+        self._results_root_dir = "."  # Default root results directory
         self._results: dict = None
         self._plots: dict = None
 
         # Log initialization
         msg = (
             f"\n** Benchmark initialization **\n"
-            f"Model: {self.llm_clf.model_name};\n"
-            f"Task: {self.llm_clf.task.name};\n"
-            f"Results dir: {self.results_dir.as_posix()};\n"
+            f"Model: {self.model_name};\n"
+            f"Task: {self.task.name};\n"
             f"Hash: {hash(self)};\n"
         )
         logging.info(msg)
@@ -128,11 +118,11 @@ class CalibrationBenchmark:
         cnf = dataclasses.asdict(self.config)
 
         # Add info on model, task, and dataset
-        cnf["model_name"] = self.llm_clf.model_name
+        cnf["model_name"] = self.model_name
         cnf["model_hash"] = hash(self.llm_clf)
-        cnf["task_name"] = self.llm_clf.task.name
-        cnf["task_hash"] = hash(self.llm_clf.task)
-        cnf["dataset_name"] = self.dataset.get_name()
+        cnf["task_name"] = self.task.name
+        cnf["task_hash"] = hash(self.task)
+        cnf["dataset_name"] = self.dataset.name
         cnf["dataset_hash"] = hash(self.dataset)
 
         return cnf
@@ -140,13 +130,35 @@ class CalibrationBenchmark:
     @property
     def results(self):
         # Add benchmark configs to the results
-        results = self._results.copy()
-        results["config"] = self.configs_dict
-        return results
+        self._results["config"] = self.configs_dict
+        return self._results
 
     @property
     def task(self):
         return self.llm_clf.task
+
+    @property
+    def model_name(self):
+        return self.llm_clf.model_name
+
+    @property
+    def results_root_dir(self) -> Path:
+        return Path(self._results_root_dir)
+
+    @results_root_dir.setter
+    def results_root_dir(self, path: str | Path):
+        self._results_root_dir = Path(path).expanduser().resolve()
+
+    @property
+    def results_dir(self) -> Path:
+        """Get the results directory for this benchmark."""
+        # Get subfolder name
+        subfolder_name = f"{self.model_name}_bench-{hash(self)}"
+        subfolder_dir_path = Path(self.results_root_dir) / subfolder_name
+
+        # Create subfolder directory if it does not exist
+        subfolder_dir_path.mkdir(exist_ok=True, parents=True)
+        return subfolder_dir_path
 
     def __hash__(self) -> int:
         hash_params = dict(
@@ -160,10 +172,29 @@ class CalibrationBenchmark:
     def _get_predictions_save_path(self, data_split: str) -> Path:
         """Standardized path to file containing predictions for the given data split."""
         assert data_split in ("train", "val", "test")
-        return self.results_dir / f"{self.dataset.get_name()}.{data_split}_predictions.csv"
+        return self.results_dir / f"{self.dataset.name}.{data_split}_predictions.csv"
 
-    def run(self, fit_threshold: int | bool = False) -> float:
-        """Run the calibration benchmark experiment."""
+    def run(self, results_root_dir: str | Path, fit_threshold: int | bool = 0) -> float:
+        """Run the calibration benchmark experiment.
+
+        Parameters
+        ----------
+        results_root_dir : str | Path
+            Path to root directory under which results will be saved.
+        fit_threshold : int | bool, optional
+            Whether to fit the binarization threshold on a given number of
+            training samples, by default 0 (will not fit the threshold).
+
+        Returns
+        -------
+        float
+            The benchmark metric value. By default this is the ECE score.
+        """
+        if self._results is not None:
+            logging.warning("Benchmark was already run. Overriding previous results.")
+
+        # Update results directory
+        self.results_root_dir = results_root_dir
 
         # Get test data
         X_test, y_test = self.dataset.get_test()
@@ -208,26 +239,49 @@ class CalibrationBenchmark:
         # Log main results
         msg = (
             f"\n** Test results **\n"
-            f"Model balanced accuracy:  {self.results['balanced_accuracy']:.1%};\n"
-            f"Model accuracy:           {self.results['accuracy']:.1%};\n"
-            f"Model ROC AUC :           {self.results['roc_auc']:.1%};\n"
+            f"Model: {self.llm_clf.model_name};\n"
+            f"\t ECE:       {self._results['ece']:.1%};\n"
+            f"\t ROC AUC :  {self.results['roc_auc']:.1%};\n"
+            f"\t Accuracy:  {self.results['accuracy']:.1%};\n"
+            f"\t Bal. acc.: {self.results['balanced_accuracy']:.1%};\n"
         )
         logging.info(msg)
 
+        # Render plots
+        self.plot_results(show_plots=False)
+
+        # Save results to disk
+        self.save_results()
+
         return self._results[self.DEFAULT_BENCHMARK_METRIC]
 
-    def plot_results(self, imgs_dir: str | Path = None):
-        """Render and save evaluation plots."""
+    def plot_results(self, *, show_plots: bool = True):
+        """Render evaluation plots and save to disk.
 
-        imgs_dir = Path(imgs_dir) if imgs_dir else self.imgs_dir
+        Parameters
+        ----------
+        show_plots : bool, optional
+            Whether to show plots, by default True.
+
+        Returns
+        -------
+        plots_paths : dict[str, str]
+            The paths to the saved plots.
+        """
+        if self._results is None:
+            raise ValueError("No results to plot. Run the benchmark first.")
+
+        imgs_dir = Path(self.results_dir) / "imgs"
+        imgs_dir.mkdir(exist_ok=True, parents=False)
         _, y_test = self.dataset.get_test()
 
         plots_paths = render_evaluation_plots(
             y_true=y_test.to_numpy(),
             y_pred_scores=self._y_test_scores,
             eval_results=self.results,
-            imgs_dir=imgs_dir,
             model_name=self.llm_clf.model_name,
+            imgs_dir=imgs_dir,
+            show_plots=show_plots,
         )
 
         # Plot fairness plots if sensitive attribute is provided
@@ -238,28 +292,39 @@ class CalibrationBenchmark:
                 y_true=y_test.to_numpy(),
                 y_pred_scores=self._y_test_scores,
                 sensitive_attribute=s_test,
-                imgs_dir=imgs_dir,
                 eval_results=self.results,
                 model_name=self.llm_clf.model_name,
                 group_value_map=self.task.sensitive_attribute_value_map(),
+                imgs_dir=imgs_dir,
+                show_plots=show_plots,
             ))
 
         self._results["plots"] = plots_paths
 
         return plots_paths
 
-    def save_results(self, results_dir: str | Path = None):
-        """Saves results to disk."""
+    def save_results(self, results_root_dir: str | Path = None):
+        """Save the benchmark results to disk.
+
+        Parameters
+        ----------
+        results_root_dir : str | Path, optional
+            Path to root directory under which results will be saved. By default
+            will use `self.results_root_dir`.
+        """
         if self.results is None:
             raise ValueError("No results to save. Run the benchmark first.")
 
-        # Get path to results file
-        results_dir = Path(results_dir) if results_dir else self.results_dir
-        results_file_name = f"results.bench-{hash(self)}.json"
+        # Update results directory if provided
+        if results_root_dir is not None:
+            self.results_root_dir = results_root_dir
 
         # Save results to disk
-        save_json(self.results, path=results_dir / results_file_name)
-        logging.info(f"Saved experiment results to '{results_dir.as_posix()}'")
+        results_file_name = f"results.bench-{hash(self)}.json"
+        results_file_path = self.results_dir / results_file_name
+
+        save_json(self.results, path=results_file_path)
+        logging.info(f"Saved experiment results to '{results_file_path.as_posix()}'")
 
     @classmethod
     def make_acs_benchmark(
@@ -267,7 +332,6 @@ class CalibrationBenchmark:
         model: AutoModelForCausalLM,
         tokenizer: AutoTokenizer,
         task_name: str,
-        results_dir: str | Path,
         data_dir: str | Path = None,
         config: BenchmarkConfig = BenchmarkConfig.default_config(),
         **kwargs,
@@ -282,8 +346,6 @@ class CalibrationBenchmark:
             The tokenizer used to train the model.
         task_name : str
             The name of the ACS task to use.
-        results_dir : str | Path
-            Path to the directory to save results in.
         data_dir : str | Path, optional
             Path to the directory to load data from and save data in.
         config : BenchmarkConfig, optional
@@ -325,7 +387,6 @@ class CalibrationBenchmark:
             tokenizer=tokenizer,
             task=acs_task,
             dataset=acs_dataset,
-            results_dir=results_dir,
             config=config,
         )
 
@@ -336,7 +397,6 @@ class CalibrationBenchmark:
         tokenizer: AutoTokenizer,
         task: TaskMetadata | str,
         dataset: Dataset,
-        results_dir: str | Path,
         config: BenchmarkConfig = BenchmarkConfig.default_config(),
     ) -> CalibrationBenchmark:
         """Create a calibration benchmark from a given configuration.
@@ -351,8 +411,6 @@ class CalibrationBenchmark:
             The task metadata object or name of the task to use.
         dataset : Dataset
             The dataset to use for the benchmark.
-        results_dir : str | Path
-            Path to the directory to save results in.
         config : BenchmarkConfig, optional
             Extra benchmark configurations, by default will use
             `BenchmarkConfig.default_config()`.
@@ -424,6 +482,5 @@ class CalibrationBenchmark:
         return cls(
             llm_clf=llm_clf,
             dataset=dataset,
-            results_dir=results_dir,
             config=config,
         )

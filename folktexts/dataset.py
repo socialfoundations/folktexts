@@ -121,6 +121,14 @@ class Dataset(ABC):
     def seed(self) -> int:
         return self._seed
 
+    @property
+    def name(self) -> str:
+        """A unique name for this dataset."""
+        subsampling_str = f"subsampled-{self.subsampling:.3}" if self.subsampling else "full"
+        seed_str = f"seed-{self._seed}"
+        hash_str = f"hash-{hash(self)}"
+        return f"{self.task.name}_{subsampling_str}_{seed_str}_{hash_str}"
+
     def __copy__(self) -> "Dataset":
         dataset = Dataset(
             data=self.data,
@@ -208,13 +216,6 @@ class Dataset(ABC):
     def filter(self, population_feature_values: dict) -> "Dataset":
         """Create a new dataset whose samples are a subset of this dataset."""
         return copy.copy(self)._filter_inplace(population_feature_values)
-
-    def get_name(self) -> str:
-        """A unique name for this dataset."""
-        subsampling_str = f"subsampled-{self.subsampling:.3}" if self.subsampling else "full"
-        seed_str = f"seed-{self._seed}"
-        hash_str = f"hash-{hash(self)}"
-        return f"{self.task.name}_{subsampling_str}_{seed_str}_{hash_str}"
 
     def get_features_data(self) -> pd.DataFrame:
         return self.data[self.task.features]

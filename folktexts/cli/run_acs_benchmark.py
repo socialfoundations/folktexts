@@ -69,14 +69,6 @@ def setup_arg_parser() -> ArgumentParser:
         default=False,
     )
 
-    parser.add_argument(
-        "--logger-level",
-        type=str,
-        help="[str] The logging level to use for the experiment",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-        required=False,
-    )
-
     # Optionally, receive a list of features to use (subset of original list)
     parser.add_argument(
         "--use-feature-subset",
@@ -97,6 +89,14 @@ def setup_arg_parser() -> ArgumentParser:
         required=False,
     )
 
+    parser.add_argument(
+        "--logger-level",
+        type=str,
+        help="[str] The logging level to use for the experiment",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        required=False,
+    )
+
     return parser
 
 
@@ -111,10 +111,6 @@ if __name__ == '__main__':
     pretty_args_str = json.dumps(vars(args), indent=4, sort_keys=True)
     logging.info(f"Current python executable: '{sys.executable}'")
     logging.info(f"Received the following cmd-line args: {pretty_args_str}")
-
-    # Create results directory if needed
-    results_dir = Path(args.results_dir).expanduser().resolve()
-    results_dir.mkdir(parents=False, exist_ok=True)
 
     # Parse population filter if provided
     population_filter_dict = None
@@ -147,22 +143,22 @@ if __name__ == '__main__':
         model=model,
         tokenizer=tokenizer,
         task_name=args.task_name,
-        results_dir=results_dir,
         data_dir=args.data_dir,
         config=config,
         subsampling=args.subsampling,
     )
 
-    # Run benchmark
-    bench.run(fit_threshold=args.fit_threshold)
+    # Create results directory if needed
+    results_dir = Path(args.results_dir).expanduser().resolve()
+    results_dir.mkdir(parents=False, exist_ok=True)
 
-    # Render plots
-    bench.plot_results()
+    # Run benchmark
+    bench.run(results_root_dir=results_dir, fit_threshold=args.fit_threshold)
+    bench.save_results()
 
     # Save results
     import pprint
     pprint.pprint(bench.results, indent=4, sort_dicts=True)
-    bench.save_results()
 
     # Finish
     from folktexts._utils import get_current_timestamp
