@@ -30,9 +30,6 @@ ROOT_DIR = Path("/fast/groups/sf")
 # ACS data directory
 ACS_DATA_DIR = ROOT_DIR / "data"
 
-# Directory to save results in (make sure it exists)
-RESULTS_ROOT_DIR = ROOT_DIR / "folktexts-results" / "acs-benchmarks"
-
 # Models save directory
 MODELS_DIR = ROOT_DIR / "huggingface-models"
 # MODELS_DIR = ROOT_DIR / "data" / "huggingface-models"     # on local machine
@@ -83,7 +80,7 @@ LLM_MODELS = [
 def make_llm_as_clf_experiment(
     model_name: str,
     task_name: str,
-    results_root_dir: str = RESULTS_ROOT_DIR,
+    results_root_dir: str,
     **kwargs,
 ) -> Experiment:
     """Create an experiment object to run.
@@ -151,6 +148,13 @@ def setup_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Launch experiments to evaluate LLMs as classifiers.")
 
     parser.add_argument(
+        "--results-root-dir",
+        type=str,
+        help="[string] Directory under which results will be saved.",
+        required=True,
+    )
+
+    parser.add_argument(
         "--model",
         type=str,
         help="[string] Model name on huggingface hub - can provide multiple!",
@@ -164,14 +168,6 @@ def setup_arg_parser() -> argparse.ArgumentParser:
         help="[string] ACS task name to run experiments on - can provide multiple!",
         required=False,
         action="append",
-    )
-
-    parser.add_argument(
-        "--results-root-dir",
-        type=str,
-        help="[string] Directory under which results will be saved.",
-        required=False,
-        default=RESULTS_ROOT_DIR.as_posix(),
     )
 
     parser.add_argument(
@@ -214,7 +210,12 @@ def main():
     # Otherwise, run all experiments planned
     else:
         all_experiments = [
-            make_llm_as_clf_experiment(model_name=model, task_name=task, **extra_kwargs)
+            make_llm_as_clf_experiment(
+                model_name=model,
+                task_name=task,
+                results_root_dir=args.results_root_dir,
+                **extra_kwargs,
+            )
             for model in models
             for task in tasks
         ]
