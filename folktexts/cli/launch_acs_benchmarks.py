@@ -122,7 +122,7 @@ def make_llm_as_clf_experiment(
     )
 
     # Create LLM results directory
-    exp_results_dir = results_root_dir / get_llm_results_folder(exp)
+    exp_results_dir = Path(results_root_dir) / get_llm_results_folder(exp)
     exp_results_dir.mkdir(exist_ok=True, parents=True)
     exp.kwargs["results_dir"] = exp_results_dir.as_posix()
     save_json(
