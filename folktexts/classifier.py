@@ -23,7 +23,7 @@ from ._utils import hash_dict, hash_function
 
 DEFAULT_CONTEXT_SIZE = 500
 DEFAULT_BATCH_SIZE = 16
-DEFAULT_CORRECT_ORDER_BIAS = False  # TODO: change default to `True`
+DEFAULT_CORRECT_ORDER_BIAS = True
 
 SCORE_COL_NAME = "risk_score"
 LABEL_COL_NAME = "label"
@@ -60,6 +60,10 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
             The classification threshold to use when outputting binary
             predictions, by default 0.5. Must be between 0 and 1. Will be
             re-calibrated if `fit` is called.
+        **inference_kwargs
+            Additional keyword arguments to pass to `self.predict_proba(...)`
+            during inference. By default, will use `context_size=500` and
+            `batch_size=16`.
         """
         self._model = model
         self._tokenizer = tokenizer
@@ -149,6 +153,14 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         """Check fitted status and return a Boolean value."""
         return hasattr(self, "_is_fitted") and self._is_fitted
 
+    @staticmethod
+    def _get_positive_class_scores(risk_scores: np.ndarray) -> np.ndarray:
+        """Helper function to get positive class scores from risk scores."""
+        if len(risk_scores.shape) > 1:
+            return risk_scores[:, -1]
+        else:
+            return risk_scores
+
     def predict(
         self,
         data: pd.DataFrame | Dataset,
@@ -167,11 +179,11 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         )
         if isinstance(risk_scores, dict):
             return {
-                data_type: (data_scores[:, -1] >= self.threshold).astype(int)
+                data_type: (self._get_positive_class_scores(data_scores) >= self.threshold).astype(int)
                 for data_type, data_scores in risk_scores.items()
             }
         else:
-            return (risk_scores[:, -1] >= self.threshold).astype(int)
+            return (self._get_positive_class_scores(risk_scores) >= self.threshold).astype(int)
 
     def _load_predictions_from_disk(
         self,
@@ -245,7 +257,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
 
         Returns
         -------
-        scores : np.ndarray | dict[str, np.ndarray]
+        risk_scores : np.ndarray | dict[str, np.ndarray]
             The risk scores for the given data, or a dictionary of data split
             name to risk scores if a Dataset object was provided.
         """
@@ -322,7 +334,22 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         batch_size: int = None,
         context_size: int = None,
     ) -> np.ndarray:
-        """Helper to compute risk estimates for a specific dataframe."""
+        """Compute risk estimates for a specific dataframe (internal helper function).
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            The dataframe to compute risk estimates for.
+        batch_size : int, optional
+            The batch size to use when running inference.
+        context_size : int, optional
+            The context size to use when running inference (in number of tokens).
+
+        Returns
+        -------
+        risk_scores : np.ndarray
+            The risk estimates for each row in the dataframe.
+        """
 
         # Initialize risk scores and other constants
         fill_value = -1

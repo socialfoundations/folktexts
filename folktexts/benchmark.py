@@ -272,7 +272,32 @@ class CalibrationBenchmark:
         config: BenchmarkConfig = BenchmarkConfig.default_config(),
         **kwargs,
     ) -> CalibrationBenchmark:
-        """Create a standardized calibration benchmark on ACS data."""
+        """Create a standardized calibration benchmark on ACS data.
+
+        Parameters
+        ----------
+        model : AutoModelForCausalLM
+            The torch/transformers language model to use.
+        tokenizer : AutoTokenizer
+            The tokenizer used to train the model.
+        task_name : str
+            The name of the ACS task to use.
+        results_dir : str | Path
+            Path to the directory to save results in.
+        data_dir : str | Path, optional
+            Path to the directory to load data from and save data in.
+        config : BenchmarkConfig, optional
+            Extra benchmark configurations, by default will use
+            `BenchmarkConfig.default_config()`.
+        **kwargs
+            Additional arguments passed to `ACSDataset`. By default will use a
+            set of standardized dataset configurations for reproducibility.
+
+        Returns
+        -------
+        bench : CalibrationBenchmark
+            The ACS calibration benchmark object.
+        """
 
         # Handle non-standard ACS arguments
         acs_dataset_configs = cls.ACS_DATASET_CONFIGS.copy()
@@ -314,7 +339,29 @@ class CalibrationBenchmark:
         results_dir: str | Path,
         config: BenchmarkConfig = BenchmarkConfig.default_config(),
     ) -> CalibrationBenchmark:
-        """Create a calibration benchmark from a given configuration."""
+        """Create a calibration benchmark from a given configuration.
+
+        Parameters
+        ----------
+        model : AutoModelForCausalLM
+            The torch/transformers language model to use.
+        tokenizer : AutoTokenizer
+            The tokenizer used to train the model.
+        task : TaskMetadata | str
+            The task metadata object or name of the task to use.
+        dataset : Dataset
+            The dataset to use for the benchmark.
+        results_dir : str | Path
+            Path to the directory to save results in.
+        config : BenchmarkConfig, optional
+            Extra benchmark configurations, by default will use
+            `BenchmarkConfig.default_config()`.
+
+        Returns
+        -------
+        bench : CalibrationBenchmark
+            The calibration benchmark object.
+        """
         # Handle TaskMetadata object
         if isinstance(task, str):
             task = TaskMetadata.get_task(task)
