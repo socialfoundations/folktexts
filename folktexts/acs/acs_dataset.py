@@ -9,7 +9,7 @@ from folktables import ACSDataSource
 from folktables.load_acs import state_list
 
 from ..dataset import Dataset
-from ._utils import get_thresholded_column_name
+from .._utils import get_thresholded_column_name
 from .acs_tasks import ACSTaskMetadata  # noqa # load ACS tasks
 
 DEFAULT_ACS_DATA_DIR = Path("~/data").expanduser().resolve()
@@ -60,9 +60,10 @@ class ACSDataset(Dataset):
         # Threshold the target column if necessary
         # > use standardized ACS naming convention
         if task.target_threshold is not None:
-            thresholded_target = get_thresholded_column_name(task.target, task.target_threshold)
-            data[thresholded_target] = (data[task.target] >= task.target_threshold).astype(int)
-            task.target = thresholded_target
+            # TODO: the target should be thresholded in the task definition not here!
+            thresholded_target = task.get_target()
+            if thresholded_target not in data.columns:
+                data[thresholded_target] = (data[task.target] >= task.target_threshold).astype(int)
 
         super().__init__(
             data=data,

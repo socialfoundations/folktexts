@@ -7,12 +7,6 @@ from pathlib import Path
 from typing import Callable
 
 
-def get_thresholded_column_name(column_name: str, threshold: float | int) -> str:
-    """Standardizes naming of thresholded columns."""
-    threshold_str = f"{threshold:.2f}".replace(".", "_") if isinstance(threshold, float) else str(threshold)
-    return f"{column_name}_binary_{threshold_str}"
-
-
 def parse_pums_code(
     value: int,
     file: str | Path,

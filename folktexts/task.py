@@ -9,7 +9,7 @@ from typing import Callable, ClassVar, Iterable
 
 import pandas as pd
 
-from ._utils import hash_dict
+from ._utils import hash_dict, get_thresholded_column_name
 from .col_to_text import ColumnToText
 
 
@@ -60,6 +60,13 @@ class TaskMetadata:
         hashable_params["question_hash"] = hash(self.question)
         return int(hash_dict(hashable_params), 16)
 
+    def get_target(self) -> str:
+        """Resolves the name of the target column depending on `self.target_threshold`."""
+        if self.target_threshold is None:
+            return self.target
+        else:
+            return get_thresholded_column_name(self.target, self.target_threshold)
+
     @classmethod
     def get_task(cls, name: str) -> "TaskMetadata":
         if name not in cls._tasks:
@@ -68,9 +75,9 @@ class TaskMetadata:
 
     @property
     def question(self):
-        if self.cols_to_text[self.target]._question is None:
-            raise ValueError(f"No question provided for the target column '{self.target}'.")
-        return self.cols_to_text[self.target].question
+        if self.cols_to_text[self.get_target()]._question is None:
+            raise ValueError(f"No question provided for the target column '{self.get_target()}'.")
+        return self.cols_to_text[self.get_target()].question
 
     def get_row_description(self, row: pd.Series) -> str:
         """Encode a description of a given data row in textual form."""

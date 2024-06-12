@@ -94,10 +94,10 @@ class Dataset(ABC):
     def task(self, task: TaskMetadata):
         logging.info(f"Updating dataset's task from '{self.task.name}' to '{task.name}'.")
         # Check if task columns are in the data
-        if not all(col in self.data.columns for col in (task.features + [task.target])):
+        if not all(col in self.data.columns for col in (task.features + [task.get_target()])):
             raise ValueError(
                 f"Task columns not found in dataset: "
-                f"features={task.features}, target={task.target}")
+                f"features={task.features}, target={task.get_target()}")
 
         self._task = task
 
@@ -221,7 +221,7 @@ class Dataset(ABC):
         return self.data[self.task.features]
 
     def get_target_data(self) -> pd.Series:
-        return self.data[self.task.target]
+        return self.data[self.task.get_target()]
 
     def get_sensitive_attribute_data(self) -> pd.Series:
         if self.task.sensitive_attribute is not None:
@@ -240,7 +240,7 @@ class Dataset(ABC):
 
     def get_train(self):
         train_data = self.data.iloc[self._train_indices]
-        return train_data[self.task.features], train_data[self.task.target]
+        return train_data[self.task.features], train_data[self.task.get_target()]
 
     def sample_n_train_examples(
         self,
@@ -270,24 +270,24 @@ class Dataset(ABC):
 
         return (
             self.data.iloc[example_indices][self.task.features],
-            self.data.iloc[example_indices][self.task.target],
+            self.data.iloc[example_indices][self.task.get_target()],
         )
 
     def get_test(self):
         test_data = self.data.iloc[self._test_indices]
-        return test_data[self.task.features], test_data[self.task.target]
+        return test_data[self.task.features], test_data[self.task.get_target()]
 
     def get_val(self):
         if self._val_indices is None:
             return None
         val_data = self.data.iloc[self._val_indices]
-        return val_data[self.task.features], val_data[self.task.target]
+        return val_data[self.task.features], val_data[self.task.get_target()]
 
     def __getitem__(self, i) -> tuple[pd.DataFrame, pd.Series]:
         """Returns the i-th training sample."""
         curr_indices = self._train_indices[i]
         curr_data = self.data.iloc[curr_indices]
-        return curr_data[self.task.features], curr_data[self.task.target]
+        return curr_data[self.task.features], curr_data[self.task.get_target()]
 
     def __iter__(self):
         """Iterates over the training data."""
