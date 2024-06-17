@@ -227,3 +227,21 @@ acs_pubcov = ColumnToText(
         ],
     ),
 )
+
+# TODO:
+# DIS Disability status
+# ESP Employment status of parents
+# CIT Citizenship status
+# MIG Mobility (lived here 1 year ago)
+# MIL Military service
+# ANC Ancestry
+# NATIVITY Nativity
+# DEAR Hearing
+# DEYE Vision
+# DREM Cognition
+# ESR Employment status #2
+# ST State
+# FER Parenthood (1 year)
+# JWMNP Commute time
+# JWTR Means of transport
+# POVPIP I

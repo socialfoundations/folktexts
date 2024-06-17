@@ -9,7 +9,6 @@ from folktables import ACSDataSource
 from folktables.load_acs import state_list
 
 from ..dataset import Dataset
-from .._utils import get_thresholded_column_name
 from .acs_tasks import ACSTaskMetadata  # noqa # load ACS tasks
 
 DEFAULT_ACS_DATA_DIR = Path("~/data").expanduser().resolve()

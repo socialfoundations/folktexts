@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "folktexts"
-description = "A benchmark for LLM calibration on human populations."
+description = "Use LLMs to get classification risk scores on tabular tasks."
 license = {file = "LICENSE"}
 # license = {text = "MIT License"}
 authors = [
@@ -32,7 +32,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 
-version = "0.0.12"
+version = "0.0.13"
 requires-python = ">=3.8"
 dynamic = [
     "readme",
