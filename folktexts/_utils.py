@@ -91,7 +91,7 @@ def standardize_path(path: str | Path) -> str:
     return Path(path).expanduser().resolve().as_posix()
 
 
-def get_thresholded_column_name(column_name: str, threshold: float | int) -> str:
+def get_thresholded_column_name(column_name: str, threshold: float | int, *, op: str = ">") -> str:
     """Standardizes naming of thresholded columns."""
     threshold_str = f"{threshold:.2f}".replace(".", "_") if isinstance(threshold, float) else str(threshold)
-    return f"{column_name}_binary_{threshold_str}"
+    return f"{column_name}_{op}_{threshold_str}"

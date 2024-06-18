@@ -14,13 +14,14 @@ ACS_POBP_FILE = Path(__file__).parent / "data" / "POBP-codes-acs.txt"
 ACS_ST_FILE = Path(__file__).parent / "data" / "ST-codes-acs.txt"
 
 
-# Describing ACS columns and corresponding questions
+# AGEP: Age
 acs_age = ColumnToText(
     "AGEP",
     short_description="age",
     value_map=lambda x: f"{int(x)} years old",
 )
 
+# COW: Class of Worker
 acs_class_of_worker = ColumnToText(
     "COW",
     short_description="class of worker",
@@ -37,6 +38,7 @@ acs_class_of_worker = ColumnToText(
     },
 )
 
+# SCHL: Educational Attainment
 acs_schooling = ColumnToText(
     "SCHL",
     short_description="highest educational attainment",
@@ -68,6 +70,7 @@ acs_schooling = ColumnToText(
     },
 )
 
+# MAR: Marital Status
 acs_marital_status = ColumnToText(
     "MAR",
     short_description="marital status",
@@ -80,6 +83,7 @@ acs_marital_status = ColumnToText(
     },
 )
 
+# OCCP: Occupation
 acs_occupation = ColumnToText(
     "OCCP",
     short_description="occupation",
@@ -90,17 +94,19 @@ acs_occupation = ColumnToText(
     ),
 )
 
+# POBP: Place of Birth
 acs_place_of_birth = ColumnToText(
     "POBP",
     short_description="place of birth",
     value_map=partial(parse_pums_code, file=ACS_POBP_FILE),
 )
 
+# RELP: Relationship to Reference Person
 acs_relationship = ColumnToText(
     "RELP",
-    short_description="relationship to the reference person in the household",
+    short_description="relationship to the reference person in the survey",
     value_map={
-        0: "The 'reference person' itself",
+        0: "The reference person itself",
         1: "Husband/wife",
         2: "Biological son or daughter",
         3: "Adopted son or daughter",
@@ -121,6 +127,7 @@ acs_relationship = ColumnToText(
     },
 )
 
+# WKHP: Usual Hours Worked per Week
 acs_work_hours = ColumnToText(
     "WKHP",
     short_description="usual number of hours worked per week",
@@ -128,6 +135,7 @@ acs_work_hours = ColumnToText(
     value_map=lambda x: f"{int(x)} hours",
 )
 
+# SEX: Sex
 acs_sex = ColumnToText(
     "SEX",
     short_description="sex",
@@ -137,6 +145,7 @@ acs_sex = ColumnToText(
     },
 )
 
+# RAC1P: Race
 acs_race = ColumnToText(
     "RAC1P",
     short_description="race",
@@ -156,6 +165,7 @@ acs_race = ColumnToText(
     },
 )
 
+# PINCP: Yearly Income
 acs_income = ColumnToText(
     "PINCP",
     short_description="yearly income",
@@ -163,7 +173,7 @@ acs_income = ColumnToText(
     value_map=lambda x: f"${int(x):,}",
 )
 
-acs_income_binary_qa = MultipleChoiceQA(
+acs_income_qa = MultipleChoiceQA(
     column=get_thresholded_column_name("PINCP", 50_000),
     text="What is this person's estimated yearly income?",
     choices=[
@@ -182,13 +192,14 @@ acs_income_numeric_qa = DirectNumericQA(
     num_forward_passes=2,
 )
 
-acs_income = ColumnToText(
+acs_income_target_col = ColumnToText(
     name=get_thresholded_column_name("PINCP", 50_000),
     short_description="yearly income",
     missing_value_fill="N/A (less than 15 years old)",
-    question=acs_income_binary_qa,
+    question=acs_income_qa,
 )
 
+"""
 acs_income_brackets = ColumnToText(
     "PINCP_brackets",
     short_description="yearly income",
@@ -204,27 +215,30 @@ acs_income_brackets = ColumnToText(
         ],
     ),
 )
+"""
 
-# Note: yes/no values are flipped when using PUBCOV as the label column
-acs_pubcov_binary_qa = MultipleChoiceQA(
+# PUBCOV: Public Health Coverage
+# NOTE: in folktables the negative choice has value `0` instead of `2`
+acs_pubcov_qa = MultipleChoiceQA(
     column="PUBCOV",
     text="Does this person have public health insurance coverage?",
     choices=[
-        Choice("No, individual is not covered by public health insurance", 0),
-        Choice("Yes, individual is covered by public health insurance", 1),
+        Choice("Yes, person is covered by public health insurance", 1),
+        Choice("No, person is not covered by public health insurance", 2),
     ],
 )
 
-acs_pubcov = ColumnToText(
+acs_pubcov_target_col = ColumnToText(
     "PUBCOV",
     short_description="public health coverage status",
     value_map={
         1: "Covered by public health insurance",
         2: "Not covered by public health insurance",
     },
-    question=acs_pubcov_binary_qa,
+    question=acs_pubcov_qa,
 )
 
+# DIS: Disability Status
 acs_disability = ColumnToText(
     "DIS",
     short_description="disability status",
@@ -234,6 +248,7 @@ acs_disability = ColumnToText(
     },
 )
 
+# ESP: Employment Status of Parents
 acs_emp_parents = ColumnToText(
     "ESP",
     short_description="employment status of parents",
@@ -250,6 +265,7 @@ acs_emp_parents = ColumnToText(
     missing_value_fill="N/A (not own child of householder, and not child in subfamily)",
 )
 
+# CIT: Citizenship Status
 acs_citizenship = ColumnToText(
     "CIT",
     short_description="citizenship status",
@@ -262,6 +278,7 @@ acs_citizenship = ColumnToText(
     },
 )
 
+# MIG: Mobility Status
 acs_mobility = ColumnToText(
     "MIG",
     short_description="mobility status over the last year",
@@ -272,6 +289,23 @@ acs_mobility = ColumnToText(
     },
 )
 
+acs_mobility_qa = MultipleChoiceQA(
+    column=get_thresholded_column_name("MIG", 1, op="=="),
+    text="Has this person moved in the last year?",
+    choices=[
+        Choice("No, person has lived in the same house for the last year", 1),
+        Choice("Yes, person has moved in the last year", 0),
+    ],
+)
+
+acs_mobility_target_col = ColumnToText(
+    name=get_thresholded_column_name("MIG", 1, op="=="),
+    short_description="mobility status over the last year",
+    question=acs_mobility_qa,
+    use_value_map_only=True,
+)
+
+# MIL: Military Service Status
 acs_military = ColumnToText(
     "MIL",
     short_description="military service status",
@@ -284,6 +318,7 @@ acs_military = ColumnToText(
     missing_value_fill="N/A (less than 17 years old)",
 )
 
+# ANC: Ancestry
 acs_ancestry = ColumnToText(
     "ANC",
     short_description="ancestry",
@@ -295,6 +330,7 @@ acs_ancestry = ColumnToText(
     },
 )
 
+# NATIVITY: Nativity
 acs_nativity = ColumnToText(
     "NATIVITY",
     short_description="nativity",
@@ -304,6 +340,7 @@ acs_nativity = ColumnToText(
     },
 )
 
+# DEAR: Hearing Status
 acs_hearing = ColumnToText(
     "DEAR",
     short_description="hearing status",
@@ -313,6 +350,7 @@ acs_hearing = ColumnToText(
     },
 )
 
+# DEYE: Vision Status
 acs_vision = ColumnToText(
     "DEYE",
     short_description="vision status",
@@ -322,6 +360,7 @@ acs_vision = ColumnToText(
     },
 )
 
+# DREM: Cognitive Status
 acs_cognitive = ColumnToText(
     "DREM",
     short_description="cognition status",
@@ -332,6 +371,7 @@ acs_cognitive = ColumnToText(
     missing_value_fill="N/A (less than 5 years old)",
 )
 
+# ESR: Employment Status
 acs_employment = ColumnToText(
     "ESR",
     short_description="employment status",
@@ -346,9 +386,26 @@ acs_employment = ColumnToText(
     missing_value_fill="N/A (less than 16 years old)",
 )
 
+acs_employment_qa = MultipleChoiceQA(
+    column=get_thresholded_column_name("ESR", 1, op="=="),
+    text="What is this person's employment status?",
+    choices=[
+        Choice("Employed civilian", 1),
+        Choice("Unemployed or in the military", 0),
+    ],
+)
+
+acs_employment_target_col = ColumnToText(
+    name=get_thresholded_column_name("ESR", 1, op="=="),
+    short_description="employment status",
+    question=acs_employment_qa,
+    use_value_map_only=True,
+)
+
+# ST: State
 acs_state = ColumnToText(
     "ST",
-    short_description="state",
+    short_description="resident state",
     value_map=partial(
         parse_pums_code,
         file=ACS_ST_FILE,
@@ -356,6 +413,7 @@ acs_state = ColumnToText(
     ),
 )
 
+# FER: Parenthood Status
 acs_parenthood = ColumnToText(
     "FER",
     short_description="person has given birth within the last year",
@@ -367,6 +425,7 @@ acs_parenthood = ColumnToText(
     missing_value_fill="N/A (less than 15 years old, or greater than 50 years old, or male)",
 )
 
+# JWMNP: Commute Time
 acs_commute_time = ColumnToText(
     "JWMNP",
     short_description="commute time",
@@ -374,6 +433,23 @@ acs_commute_time = ColumnToText(
     missing_value_fill="N/A (not a worker, or worker who worked at home)",
 )
 
+acs_commute_time_qa = MultipleChoiceQA(
+    column=get_thresholded_column_name("JWMNP", 20),
+    text="What is this person's commute time?",
+    choices=[
+        Choice("Longer than 20 minutes", 1),
+        Choice("Less than 20 minutes", 0),
+    ],
+)
+
+acs_travel_time_target_col = ColumnToText(
+    name=get_thresholded_column_name("JWMNP", 20),
+    short_description="commute time",
+    question=acs_commute_time_qa,
+    use_value_map_only=True,
+)
+
+# JWTR: Commute Method
 acs_commute_method = ColumnToText(
     "JWTR",
     short_description="means of transportation to work",
@@ -393,6 +469,7 @@ acs_commute_method = ColumnToText(
     },
 )
 
+# POVPIP: Income-to-Poverty Ratio
 acs_poverty_ratio = ColumnToText(
     "POVPIP",
     short_description="income-to-poverty ratio",
