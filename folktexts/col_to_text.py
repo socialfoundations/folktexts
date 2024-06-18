@@ -15,8 +15,9 @@ class ColumnToText:
         short_description: str,
         value_map: dict[object, str] | Callable = None,
         question: QAInterface = None,
-        connector_verb: str = "is",
+        connector_verb: str = "is:",
         missing_value_fill: str = "N/A",
+        use_value_map_only: bool = False,
     ):
         """Constructs a `ColumnToText` object.
 
@@ -40,6 +41,13 @@ class ColumnToText:
         missing_value_fill : str, optional
             The value to use when the column's value is not found in the
             `value_map`, by default "N/A".
+        use_value_map_only : bool, optional
+            Whether to only use the `value_map` for mapping values to text,
+            or whether natural language representation should be generated using
+            the `connector_verb` and `short_description` as well.
+            By default (False) will construct a natural language representation
+            of the form:
+            `"The [short_description] [connector_verb] [value_map.get(val)]".`
         """
         self._name = name
         self._short_description = short_description
@@ -47,6 +55,7 @@ class ColumnToText:
         self._question = question
         self._connector_verb = connector_verb
         self._missing_value_fill = missing_value_fill
+        self._use_value_map_only = use_value_map_only
 
         # If a `question` was provided and `value_map` was not
         # > infer `value_map` from question (`value_map` is required for `__getitem__`)
@@ -115,4 +124,7 @@ class ColumnToText:
         return self.value_map(value)
 
     def get_text(self, value: object) -> str:
+        """Returns the natural text representation of the given data value."""
+        if self._use_value_map_only:
+            return self[value]
         return f"The {self.short_description} {self._connector_verb} {self[value]}."

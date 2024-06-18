@@ -11,6 +11,7 @@ from ._utils import parse_pums_code
 # Path to ACS codebook files
 ACS_OCCP_FILE = Path(__file__).parent / "data" / "OCCP-codes-acs.txt"
 ACS_POBP_FILE = Path(__file__).parent / "data" / "POBP-codes-acs.txt"
+ACS_ST_FILE = Path(__file__).parent / "data" / "ST-codes-acs.txt"
 
 
 # Describing ACS columns and corresponding questions
@@ -22,71 +23,60 @@ acs_age = ColumnToText(
 
 acs_class_of_worker = ColumnToText(
     "COW",
-    short_description="current employment status",
-    question=MultipleChoiceQA(
-        column="COW",
-        text=(
-            "Which one of the following best describes this person's employment "
-            "last week or the most recent employment in the past 5 years?",
-        ),
-        choices=[
-            Choice("working for a for-profit private company or organization", 1),
-            Choice("working for a non-profit organization", 2),
-            Choice("working for the local government", 3),
-            Choice("working for the state government", 4),
-            Choice("working for the federal government", 5),
-            Choice("owner of non-incorporated business, professional practice, or farm", 6),
-            Choice("owner of incorporated business, professional practice, or farm", 7),
-            Choice("working without pay in a for-profit family business or farm", 8),
-            Choice("unemployed and last worked 5 years ago or earlier or never worked", 9),
-        ]
-    ),
+    short_description="class of worker",
+    value_map={
+        1: "Working for a for-profit private company or organization",
+        2: "Working for a non-profit organization",
+        3: "Working for the local government",
+        4: "Working for the state government",
+        5: "Working for the federal government",
+        6: "Owner of non-incorporated business, professional practice, or farm",
+        7: "Owner of incorporated business, professional practice, or farm",
+        8: "Working without pay in a for-profit family business or farm",
+        9: "Unemployed and last worked 5 years ago or earlier or never worked",
+    },
 )
 
 acs_schooling = ColumnToText(
     "SCHL",
-    short_description="highest grade completed",
-    question=MultipleChoiceQA(
-        column="SCHL",
-        text="What is this person's highest grade or level of school completed?",
-        choices=[
-            Choice("N/A - no schooling completed", 1),
-            Choice("nursery school / preschool", 2),
-            Choice("kindergarten", 3),
-            Choice("1st grade only", 4),
-            Choice("2nd grade", 5),
-            Choice("3rd grade", 6),
-            Choice("4th grade", 7),
-            Choice("5th grade", 8),
-            Choice("6th grade", 9),
-            Choice("7th grade", 10),
-            Choice("8th grade", 11),
-            Choice("9th grade", 12),
-            Choice("10th grade", 13),
-            Choice("11th grade", 14),
-            Choice("12th grade, no diploma", 15),
-            Choice("regular high school diploma", 16),
-            Choice("GED or alternative credential", 17),
-            Choice("some college, less than 1 year", 18),
-            Choice("some college, 1 or more years, no degree", 19),
-            Choice("Associate's degree", 20),
-            Choice("Bachelor's degree", 21),
-            Choice("Master's degree", 22),
-            Choice("Professional degree beyond a bachelor's degree", 23),
-            Choice("Doctorate degree", 24),
-        ],
-    ),
+    short_description="highest educational attainment",
+    value_map={
+        1: "N/A - no schooling completed",
+        2: "Nursery school / preschool",
+        3: "Kindergarten",
+        4: "1st grade only",
+        5: "2nd grade",
+        6: "3rd grade",
+        7: "4th grade",
+        8: "5th grade",
+        9: "6th grade",
+        10: "7th grade",
+        11: "8th grade",
+        12: "9th grade",
+        13: "10th grade",
+        14: "11th grade",
+        15: "12th grade, no diploma",
+        16: "Regular high school diploma",
+        17: "GED or alternative credential",
+        18: "Some college, less than 1 year",
+        19: "Some college, 1 or more years, no degree",
+        20: "Associate's degree",
+        21: "Bachelor's degree",
+        22: "Master's degree",
+        23: "Professional degree beyond a bachelor's degree",
+        24: "Doctorate degree",
+    },
 )
 
 acs_marital_status = ColumnToText(
     "MAR",
     short_description="marital status",
     value_map={
-        1: "married",
-        2: "widowed",
-        3: "divorced",
-        4: "separated",
-        5: "never married",
+        1: "Married",
+        2: "Widowed",
+        3: "Divorced",
+        4: "Separated",
+        5: "Never married",
     },
 )
 
@@ -110,24 +100,24 @@ acs_relationship = ColumnToText(
     "RELP",
     short_description="relationship to the reference person in the household",
     value_map={
-        0: "the 'reference person' itself",
-        1: "husband/wife",
-        2: "biological son or daughter",
-        3: "adopted son or daughter",
-        4: "stepson or stepdaughter",
-        5: "brother or sister",
-        6: "father or mother",
-        7: "grandchild",
-        8: "parent-in-law",
-        9: "son-in-law or daughter-in-law",
-        10: "other relative",
-        11: "roomer or boarder",
-        12: "housemate or roommate",
-        13: "unmarried partner",
-        14: "foster child",
-        15: "other non-relative",
-        16: "institutionalized group quarters population",
-        17: "non-institutionalized group quarters population",
+        0: "The 'reference person' itself",
+        1: "Husband/wife",
+        2: "Biological son or daughter",
+        3: "Adopted son or daughter",
+        4: "Stepson or stepdaughter",
+        5: "Brother or sister",
+        6: "Father or mother",
+        7: "Grandchild",
+        8: "Parent-in-law",
+        9: "Son-in-law or daughter-in-law",
+        10: "Other relative",
+        11: "Roomer or boarder",
+        12: "Housemate or roommate",
+        13: "Unmarried partner",
+        14: "Foster child",
+        15: "Other non-relative",
+        16: "Institutionalized group quarters population",
+        17: "Non-institutionalized group quarters population",
     },
 )
 
@@ -156,12 +146,12 @@ acs_race = ColumnToText(
         3: "American Indian",
         4: "Alaska Native",
         5: (
-            "American Indian and Alaska Native tribes specified, or American "
+            "American Indian and Alaska Native tribes specified; or American "
             "Indian or Alaska Native, not specified and no other races"),
         6: "Asian",
         7: "Native Hawaiian and Other Pacific Islander",
-        # 8: "Some other race alone",
         8: "Some other race alone (non-White)",
+        # 8: "Some other race alone",
         9: "Two or more races",
     },
 )
@@ -215,33 +205,196 @@ acs_income_brackets = ColumnToText(
     ),
 )
 
+# Note: yes/no values are flipped when using PUBCOV as the label column
+acs_pubcov_binary_qa = MultipleChoiceQA(
+    column="PUBCOV",
+    text="Does this person have public health insurance coverage?",
+    choices=[
+        Choice("No, individual is not covered by public health insurance", 0),
+        Choice("Yes, individual is covered by public health insurance", 1),
+    ],
+)
+
 acs_pubcov = ColumnToText(
     "PUBCOV",
-    short_description="public health insurance coverage",
-    question=MultipleChoiceQA(
-        column="PUBCOV",
-        text="Does this person have public health insurance coverage?",
-        choices=[
-            Choice("No, individual is not covered by public health insurance", 0),
-            Choice("Yes, individual is covered by public health insurance", 1),
-        ],
+    short_description="public health coverage status",
+    value_map={
+        1: "Covered by public health insurance",
+        2: "Not covered by public health insurance",
+    },
+    question=acs_pubcov_binary_qa,
+)
+
+acs_disability = ColumnToText(
+    "DIS",
+    short_description="disability status",
+    value_map={
+        1: "With a disability",
+        2: "No disability",
+    },
+)
+
+acs_emp_parents = ColumnToText(
+    "ESP",
+    short_description="employment status of parents",
+    value_map={
+        1: "Living with two parents, both employed",
+        2: "Living with two parents, only Father is employed",
+        3: "Living with two parents, only Mother is employed",
+        4: "Living with two parents, neither employed",
+        5: "Living with Father, and Father is employed",
+        6: "Living with Father, and Father is not employed",
+        7: "Living with Mother, and Mother is employed",
+        8: "Living with Mother, and Mother is not employed",
+    },
+    missing_value_fill="N/A (not own child of householder, and not child in subfamily)",
+)
+
+acs_citizenship = ColumnToText(
+    "CIT",
+    short_description="citizenship status",
+    value_map={
+        1: "Born in the United States",
+        2: "Born in Puerto Rico, Guam, the U.S. Virgin Islands, or the Northern Marianas",
+        3: "Born abroad of American parents",
+        4: "Naturalized US citizen",
+        5: "Not a US citizen",
+    },
+)
+
+acs_mobility = ColumnToText(
+    "MIG",
+    short_description="mobility status over the last year",
+    value_map={
+        1: "Lived in the same house one year ago",
+        2: "Lived in a different house, outside the United States and Puerto Rico, one year ago",
+        3: "Lived in a different house in the United States one year ago",
+    },
+)
+
+acs_military = ColumnToText(
+    "MIL",
+    short_description="military service status",
+    value_map={
+        1: "Now on active duty",
+        2: "On active duty in the past, but not now",
+        3: "Only on active duty for training in Reserved/National Guard",
+        4: "Never served in the military",
+    },
+    missing_value_fill="N/A (less than 17 years old)",
+)
+
+acs_ancestry = ColumnToText(
+    "ANC",
+    short_description="ancestry",
+    value_map={
+        1: "Single ancestry",
+        2: "Multiple ancestry",
+        3: "Unclassified",
+        4: "Not reported",
+    },
+)
+
+acs_nativity = ColumnToText(
+    "NATIVITY",
+    short_description="nativity",
+    value_map={
+        1: "Native",
+        2: "Foreign born",
+    },
+)
+
+acs_hearing = ColumnToText(
+    "DEAR",
+    short_description="hearing status",
+    value_map={
+        1: "With hearing difficulty",
+        2: "No hearing difficulty",
+    },
+)
+
+acs_vision = ColumnToText(
+    "DEYE",
+    short_description="vision status",
+    value_map={
+        1: "With vision difficulty",
+        2: "No vision difficulty",
+    },
+)
+
+acs_cognitive = ColumnToText(
+    "DREM",
+    short_description="cognition status",
+    value_map={
+        1: "With cognitive difficulty",
+        2: "No cognitive difficulty",
+    },
+    missing_value_fill="N/A (less than 5 years old)",
+)
+
+acs_employment = ColumnToText(
+    "ESR",
+    short_description="employment status",
+    value_map={
+        1: "Civilian employed, at work",
+        2: "Civilian employed, with a job but not at work",
+        3: "Unemployed",
+        4: "Armed forces, at work",
+        5: "Armed forces, with a job but not at work",
+        6: "Not in labor force",
+    },
+    missing_value_fill="N/A (less than 16 years old)",
+)
+
+acs_state = ColumnToText(
+    "ST",
+    short_description="state",
+    value_map=partial(
+        parse_pums_code,
+        file=ACS_ST_FILE,
+        postprocess=lambda x: x[:x.find("/")].strip(),
     ),
 )
 
-# TODO:
-# DIS Disability status
-# ESP Employment status of parents
-# CIT Citizenship status
-# MIG Mobility (lived here 1 year ago)
-# MIL Military service
-# ANC Ancestry
-# NATIVITY Nativity
-# DEAR Hearing
-# DEYE Vision
-# DREM Cognition
-# ESR Employment status #2
-# ST State
-# FER Parenthood (1 year)
-# JWMNP Commute time
-# JWTR Means of transport
-# POVPIP I
+acs_parenthood = ColumnToText(
+    "FER",
+    short_description="person has given birth within the last year",
+    use_value_map_only=True,
+    value_map={
+        1: "Person has given birth within the last year: Yes.",
+        2: "Person has given birth within the last year: No.",
+    },
+    missing_value_fill="N/A (less than 15 years old, or greater than 50 years old, or male)",
+)
+
+acs_commute_time = ColumnToText(
+    "JWMNP",
+    short_description="commute time",
+    value_map=lambda x: f"{int(x)} minutes",
+    missing_value_fill="N/A (not a worker, or worker who worked at home)",
+)
+
+acs_commute_method = ColumnToText(
+    "JWTR",
+    short_description="means of transportation to work",
+    value_map={
+        1: "Car, truck, or van",
+        2: "Bus or trolley bus",
+        3: "Streetcar or trolley car",
+        4: "Subway or elevated",
+        5: "Railroad",
+        6: "Ferryboat",
+        7: "Taxicab",
+        8: "Motorcycle",
+        9: "Bicycle",
+        10: "Walked",
+        11: "Worked at home",
+        12: "Other method",
+    },
+)
+
+acs_poverty_ratio = ColumnToText(
+    "POVPIP",
+    short_description="income-to-poverty ratio",
+    value_map=lambda x: f"{x:.2f}",
+)
