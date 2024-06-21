@@ -6,7 +6,7 @@ from folktexts.threshold import Threshold
 acs_income_threshold = Threshold(50_000, ">")
 
 # ACSPublicCoverage task
-acs_publiccoverage_threshold = Threshold(1, "==")
+acs_public_coverage_threshold = Threshold(1, "==")
 
 # ACSMobility task
 acs_mobility_threshold = Threshold(1, "==")
@@ -15,4 +15,10 @@ acs_mobility_threshold = Threshold(1, "==")
 acs_employment_threshold = Threshold(1, "==")
 
 # ACSTravelTime task
-acs_traveltime_threshold = Threshold(20, ">")
+acs_travel_time_threshold = Threshold(20, ">")
+
+# ACSIncomePovertyRatio task
+acs_income_poverty_ratio_threshold = Threshold(250, "<")
+
+# ACSHealthInsurance task
+acs_health_insurance_threshold = Threshold(1, "==")

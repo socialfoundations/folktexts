@@ -471,9 +471,9 @@ class CalibrationBenchmark:
 
         # Construct the LLMClassifier object
         llm_inference_kwargs = {"correct_order_bias": config.correct_order_bias}
-        if config.batch_size:
+        if config.batch_size is not None:
             llm_inference_kwargs["batch_size"] = config.batch_size
-        if config.context_size:
+        if config.context_size is not None:
             llm_inference_kwargs["context_size"] = config.context_size
 
         llm_clf = LLMClassifier(

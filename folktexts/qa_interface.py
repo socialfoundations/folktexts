@@ -189,7 +189,7 @@ class MultipleChoiceQA(QAInterface):
 
     num_forward_passes: int = 1     # NOTE: overrides superclass default
     choices: list[Choice] = dataclasses.field(default_factory=list)
-    _answer_keys_source: list[str] = _ALPHABET
+    _answer_keys_source: list[str] = list(_ALPHABET)
 
     def __post_init__(self):
         if not self.choices:

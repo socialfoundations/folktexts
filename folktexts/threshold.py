@@ -11,7 +11,15 @@ import pandas as pd
 
 @dataclasses.dataclass(frozen=True)
 class Threshold:
-    """A class to represent a threshold value and its comparison operator."""
+    """A class to represent a threshold value and its comparison operator.
+
+    Attributes
+    ----------
+    value : float | int
+        The threshold value to compare against.
+    op : str
+        The comparison operator to use. One of '>', '<', '>=', '<=', '=='.
+    """
     value: float | int
     op: str
 

@@ -10,8 +10,9 @@ from .acs_thresholds import (
     acs_employment_threshold,
     acs_income_threshold,
     acs_mobility_threshold,
-    acs_publiccoverage_threshold,
-    acs_traveltime_threshold,
+    acs_public_coverage_threshold,
+    acs_travel_time_threshold,
+    acs_health_insurance_threshold,
 )
 
 # Path to ACS codebook files
@@ -228,7 +229,7 @@ acs_pubcov_og_target_col = ColumnToText(
 
 # PUBCOV: Public Health Coverage (Thresholded)
 acs_pubcov_qa = MultipleChoiceQA(
-    column=acs_publiccoverage_threshold.apply_to_column_name("PUBCOV"),
+    column=acs_public_coverage_threshold.apply_to_column_name("PUBCOV"),
     text="Does this person have public health insurance coverage?",
     choices=[
         Choice("Yes, person is covered by public health insurance", 1),
@@ -237,7 +238,7 @@ acs_pubcov_qa = MultipleChoiceQA(
 )
 
 acs_pubcov_target_col = ColumnToText(
-    name=acs_publiccoverage_threshold.apply_to_column_name("PUBCOV"),
+    name=acs_public_coverage_threshold.apply_to_column_name("PUBCOV"),
     short_description="public health coverage status",
     value_map={
         1: "Covered by public health insurance",
@@ -445,7 +446,7 @@ acs_commute_time = ColumnToText(
 
 # JWMNP: Commute Time (Thresholded)
 acs_commute_time_qa = MultipleChoiceQA(
-    column=acs_traveltime_threshold.apply_to_column_name("JWMNP"),
+    column=acs_travel_time_threshold.apply_to_column_name("JWMNP"),
     text="What is this person's commute time?",
     choices=[
         Choice("Longer than 20 minutes", 1),
@@ -454,7 +455,7 @@ acs_commute_time_qa = MultipleChoiceQA(
 )
 
 acs_travel_time_target_col = ColumnToText(
-    name=acs_traveltime_threshold.apply_to_column_name("JWMNP"),
+    name=acs_travel_time_threshold.apply_to_column_name("JWMNP"),
     short_description="commute time",
     question=acs_commute_time_qa,
     use_value_map_only=True,
@@ -485,4 +486,34 @@ acs_poverty_ratio = ColumnToText(
     "POVPIP",
     short_description="income-to-poverty ratio",
     value_map=lambda x: f"{x:.2f}",
+)
+
+# HINS2: Health Insurance Coverage through Private Company
+acs_health_ins_2_col = ColumnToText(
+    "HINS2",
+    short_description="acquired health insurance directly from an insurance company",
+    use_value_map_only=True,
+    value_map={
+        1: "Person has purchased insurance directly from an insurance company",
+        2: (
+            "Person has not purchased insurance directly from an insurance "
+            "company (is either uninsured or insured through another source)",
+        )
+    },
+)
+
+# HINS2: Health Insurance Coverage through Private Company (Thresholded)
+acs_health_ins_2_qa = MultipleChoiceQA(
+    text="Has this person purchased health insurance directly from an insurance company?",
+    choices=[
+        Choice("Yes, this person has health insurance through a private company", 1),
+        Choice("No, this person either has insurance through other means or is uninsured", 0),
+    ],
+)
+
+acs_health_ins_2_target_col = ColumnToText(
+    name=acs_health_insurance_threshold.apply_to_column_name("HINS2"),
+    short_description="acquired health insurance directly from an insurance company",
+    question=acs_health_ins_2_qa,
+    use_value_map_only=True,
 )

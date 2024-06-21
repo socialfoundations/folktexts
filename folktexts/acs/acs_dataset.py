@@ -9,9 +9,9 @@ from folktables import ACSDataSource
 from folktables.load_acs import state_list
 
 from ..dataset import Dataset
-from .acs_tasks import ACSTaskMetadata  # noqa # load ACS tasks
+from .acs_tasks import ACSTaskMetadata
 
-DEFAULT_ACS_DATA_DIR = Path("~/data").expanduser().resolve()
+DEFAULT_DATA_DIR = Path("~/data").expanduser().resolve()
 DEFAULT_SEED = 42
 
 DEFAULT_SURVEY_YEAR = "2018"
@@ -32,8 +32,26 @@ class ACSDataset(Dataset):
         seed: int = DEFAULT_SEED,
         **kwargs,
     ):
+        """Construct an ACSDataset object.
+
+        Parameters
+        ----------
+        task : str | ACSTaskMetadata
+            The name of the ACS task or the task object itself.
+        cache_dir : str | Path, optional
+            The directory where ACS data is (or will be) saved to, by default
+            uses DEFAULT_DATA_DIR.
+        survey_year : str, optional
+            The year from which to load survey data, by default DEFAULT_SURVEY_YEAR.
+        horizon : str, optional
+            The time horizon of survey data to load, by default DEFAULT_SURVEY_HORIZON.
+        survey : str, optional
+            The name of the survey unit to load, by default DEFAULT_SURVEY_UNIT.
+        seed : int, optional
+            The random seed, by default DEFAULT_SEED.
+        """
         # Create "folktables" sub-folder under the given cache dir
-        cache_dir = Path(cache_dir or DEFAULT_ACS_DATA_DIR).expanduser().resolve() / "folktables"
+        cache_dir = Path(cache_dir or DEFAULT_DATA_DIR).expanduser().resolve() / "folktables"
         if not cache_dir.exists():
             logging.warning(f"Creating cache directory '{cache_dir}' for ACS data.")
             cache_dir.mkdir(exist_ok=True, parents=False)
