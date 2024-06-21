@@ -79,7 +79,7 @@ class ColumnToText:
 
         # Else, warn if both were provided (as they may use inconsistent value maps)
         elif self._value_map is not None and self._question is not None:
-            logging.warning(
+            logging.info(
                 f"Got both `value_map` and `question` for column '{self.name}'. "
                 f"Please make sure value mappings are consistent.")
 

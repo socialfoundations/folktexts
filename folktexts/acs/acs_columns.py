@@ -184,10 +184,10 @@ acs_income = ColumnToText(
 acs_income_qa = MultipleChoiceQA(
     column=acs_income_threshold.apply_to_column_name("PINCP"),
     text="What is this person's estimated yearly income?",
-    choices=[
+    choices=(
         Choice("Below $50,000", 0),
         Choice("Above $50,000", 1),
-    ],
+    ),
 )
 
 acs_income_numeric_qa = DirectNumericQA(
@@ -211,10 +211,10 @@ acs_income_target_col = ColumnToText(
 acs_pubcov_og_qa = MultipleChoiceQA(
     column="PUBCOV",
     text="Does this person have public health insurance coverage?",
-    choices=[
+    choices=(
         Choice("Yes, person is covered by public health insurance", 1),
         Choice("No, person is not covered by public health insurance", 2),  # NOTE: value=2 for no public coverage!
-    ],
+    ),
 )
 
 acs_pubcov_og_target_col = ColumnToText(
@@ -231,10 +231,10 @@ acs_pubcov_og_target_col = ColumnToText(
 acs_pubcov_qa = MultipleChoiceQA(
     column=acs_public_coverage_threshold.apply_to_column_name("PUBCOV"),
     text="Does this person have public health insurance coverage?",
-    choices=[
+    choices=(
         Choice("Yes, person is covered by public health insurance", 1),
         Choice("No, person is not covered by public health insurance", 0),  # NOTE: value=0 for no public coverage!
-    ],
+    ),
 )
 
 acs_pubcov_target_col = ColumnToText(
@@ -302,10 +302,10 @@ acs_mobility = ColumnToText(
 acs_mobility_qa = MultipleChoiceQA(
     column=acs_mobility_threshold.apply_to_column_name("MIG"),
     text="Has this person moved in the last year?",
-    choices=[
+    choices=(
         Choice("No, person has lived in the same house for the last year", 1),
         Choice("Yes, person has moved in the last year", 0),
-    ],
+    ),
 )
 
 acs_mobility_target_col = ColumnToText(
@@ -400,10 +400,10 @@ acs_employment = ColumnToText(
 acs_employment_qa = MultipleChoiceQA(
     column=acs_employment_threshold.apply_to_column_name("ESR"),
     text="What is this person's employment status?",
-    choices=[
+    choices=(
         Choice("Employed civilian", 1),
         Choice("Unemployed or in the military", 0),
-    ],
+    ),
 )
 
 acs_employment_target_col = ColumnToText(
@@ -448,10 +448,10 @@ acs_commute_time = ColumnToText(
 acs_commute_time_qa = MultipleChoiceQA(
     column=acs_travel_time_threshold.apply_to_column_name("JWMNP"),
     text="What is this person's commute time?",
-    choices=[
+    choices=(
         Choice("Longer than 20 minutes", 1),
         Choice("Less than 20 minutes", 0),
-    ],
+    ),
 )
 
 acs_travel_time_target_col = ColumnToText(
@@ -502,14 +502,26 @@ acs_health_ins_2_col = ColumnToText(
     },
 )
 
+# GCL: Grandparent Living with Grandchildren
+acs_gcl_col = ColumnToText(
+    "GCL",
+    short_description="grandparent living with grandchildren",
+    use_value_map_only=True,
+    value_map={
+        1: "Household includes grandparent living with grandchildren",
+        2: "Household does not include grandparents living with grandchildren",
+    },
+    missing_value_fill="N/A (less than 30 years old, or living in institutional group quarters)",
+)
+
 # HINS2: Health Insurance Coverage through Private Company (Thresholded)
 acs_health_ins_2_qa = MultipleChoiceQA(
     column=acs_health_insurance_threshold.apply_to_column_name("HINS2"),
     text="Has this person purchased health insurance directly from an insurance company?",
-    choices=[
+    choices=(
         Choice("Yes, this person has health insurance through a private company", 1),
         Choice("No, this person either has insurance through other means or is uninsured", 0),
-    ],
+    ),
 )
 
 acs_health_ins_2_target_col = ColumnToText(
