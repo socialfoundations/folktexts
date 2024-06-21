@@ -130,11 +130,11 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
 
         return int(hash_dict(hash_params), 16)
 
-    def fit(self, X, y, *, false_pos_cost=1.0, false_neg_cost=1.0):
+    def fit(self, X, y, *, false_pos_cost=1.0, false_neg_cost=1.0, **kwargs):
         """Uses the provided data sample to fit the prediction threshold."""
 
         # Compute risk estimates for the data
-        y_pred_scores = self.predict_proba(X)
+        y_pred_scores = self.predict_proba(X, **kwargs)
         if len(y_pred_scores.shape) > 1:
             y_pred_scores = y_pred_scores[:, -1]
 

@@ -9,7 +9,7 @@ from typing import ClassVar
 import pandas as pd
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True, eq=True)
 class Threshold:
     """A class to represent a threshold value and its comparison operator.
 

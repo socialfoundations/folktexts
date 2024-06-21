@@ -118,13 +118,13 @@ acs_full_task = TaskMetadata(
         "from an insurance company (as opposed to being insured through an "
         "employer, Medicare, Medicaid, or any other source)"
     ),
-    features=list({
+    features=sorted(list({
         *acs_income_task.features,
         *acs_public_coverage_task.features,
         *acs_mobility_task.features,
         *acs_employment_task.features,
         *acs_travel_time_task.features,
-    }),
+    })),
     target="HINS2",
     cols_to_text=_acs_columns_map,
     target_threshold=acs_health_insurance_threshold,
