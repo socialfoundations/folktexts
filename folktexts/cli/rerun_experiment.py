@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Python script to re-run a single experiment locally.
+"""Helper script to re-run a single experiment locally.
 """
 from argparse import ArgumentParser
 from subprocess import call

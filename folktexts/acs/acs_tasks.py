@@ -10,7 +10,15 @@ from folktables import BasicProblem
 from .._utils import hash_dict
 from ..col_to_text import ColumnToText as _ColumnToText
 from ..task import TaskMetadata
+from ..threshold import Threshold
 from . import acs_columns
+from .acs_thresholds import (
+    acs_employment_threshold,
+    acs_income_threshold,
+    acs_mobility_threshold,
+    acs_publiccoverage_threshold,
+    acs_traveltime_threshold,
+)
 
 # Map of ACS column names to ColumnToText objects
 _acs_columns_map: dict[str, object] = {
@@ -32,7 +40,7 @@ class ACSTaskMetadata(TaskMetadata):
         cls,
         name: str,
         description: str,
-        target_threshold: float | int = None,
+        target_threshold: Threshold = None,
     ) -> "ACSTaskMetadata":
 
         # Get the task object from the folktables package
@@ -65,26 +73,29 @@ class ACSTaskMetadata(TaskMetadata):
 acs_income_task = ACSTaskMetadata.make_folktables_task(
     name="ACSIncome",
     description="predict whether an individual's income is above $50,000",
-    target_threshold=50000,
+    target_threshold=acs_income_threshold,
 )
 
 acs_public_coverage_task = ACSTaskMetadata.make_folktables_task(
     name="ACSPublicCoverage",
     description="predict whether an individual is covered by public health insurance",
+    target_threshold=acs_publiccoverage_threshold,
 )
 
 acs_mobility_task = ACSTaskMetadata.make_folktables_task(
     name="ACSMobility",
     description="predict whether an individual had the same residential address one year ago",
+    target_threshold=acs_mobility_threshold,
 )
 
 acs_employment_task = ACSTaskMetadata.make_folktables_task(
     name="ACSEmployment",
     description="predict whether an individual is employed",
+    target_threshold=acs_employment_threshold,
 )
 
 acs_travel_time_task = ACSTaskMetadata.make_folktables_task(
     name="ACSTravelTime",
     description="predict whether an individual has a commute to work that is longer than 20 minutes",
-    target_threshold=20,
+    target_threshold=acs_traveltime_threshold,
 )

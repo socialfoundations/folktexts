@@ -5,8 +5,14 @@ from pathlib import Path
 
 from ..col_to_text import ColumnToText
 from ..qa_interface import Choice, DirectNumericQA, MultipleChoiceQA
-from .._utils import get_thresholded_column_name
 from ._utils import parse_pums_code
+from .acs_thresholds import (
+    acs_income_threshold,
+    acs_publiccoverage_threshold,
+    acs_mobility_threshold,
+    acs_employment_threshold,
+    acs_traveltime_threshold,
+)
 
 # Path to ACS codebook files
 ACS_OCCP_FILE = Path(__file__).parent / "data" / "OCCP-codes-acs.txt"
@@ -173,8 +179,9 @@ acs_income = ColumnToText(
     value_map=lambda x: f"${int(x):,}",
 )
 
+# PINCP: Yearly Income (Thresholded)
 acs_income_qa = MultipleChoiceQA(
-    column=get_thresholded_column_name("PINCP", 50_000),
+    column=acs_income_threshold.apply_to_column_name("PINCP"),
     text="What is this person's estimated yearly income?",
     choices=[
         Choice("Below $50,000", 0),
@@ -183,7 +190,7 @@ acs_income_qa = MultipleChoiceQA(
 )
 
 acs_income_numeric_qa = DirectNumericQA(
-    column=get_thresholded_column_name("PINCP", 50_000),
+    column=acs_income_threshold.apply_to_column_name("PINCP"),
     text=(
         "What is the probability that this person's estimated yearly income is "
         "above $50,000 ?"
@@ -193,47 +200,48 @@ acs_income_numeric_qa = DirectNumericQA(
 )
 
 acs_income_target_col = ColumnToText(
-    name=get_thresholded_column_name("PINCP", 50_000),
+    name=acs_income_threshold.apply_to_column_name("PINCP"),
     short_description="yearly income",
     missing_value_fill="N/A (less than 15 years old)",
     question=acs_income_qa,
 )
 
-"""
-acs_income_brackets = ColumnToText(
-    "PINCP_brackets",
-    short_description="yearly income",
-    missing_value_fill="N/A (less than 15 years old)",
-    question=MultipleChoiceQA(
-        column="PINCP_brackets",
-        text="What is this person's estimated yearly income?",
-        choices=[
-            Choice("Less than $25,000", data_value="(0.0, 25000.0]", numeric_value=12_500),
-            Choice("Between $25,000 and $50,000", data_value="(25000.0, 50000.0]", numeric_value=37_500),
-            Choice("Between $50,000 and $100,000", data_value="(50000.0, 100000.0]", numeric_value=75_000),
-            Choice("Above $100,000", data_value="(100000.0, inf]", numeric_value=150_000),
-        ],
-    ),
-)
-"""
-
-# PUBCOV: Public Health Coverage
-# NOTE: in folktables the negative choice has value `0` instead of `2`
-acs_pubcov_qa = MultipleChoiceQA(
+# PUBCOV: Public Health Coverage (Original)
+acs_pubcov_og_qa = MultipleChoiceQA(
     column="PUBCOV",
     text="Does this person have public health insurance coverage?",
     choices=[
         Choice("Yes, person is covered by public health insurance", 1),
-        Choice("No, person is not covered by public health insurance", 2),
+        Choice("No, person is not covered by public health insurance", 2),  # NOTE: value=2 for no public coverage!
     ],
 )
 
-acs_pubcov_target_col = ColumnToText(
+acs_pubcov_og_target_col = ColumnToText(
     "PUBCOV",
     short_description="public health coverage status",
     value_map={
         1: "Covered by public health insurance",
         2: "Not covered by public health insurance",
+    },
+    question=acs_pubcov_og_qa,
+)
+
+# PUBCOV: Public Health Coverage (Thresholded)
+acs_pubcov_qa = MultipleChoiceQA(
+    column=acs_publiccoverage_threshold.apply_to_column_name("PUBCOV"),
+    text="Does this person have public health insurance coverage?",
+    choices=[
+        Choice("Yes, person is covered by public health insurance", 1),
+        Choice("No, person is not covered by public health insurance", 0),  # NOTE: value=0 for no public coverage!
+    ],
+)
+
+acs_pubcov_target_col = ColumnToText(
+    name=acs_publiccoverage_threshold.apply_to_column_name("PUBCOV"),
+    short_description="public health coverage status",
+    value_map={
+        1: "Covered by public health insurance",
+        0: "Not covered by public health insurance",
     },
     question=acs_pubcov_qa,
 )
@@ -289,8 +297,9 @@ acs_mobility = ColumnToText(
     },
 )
 
+# MIG: Mobility Status (Thresholded)
 acs_mobility_qa = MultipleChoiceQA(
-    column=get_thresholded_column_name("MIG", 1, op="=="),
+    column=acs_mobility_threshold.apply_to_column_name("MIG"),
     text="Has this person moved in the last year?",
     choices=[
         Choice("No, person has lived in the same house for the last year", 1),
@@ -299,7 +308,7 @@ acs_mobility_qa = MultipleChoiceQA(
 )
 
 acs_mobility_target_col = ColumnToText(
-    name=get_thresholded_column_name("MIG", 1, op="=="),
+    name=acs_mobility_threshold.apply_to_column_name("MIG"),
     short_description="mobility status over the last year",
     question=acs_mobility_qa,
     use_value_map_only=True,
@@ -386,8 +395,9 @@ acs_employment = ColumnToText(
     missing_value_fill="N/A (less than 16 years old)",
 )
 
+# ESR: Employment Status (Thresholded)
 acs_employment_qa = MultipleChoiceQA(
-    column=get_thresholded_column_name("ESR", 1, op="=="),
+    column=acs_employment_threshold.apply_to_column_name("ESR"),
     text="What is this person's employment status?",
     choices=[
         Choice("Employed civilian", 1),
@@ -396,7 +406,7 @@ acs_employment_qa = MultipleChoiceQA(
 )
 
 acs_employment_target_col = ColumnToText(
-    name=get_thresholded_column_name("ESR", 1, op="=="),
+    name=acs_employment_threshold.apply_to_column_name("ESR"),
     short_description="employment status",
     question=acs_employment_qa,
     use_value_map_only=True,
@@ -433,8 +443,9 @@ acs_commute_time = ColumnToText(
     missing_value_fill="N/A (not a worker, or worker who worked at home)",
 )
 
+# JWMNP: Commute Time (Thresholded)
 acs_commute_time_qa = MultipleChoiceQA(
-    column=get_thresholded_column_name("JWMNP", 20),
+    column=acs_traveltime_threshold.apply_to_column_name("JWMNP"),
     text="What is this person's commute time?",
     choices=[
         Choice("Longer than 20 minutes", 1),
@@ -443,7 +454,7 @@ acs_commute_time_qa = MultipleChoiceQA(
 )
 
 acs_travel_time_target_col = ColumnToText(
-    name=get_thresholded_column_name("JWMNP", 20),
+    name=acs_traveltime_threshold.apply_to_column_name("JWMNP"),
     short_description="commute time",
     question=acs_commute_time_qa,
     use_value_map_only=True,
