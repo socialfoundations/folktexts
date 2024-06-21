@@ -121,7 +121,8 @@ class ColumnToText:
 
     def __getitem__(self, value: object) -> str:
         """Returns the textual representation of the given data value."""
-        return self.value_map(value)
+        # NOTE: `value != value` is a check for NaN values
+        return self._missing_value_fill if value != value else self.value_map(value)
 
     def get_text(self, value: object) -> str:
         """Returns the natural text representation of the given data value."""

@@ -105,7 +105,11 @@ acs_occupation = ColumnToText(
 acs_place_of_birth = ColumnToText(
     "POBP",
     short_description="place of birth",
-    value_map=partial(parse_pums_code, file=ACS_POBP_FILE),
+    value_map=partial(
+        parse_pums_code,
+        file=ACS_POBP_FILE,
+        postprocess=lambda x: x[: x.find("/")].strip(),
+    ),
 )
 
 # RELP: Relationship to Reference Person
@@ -430,8 +434,8 @@ acs_parenthood = ColumnToText(
     short_description="person has given birth within the last year",
     use_value_map_only=True,
     value_map={
-        1: "Person has given birth within the last year: Yes.",
-        2: "Person has given birth within the last year: No.",
+        1: "Person has given birth within the last year.",
+        2: "Person has not given birth within the last year.",
     },
     missing_value_fill="N/A (less than 15 years old, or greater than 50 years old, or male)",
 )
@@ -485,7 +489,7 @@ acs_commute_method = ColumnToText(
 acs_poverty_ratio = ColumnToText(
     "POVPIP",
     short_description="income-to-poverty ratio",
-    value_map=lambda x: f"{x:.2f}",
+    value_map=lambda x: f"{x / 100:.1%}",
 )
 
 # HINS2: Health Insurance Coverage through Private Company
@@ -512,6 +516,25 @@ acs_gcl_col = ColumnToText(
         2: "Household does not include grandparents living with grandchildren",
     },
     missing_value_fill="N/A (less than 30 years old, or living in institutional group quarters)",
+)
+
+# PUMA: Public Use Microdata Area Code
+# TODO: assign meaningful natural-text values to PUMA codes
+acs_puma_col = ColumnToText(
+    "PUMA",
+    short_description="Public Use Microdata Area (PUMA) code",
+    use_value_map_only=True,
+    value_map=lambda x: f"PUMA code: {int(x)}",
+    # missing_value_fill="N/A (less than 16 years old)",
+)
+
+# POWPUMA: Place of Work PUMA
+acs_powpuma_col = ColumnToText(
+    "POWPUMA",
+    short_description="place of work PUMA",
+    use_value_map_only=True,
+    value_map=lambda x: f"Place of work PUMA code: {int(x)}",
+    # missing_value_fill="N/A (not a worker, or worker who worked at home)",
 )
 
 # HINS2: Health Insurance Coverage through Private Company (Thresholded)
