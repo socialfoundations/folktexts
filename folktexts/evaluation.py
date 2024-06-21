@@ -115,9 +115,9 @@ def evaluate_binary_predictions_fairness(
     def group_metric_name(metric_name, group_name):
         return f"{metric_name}_group={group_name}"
 
-    assert (
-        len(unique_groups) > 1
-    ), f"Found a single unique sensitive attribute: {unique_groups}"
+    if len(unique_groups) <= 1:
+        logging.error(f"Found a single unique sensitive attribute: {unique_groups}")
+        return {}
 
     for s_value in unique_groups:
         # Indices of samples that belong to the current group

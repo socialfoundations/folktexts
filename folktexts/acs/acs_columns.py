@@ -97,7 +97,7 @@ acs_occupation = ColumnToText(
     value_map=partial(
         parse_pums_code,
         file=ACS_OCCP_FILE,
-        postprocess=lambda x: x[4:].lower().strip(),
+        postprocess=lambda x: x[4:].lower().capitalize().strip(),
     ),
 )
 
@@ -108,7 +108,7 @@ acs_place_of_birth = ColumnToText(
     value_map=partial(
         parse_pums_code,
         file=ACS_POBP_FILE,
-        postprocess=lambda x: x[: x.find("/")].strip(),
+        postprocess=lambda x: (x[: x.find("/")] if "/" in x else x).strip(),
     ),
 )
 
@@ -524,7 +524,7 @@ acs_puma_col = ColumnToText(
     "PUMA",
     short_description="Public Use Microdata Area (PUMA) code",
     use_value_map_only=True,
-    value_map=lambda x: f"PUMA code: {int(x)}",
+    value_map=lambda x: f"PUMA code: {int(x)}.",
     # missing_value_fill="N/A (less than 16 years old)",
 )
 
@@ -533,7 +533,7 @@ acs_powpuma_col = ColumnToText(
     "POWPUMA",
     short_description="place of work PUMA",
     use_value_map_only=True,
-    value_map=lambda x: f"Place of work PUMA code: {int(x)}",
+    value_map=lambda x: f"Place of work PUMA code: {int(x)}.",
     # missing_value_fill="N/A (not a worker, or worker who worked at home)",
 )
 

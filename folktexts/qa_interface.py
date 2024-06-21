@@ -243,7 +243,7 @@ class MultipleChoiceQA(QAInterface):
             yield dataclasses.replace(question, choices=perm)
 
     @property
-    def answer_keys(self) -> list[str]:
+    def answer_keys(self) -> tuple[str]:
         return self._answer_keys_source[:len(self.choices)]
 
     @property

@@ -9,30 +9,29 @@ TODO
 """
 from __future__ import annotations
 
-import copy
 import logging
-import warnings
 from abc import ABC
 
 import numpy as np
 import pandas as pd
 
-from ._utils import hash_dict, is_valid_number, suppress_logging
+from ._utils import hash_dict, is_valid_number
 from .task import TaskMetadata
 
 DEFAULT_TEST_SIZE = 0.1
 DEFAULT_VAL_SIZE = None
+DEFAULT_SEED = 42
 
 
 class Dataset(ABC):
     def __init__(
         self,
         data: pd.DataFrame,
-        task: TaskMetadata,     # TODO: remove this from the Dataset
+        task: TaskMetadata,
         test_size: float = DEFAULT_TEST_SIZE,
         val_size: float = DEFAULT_VAL_SIZE,
         subsampling: float = None,
-        seed: int = 42,
+        seed: int = DEFAULT_SEED,
     ):
         """Construct a Dataset object.
 
@@ -92,15 +91,14 @@ class Dataset(ABC):
         return self._task
 
     @task.setter
-    def task(self, task: TaskMetadata):
-        logging.info(f"Updating dataset's task from '{self.task.name}' to '{task.name}'.")
+    def task(self, new_task: TaskMetadata):
         # Check if task columns are in the data
-        if not all(col in self.data.columns for col in (task.features + [task.get_target()])):
+        if not all(col in self.data.columns for col in (new_task.features + [new_task.get_target()])):
             raise ValueError(
                 f"Task columns not found in dataset: "
-                f"features={task.features}, target={task.get_target()}")
+                f"features={new_task.features}, target={new_task.get_target()}")
 
-        self._task = task
+        self._task = new_task
 
     @property
     def train_size(self) -> float:
@@ -129,22 +127,6 @@ class Dataset(ABC):
         seed_str = f"seed-{self._seed}"
         hash_str = f"hash-{hash(self)}"
         return f"{self.task.name}_{subsampling_str}_{seed_str}_{hash_str}"
-
-    def __copy__(self) -> "Dataset":
-        dataset = Dataset(
-            data=self.data,
-            task=self.task,
-            test_size=self.test_size,
-            val_size=self.val_size,
-            subsampling=self.subsampling,
-            seed=self.seed,
-        )
-        dataset._train_indices = self._train_indices.copy()
-        dataset._test_indices = self._test_indices.copy()
-        dataset._val_indices = self._val_indices.copy() if self._val_indices is not None else None
-        dataset._rng = copy.deepcopy(self._rng)
-
-        return dataset
 
     def _subsample_inplace(self, subsampling: float) -> "Dataset":
         """Subsample the dataset in-place."""
@@ -177,11 +159,9 @@ class Dataset(ABC):
 
         return self
 
-    def subsample(self, subsampling: float) -> "Dataset":
-        """Create a new dataset whose samples are a fraction of this dataset."""
-        with suppress_logging(logging.WARNING):
-            self_copy = copy.copy(self)
-        return self_copy._subsample_inplace(subsampling)
+    def subsample(self, subsampling: float):
+        """Subsamples this dataset in-place."""
+        return self._subsample_inplace(subsampling)
 
     def _filter_inplace(
         self,
@@ -216,9 +196,9 @@ class Dataset(ABC):
 
         return self
 
-    def filter(self, population_feature_values: dict) -> "Dataset":
-        """Create a new dataset whose samples are a subset of this dataset."""
-        return copy.copy(self)._filter_inplace(population_feature_values)
+    def filter(self, population_feature_values: dict):
+        """Filter dataset rows in-place."""
+        self._filter_inplace(population_feature_values)
 
     def get_features_data(self) -> pd.DataFrame:
         return self.data[self.task.features]

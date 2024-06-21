@@ -383,7 +383,7 @@ class CalibrationBenchmark:
 
         # Fetch ACS task and dataset
         acs_task = ACSTaskMetadata.get_task(task_name)
-        acs_dataset = ACSDataset(
+        acs_dataset = ACSDataset.make_from_task(
             task_obj=acs_task,
             cache_dir=data_dir,
             **acs_dataset_configs)
