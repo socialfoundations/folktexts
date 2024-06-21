@@ -504,6 +504,7 @@ acs_health_ins_2_col = ColumnToText(
 
 # HINS2: Health Insurance Coverage through Private Company (Thresholded)
 acs_health_ins_2_qa = MultipleChoiceQA(
+    column=acs_health_insurance_threshold.apply_to_column_name("HINS2"),
     text="Has this person purchased health insurance directly from an insurance company?",
     choices=[
         Choice("Yes, this person has health insurance through a private company", 1),

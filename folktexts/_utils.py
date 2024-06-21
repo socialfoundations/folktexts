@@ -8,6 +8,7 @@ import operator
 from datetime import datetime
 from functools import partial, reduce
 from pathlib import Path
+from contextlib import contextmanager
 
 import numpy as np
 
@@ -89,3 +90,15 @@ def hash_function(func, length: int = 8) -> str:
 def standardize_path(path: str | Path) -> str:
     """Represents a posix path as a standardized string."""
     return Path(path).expanduser().resolve().as_posix()
+
+
+@contextmanager
+def suppress_logging(new_level):
+    """Suppresses all logs of a given level within a context block."""
+    logger = logging.getLogger()
+    previous_level = logger.level
+    logger.setLevel(new_level)
+    try:
+        yield
+    finally:
+        logger.setLevel(previous_level)

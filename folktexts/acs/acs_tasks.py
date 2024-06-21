@@ -112,18 +112,19 @@ acs_income_poverty_ratio_task = ACSTaskMetadata.make_folktables_task(
 
 # Dummy/test ACS task to predict health insurance coverage using all other available features
 acs_full_task = TaskMetadata(
-    name="ACSHealthInsurance-full",
+    name="ACSHealthInsurance-test",
     description=(
         "predict whether an individual has purchased health insurance directly "
         "from an insurance company (as opposed to being insured through an "
         "employer, Medicare, Medicaid, or any other source)"
     ),
-    features=list(
-        reduce(
-            lambda t1, t2: set(t1.features) | set(t2.features), 
-            [acs_income_task, acs_public_coverage_task, acs_mobility_task, acs_employment_task, acs_travel_time_task],
-        )
-    ),
+    features=list({
+        *acs_income_task.features,
+        *acs_public_coverage_task.features,
+        *acs_mobility_task.features,
+        *acs_employment_task.features,
+        *acs_travel_time_task.features,
+    }),
     target="HINS2",
     cols_to_text=_acs_columns_map,
     target_threshold=acs_health_insurance_threshold,

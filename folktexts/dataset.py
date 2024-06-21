@@ -11,12 +11,13 @@ from __future__ import annotations
 
 import copy
 import logging
+import warnings
 from abc import ABC
 
 import numpy as np
 import pandas as pd
 
-from ._utils import hash_dict, is_valid_number
+from ._utils import hash_dict, is_valid_number, suppress_logging
 from .task import TaskMetadata
 
 DEFAULT_TEST_SIZE = 0.1
@@ -178,7 +179,9 @@ class Dataset(ABC):
 
     def subsample(self, subsampling: float) -> "Dataset":
         """Create a new dataset whose samples are a fraction of this dataset."""
-        return copy.copy(self)._subsample_inplace(subsampling)
+        with suppress_logging(logging.WARNING):
+            self_copy = copy.copy(self)
+        return self_copy._subsample_inplace(subsampling)
 
     def _filter_inplace(
         self,
