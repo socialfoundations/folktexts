@@ -98,15 +98,15 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         return self._encode_row
 
     @property
-    def threshold(self) -> float:
-        return self._threshold
-
-    @property
     def model_name(self) -> str:
         return Path(self.model.name_or_path).name
 
+    @property
+    def threshold(self) -> float:
+        return self._threshold
+
     @threshold.setter
-    def threshold(self, value: float) -> float:
+    def threshold(self, value: float):
         if not 0 <= value <= 1:
             logging.error(f"Threshold must be between 0 and 1; got {value}.")
 
@@ -209,6 +209,9 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
             from ._io import load_pickle
             predictions_save_path = predictions_save_path.with_suffix(".pkl")
             predictions_dict = load_pickle(predictions_save_path)
+            if not isinstance(predictions_dict, dict):
+                logging.error("Loaded predictions are not in the expected dictionary format.")
+                return None
 
             # Check if the predictions' indices match the current dataset
             if all(

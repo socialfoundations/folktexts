@@ -2,7 +2,6 @@
 """
 from folktexts.threshold import Threshold
 
-
 # ACSIncome task
 acs_income_threshold = Threshold(50_000, ">")
 

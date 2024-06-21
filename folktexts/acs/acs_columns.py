@@ -7,10 +7,10 @@ from ..col_to_text import ColumnToText
 from ..qa_interface import Choice, DirectNumericQA, MultipleChoiceQA
 from ._utils import parse_pums_code
 from .acs_thresholds import (
-    acs_income_threshold,
-    acs_publiccoverage_threshold,
-    acs_mobility_threshold,
     acs_employment_threshold,
+    acs_income_threshold,
+    acs_mobility_threshold,
+    acs_publiccoverage_threshold,
     acs_traveltime_threshold,
 )
 

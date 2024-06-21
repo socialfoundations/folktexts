@@ -1,8 +1,9 @@
 """Helper function for defining binarization thresholds.
 """
 from __future__ import annotations
-import operator
+
 import dataclasses
+import operator
 from typing import ClassVar
 
 import pandas as pd
@@ -29,7 +30,7 @@ class Threshold:
     def __str__(self):
         return f"{self.op}{self.value}"
 
-    def apply_to_column_data(self, data: float | int | pd.Series) -> bool:
+    def apply_to_column_data(self, data: float | int | pd.Series) -> int | pd.Series:
         """Applies the threshold operation to a pandas Series or scalar value."""
         if isinstance(data, pd.Series):
             return self.valid_ops[self.op](data, self.value).astype(int)

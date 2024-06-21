@@ -51,22 +51,23 @@ class ACSDataset(Dataset):
         )
 
         # Get information on this ACS/folktables task
-        task = ACSTaskMetadata.get_task(task) if isinstance(task, str) else task
+        task_obj = ACSTaskMetadata.get_task(task) if isinstance(task, str) else task
 
         # Keep only rows used in this task
-        data = task.folktables_obj._preprocess(data)
+        data = task_obj.folktables_obj._preprocess(data)
 
         # Threshold the target column if necessary
         # > use standardized ACS naming convention
-        if task.target_threshold is not None:
-            # TODO: the target should be thresholded in the task definition not here!
-            thresholded_target = task.get_target()
+        if task_obj.target_threshold is not None:
+            thresholded_target = task_obj.get_target()
             if thresholded_target not in data.columns:
-                data[thresholded_target] = (data[task.target] >= task.target_threshold).astype(int)
+                # data[thresholded_target] = (data[task_obj.target] >= task_obj.target_threshold).astype(int)
+                import ipdb; ipdb.set_trace()   # TODO: check this works!
+                data[thresholded_target] = task_obj.target_threshold.apply_to_column_data(data[task_obj.target])
 
         super().__init__(
             data=data,
-            task=task,
+            task=task_obj,
             seed=seed,
             **kwargs,
         )

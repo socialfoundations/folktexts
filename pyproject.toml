@@ -104,6 +104,7 @@ show_missing = true
 # MyPy
 [tool.mypy]
 ignore_missing_imports = true
+no_implicit_optional = false
 exclude = ["build", "doc"]
 
 # Tox

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from folktexts.qa_interface import DirectNumericQA as _DirectNumericQA
 from folktexts.qa_interface import MultipleChoiceQA as _MultipleChoiceQA
+from folktexts.col_to_text import ColumnToText
 
 from . import acs_columns
 from .acs_tasks import _acs_columns_map
@@ -25,5 +26,8 @@ acs_multiple_choice_qa_map: dict[str, object] = {
 acs_multiple_choice_qa_map.update({
     col_to_text.name: col_to_text.question
     for col_to_text in _acs_columns_map.values()
-    if col_to_text._question is not None
+    if (
+        isinstance(col_to_text, ColumnToText)
+        and col_to_text._question is not None
+    )
 })
