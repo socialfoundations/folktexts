@@ -9,8 +9,9 @@ from typing import Callable, ClassVar, Iterable
 
 import pandas as pd
 
-from ._utils import hash_dict, get_thresholded_column_name
+from ._utils import hash_dict
 from .col_to_text import ColumnToText
+from .threshold import Threshold
 
 
 @dataclass
@@ -32,7 +33,7 @@ class TaskMetadata:
         A mapping between column names and their textual descriptions.
     sensitive_attribute : str, optional
         The name of the column used as the sensitive attribute data (if provided).
-    target_threshold : float, optional
+    target_threshold : Threshold, optional
         The threshold used to binarize the target column (if provided).
     """
     name: str
@@ -41,7 +42,7 @@ class TaskMetadata:
     target: str
     cols_to_text: dict[str, ColumnToText]
     sensitive_attribute: str = None
-    target_threshold: float | int = None
+    target_threshold: Threshold = None
 
     # Class-level task storage
     _tasks: ClassVar[dict[str, "TaskMetadata"]] = field(default={}, init=False, repr=False)
@@ -65,7 +66,7 @@ class TaskMetadata:
         if self.target_threshold is None:
             return self.target
         else:
-            return get_thresholded_column_name(self.target, self.target_threshold)
+            return self.target_threshold.apply_to_column_name(self.target)
 
     @classmethod
     def get_task(cls, name: str) -> "TaskMetadata":

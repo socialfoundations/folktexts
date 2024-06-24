@@ -8,6 +8,7 @@ import operator
 from datetime import datetime
 from functools import partial, reduce
 from pathlib import Path
+from contextlib import contextmanager
 
 import numpy as np
 
@@ -91,7 +92,13 @@ def standardize_path(path: str | Path) -> str:
     return Path(path).expanduser().resolve().as_posix()
 
 
-def get_thresholded_column_name(column_name: str, threshold: float | int) -> str:
-    """Standardizes naming of thresholded columns."""
-    threshold_str = f"{threshold:.2f}".replace(".", "_") if isinstance(threshold, float) else str(threshold)
-    return f"{column_name}_binary_{threshold_str}"
+@contextmanager
+def suppress_logging(new_level):
+    """Suppresses all logs of a given level within a context block."""
+    logger = logging.getLogger()
+    previous_level = logger.level
+    logger.setLevel(new_level)
+    try:
+        yield
+    finally:
+        logger.setLevel(previous_level)

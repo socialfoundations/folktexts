@@ -15,8 +15,9 @@ class ColumnToText:
         short_description: str,
         value_map: dict[object, str] | Callable = None,
         question: QAInterface = None,
-        connector_verb: str = "is",
+        connector_verb: str = "is:",
         missing_value_fill: str = "N/A",
+        use_value_map_only: bool = False,
     ):
         """Constructs a `ColumnToText` object.
 
@@ -40,6 +41,13 @@ class ColumnToText:
         missing_value_fill : str, optional
             The value to use when the column's value is not found in the
             `value_map`, by default "N/A".
+        use_value_map_only : bool, optional
+            Whether to only use the `value_map` for mapping values to text,
+            or whether natural language representation should be generated using
+            the `connector_verb` and `short_description` as well.
+            By default (False) will construct a natural language representation
+            of the form:
+            `"The [short_description] [connector_verb] [value_map.get(val)]".`
         """
         self._name = name
         self._short_description = short_description
@@ -47,21 +55,25 @@ class ColumnToText:
         self._question = question
         self._connector_verb = connector_verb
         self._missing_value_fill = missing_value_fill
+        self._use_value_map_only = use_value_map_only
 
         # If a `question` was provided and `value_map` was not
         # > infer `value_map` from question (`value_map` is required for `__getitem__`)
-        if self._question is not None and self._value_map is None:
-            if isinstance(self._question, MultipleChoiceQA):
-                self._value_map = self._question.get_value_to_text_map()
-            else:
-                raise ValueError(
-                    f"Cannot infer `ColumnToText` value map from the provided question; "
-                    f"Must explicitly provide a `value_map` for column {self.name}.")
+        if (
+            self._question is not None
+            and isinstance(self._question, MultipleChoiceQA)
+            and self._value_map is None
+        ):
+            self._value_map = self._question.get_value_to_text_map()
 
         # If `value_map` was provided and `question` was not
         # > infer `question` from value map (if possible)
-        elif self._value_map is not None and self._question is None:
+        elif (
+            self._value_map is not None
+            and self._question is None
+        ):
             if isinstance(self._value_map, dict):
+                logging.debug(f"Inferring multiple-choice question for column '{self.name}'.")
                 self._question = MultipleChoiceQA.create_question_from_value_map(
                     column=self.name,
                     value_map=self._value_map,
@@ -70,13 +82,16 @@ class ColumnToText:
 
         # Else, warn if both were provided (as they may use inconsistent value maps)
         elif self._value_map is not None and self._question is not None:
-            logging.warning(
+            logging.debug(
                 f"Got both `value_map` and `question` for column '{self.name}'. "
-                f"Please make sure value mappings are consistent.")
+                f"Please make sure value mappings are consistent:"
+                f"\n- `value_map`: {self._value_map}"
+                f"\n- `question`: {self._question.choices}"
+            )
 
-        # Else, raise an error if neither were provided
+        # Else, log critical error -- ColumnToText object is incomplete
         else:
-            raise ValueError(
+            logging.critical(
                 f"Must provide either a `value_map` or a `question` for column "
                 f"'{self.name}' but neither was provided.")
 
@@ -112,7 +127,11 @@ class ColumnToText:
 
     def __getitem__(self, value: object) -> str:
         """Returns the textual representation of the given data value."""
-        return self.value_map(value)
+        # NOTE: `value != value` is a check for NaN values
+        return self._missing_value_fill if value != value else self.value_map(value)
 
     def get_text(self, value: object) -> str:
+        """Returns the natural text representation of the given data value."""
+        if self._use_value_map_only:
+            return self[value]
         return f"The {self.short_description} {self._connector_verb} {self[value]}."

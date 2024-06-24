@@ -6,6 +6,7 @@ import dataclasses
 import logging
 from functools import partial
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -24,6 +25,7 @@ from .task import TaskMetadata
 
 DEFAULT_SEED = 42
 DEFAULT_FIT_THRESHOLD_N = 100
+DEFAULT_ROOT_RESULTS_DIR = Path(".")
 
 
 @dataclasses.dataclass(frozen=True, eq=True)
@@ -49,7 +51,11 @@ class BenchmarkConfig:
     @classmethod
     def load_from_disk(cls, path: str | Path):
         """Load the configuration from disk."""
-        return cls(**load_json(path))
+        obj = load_json(path)
+        if isinstance(obj, dict):
+            return cls(**obj)
+        else:
+            raise ValueError(f"Invalid configuration file '{path}'.")
 
     def save_to_disk(self, path: str | Path):
         """Save the configuration to disk."""
@@ -92,17 +98,17 @@ class CalibrationBenchmark:
     def __init__(
         self,
         llm_clf: LLMClassifier,
-        dataset: Dataset | str,
+        dataset: Dataset,
         config: BenchmarkConfig = BenchmarkConfig.default_config(),
     ):
         self.llm_clf = llm_clf
         self.dataset = dataset
         self.config = config
 
-        self._y_test_scores: np.ndarray = None
-        self._results_root_dir = "."  # Default root results directory
-        self._results: dict = None
-        self._plots: dict = None
+        self._y_test_scores: Optional[np.ndarray] = None
+        self._results_root_dir: Optional[Path] = DEFAULT_ROOT_RESULTS_DIR
+        self._results: Optional[dict] = None
+        self._plots: Optional[dict] = None
 
         # Log initialization
         msg = (
@@ -194,7 +200,7 @@ class CalibrationBenchmark:
             logging.warning("Benchmark was already run. Overriding previous results.")
 
         # Update results directory
-        self.results_root_dir = results_root_dir
+        self.results_root_dir = Path(results_root_dir)
 
         # Get test data
         X_test, y_test = self.dataset.get_test()
@@ -377,15 +383,15 @@ class CalibrationBenchmark:
 
         # Fetch ACS task and dataset
         acs_task = ACSTaskMetadata.get_task(task_name)
-        acs_dataset = ACSDataset(
-            task=acs_task,
+        acs_dataset = ACSDataset.make_from_task(
+            task_obj=acs_task,
             cache_dir=data_dir,
             **acs_dataset_configs)
 
         return cls.make_benchmark(
             model=model,
             tokenizer=tokenizer,
-            task=acs_task,
+            task_obj=acs_task,
             dataset=acs_dataset,
             config=config,
         )
@@ -421,18 +427,17 @@ class CalibrationBenchmark:
             The calibration benchmark object.
         """
         # Handle TaskMetadata object
-        if isinstance(task, str):
-            task = TaskMetadata.get_task(task)
+        task_obj = TaskMetadata.get_task(task) if isinstance(task, str) else task
 
         if config.feature_subset is not None and len(config.feature_subset) > 0:
-            task = task.create_task_with_feature_subset(config.feature_subset)
-            dataset.task = task
+            task_obj = task_obj.create_task_with_feature_subset(config.feature_subset)
+            dataset.task = task_obj
 
         # Check dataset is compatible with task
-        if dataset.task is not task and dataset.task.name != task.name:
+        if dataset.task is not task_obj and dataset.task.name != task_obj.name:
             raise ValueError(
                 f"Dataset task '{dataset.task.name}' does not match the "
-                f"provided task '{task.name}'.")
+                f"provided task '{task_obj.name}'.")
 
         if config.population_filter is not None:
             dataset = dataset.filter(config.population_filter)
@@ -440,15 +445,15 @@ class CalibrationBenchmark:
         # Get prompting function
         if config.chat_prompt:
             logging.warning(f"Untested feature: chat_prompt={config.chat_prompt}")  # TODO!
-            encode_row_function = partial(encode_row_prompt_chat, task=task, tokenizer=tokenizer)
+            encode_row_function = partial(encode_row_prompt_chat, task=task_obj, tokenizer=tokenizer)
         else:
-            encode_row_function = partial(encode_row_prompt, task=task)
+            encode_row_function = partial(encode_row_prompt, task=task_obj)
 
         if config.few_shot:
             assert not config.chat_prompt, "Few-shot prompting is not currently compatible with chat prompting."
             encode_row_function = partial(
                 encode_row_prompt_few_shot,
-                task=task,
+                task=task_obj,
                 n_shots=config.few_shot,
                 dataset=dataset,
                 reuse_examples=config.reuse_few_shot_examples,
@@ -457,24 +462,24 @@ class CalibrationBenchmark:
         # Load the QA interface to be used for risk-score prompting
         if config.direct_risk_prompting:
             logging.warning(f"Untested feature: direct_risk_prompting={config.direct_risk_prompting}")  # TODO!
-            question = acs_numeric_qa_map[task.get_target()]
+            question = acs_numeric_qa_map[task_obj.get_target()]
         else:
-            question = acs_multiple_choice_qa_map[task.get_target()]
+            question = acs_multiple_choice_qa_map[task_obj.get_target()]
 
         # Set the task's target question
-        task.cols_to_text[task.get_target()]._question = question
+        task_obj.cols_to_text[task_obj.get_target()]._question = question
 
         # Construct the LLMClassifier object
         llm_inference_kwargs = {"correct_order_bias": config.correct_order_bias}
-        if config.batch_size:
+        if config.batch_size is not None:
             llm_inference_kwargs["batch_size"] = config.batch_size
-        if config.context_size:
+        if config.context_size is not None:
             llm_inference_kwargs["context_size"] = config.context_size
 
         llm_clf = LLMClassifier(
             model=model,
             tokenizer=tokenizer,
-            task=task,
+            task=task_obj,
             encode_row=encode_row_function,
             **llm_inference_kwargs,
         )

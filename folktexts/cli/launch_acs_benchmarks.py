@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Python script to launch condor jobs for all experiments.
+"""Helper script to launch htcondor jobs for all experiments.
 """
 import argparse
 import math

@@ -16,6 +16,8 @@ from typing import Iterator
 import torch
 from transformers import AutoTokenizer
 
+from ._utils import hash_dict
+
 # Minimum probability density assigned to all valid answers
 # > small models will be worse at using valid answers...
 ANSWER_PROB_THRESHOLD = 0.1
@@ -24,7 +26,7 @@ ANSWER_PROB_THRESHOLD = 0.1
 _ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 
-@dataclass(frozen=True, eq=True)
+@dataclass(frozen=True)
 class QAInterface(ABC):
     """An interface for a question-answering system."""
 
@@ -57,8 +59,11 @@ class QAInterface(ABC):
         """
         raise NotImplementedError
 
+    def __hash__(self) -> int:
+        return int(hash_dict(dataclasses.asdict(self)), 16)
 
-@dataclass(frozen=True, eq=True)
+
+@dataclass(frozen=True)
 class DirectNumericQA(QAInterface):
     """Represents a direct numeric question.
 
@@ -188,14 +193,17 @@ class MultipleChoiceQA(QAInterface):
     """Represents a multiple-choice question and its answer keys."""
 
     num_forward_passes: int = 1     # NOTE: overrides superclass default
-    choices: list[Choice] = dataclasses.field(default_factory=list)
-    _answer_keys_source: list[str] = _ALPHABET
+    choices: tuple[Choice] = dataclasses.field(default_factory=tuple)
+    _answer_keys_source: tuple[str] = dataclasses.field(default_factory=lambda: tuple(_ALPHABET))
 
     def __post_init__(self):
         if not self.choices:
             raise ValueError("Choices must be provided.")
         if len(self.choices) > len(self._answer_keys_source):
             raise ValueError("Number of choices must be less than or equal to the number of answer keys.")
+
+    def __hash__(self) -> int:
+        return int(hash_dict(dataclasses.asdict(self)), 16)
 
     @classmethod
     def create_question_from_value_map(
@@ -206,7 +214,7 @@ class MultipleChoiceQA(QAInterface):
         **kwargs,
     ) -> "MultipleChoiceQA":
         """Constructs a question from a value map."""
-        choices = [Choice(text, str(value)) for value, text in value_map.items()]
+        choices = tuple(Choice(text, str(value)) for value, text in value_map.items())
 
         # Set default question text
         kwargs.setdefault("text", f"What is this person's {attribute}?")
@@ -235,7 +243,7 @@ class MultipleChoiceQA(QAInterface):
             yield dataclasses.replace(question, choices=perm)
 
     @property
-    def answer_keys(self) -> list[str]:
+    def answer_keys(self) -> tuple[str]:
         return self._answer_keys_source[:len(self.choices)]
 
     @property

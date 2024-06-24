@@ -9,7 +9,6 @@ TODO
 """
 from __future__ import annotations
 
-import copy
 import logging
 from abc import ABC
 
@@ -21,17 +20,18 @@ from .task import TaskMetadata
 
 DEFAULT_TEST_SIZE = 0.1
 DEFAULT_VAL_SIZE = None
+DEFAULT_SEED = 42
 
 
 class Dataset(ABC):
     def __init__(
         self,
         data: pd.DataFrame,
-        task: TaskMetadata,     # TODO: remove this from the Dataset
+        task: TaskMetadata,
         test_size: float = DEFAULT_TEST_SIZE,
         val_size: float = DEFAULT_VAL_SIZE,
         subsampling: float = None,
-        seed: int = 42,
+        seed: int = DEFAULT_SEED,
     ):
         """Construct a Dataset object.
 
@@ -55,6 +55,10 @@ class Dataset(ABC):
         """
         self._data = data
         self._task = task
+        if not isinstance(self._task, TaskMetadata):
+            raise ValueError(
+                f"Invalid `task` type: {type(self._task)}. "
+                f"Expected `TaskMetadata`.")
 
         self._test_size = test_size
         self._val_size = val_size or 0
@@ -65,17 +69,10 @@ class Dataset(ABC):
         self._rng = np.random.default_rng(self._seed)
 
         # Make train/test/val split
-        indices = self._rng.permutation(len(self._data))
-        self._train_indices = indices[: int(len(indices) * self._train_size)]
-        self._test_indices = indices[
-            len(self._train_indices):
-            int(len(indices) * (self._train_size + self._test_size))]
-
-        if val_size is not None and val_size > 0:
-            self._val_indices = indices[
-                len(self._train_indices) + len(self._test_indices):]
-        else:
-            self._val_indices = None
+        self._train_indices, self._test_indices, self._val_indices = (
+            self._make_train_test_val_split(
+                self._data, self.test_size, self.val_size, self._rng)
+        )
 
         # Subsample the train/test/val data (if requested)
         self._subsampling = None
@@ -91,15 +88,14 @@ class Dataset(ABC):
         return self._task
 
     @task.setter
-    def task(self, task: TaskMetadata):
-        logging.info(f"Updating dataset's task from '{self.task.name}' to '{task.name}'.")
+    def task(self, new_task: TaskMetadata):
         # Check if task columns are in the data
-        if not all(col in self.data.columns for col in (task.features + [task.get_target()])):
+        if not all(col in self.data.columns for col in (new_task.features + [new_task.get_target()])):
             raise ValueError(
                 f"Task columns not found in dataset: "
-                f"features={task.features}, target={task.get_target()}")
+                f"features={new_task.features}, target={new_task.get_target()}")
 
-        self._task = task
+        self._task = new_task
 
     @property
     def train_size(self) -> float:
@@ -129,21 +125,35 @@ class Dataset(ABC):
         hash_str = f"hash-{hash(self)}"
         return f"{self.task.name}_{subsampling_str}_{seed_str}_{hash_str}"
 
-    def __copy__(self) -> "Dataset":
-        dataset = Dataset(
-            data=self.data,
-            task=self.task,
-            test_size=self.test_size,
-            val_size=self.val_size,
-            subsampling=self.subsampling,
-            seed=self.seed,
-        )
-        dataset._train_indices = self._train_indices.copy()
-        dataset._test_indices = self._test_indices.copy()
-        dataset._val_indices = self._val_indices.copy() if self._val_indices is not None else None
-        dataset._rng = copy.deepcopy(self._rng)
+    @staticmethod
+    def _make_train_test_val_split(
+        data,
+        test_size: float,
+        val_size: float,
+        rng: np.random.Generator,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        # Permute indices
+        indices = rng.permutation(len(data))
 
-        return dataset
+        # Split train/test
+        train_size = 1 - test_size - val_size
+        train_indices = indices[: int(len(indices) * train_size)]
+        test_indices = indices[
+            len(train_indices):
+            int(len(indices) * (train_size + test_size))]
+
+        # Split val if requested
+        if val_size is not None and val_size > 0:
+            val_indices = indices[
+                len(train_indices) + len(test_indices):]
+        else:
+            val_indices = None
+
+        return (
+            train_indices,
+            test_indices,
+            val_indices,
+        )
 
     def _subsample_inplace(self, subsampling: float) -> "Dataset":
         """Subsample the dataset in-place."""
@@ -176,9 +186,9 @@ class Dataset(ABC):
 
         return self
 
-    def subsample(self, subsampling: float) -> "Dataset":
-        """Create a new dataset whose samples are a fraction of this dataset."""
-        return copy.copy(self)._subsample_inplace(subsampling)
+    def subsample(self, subsampling: float):
+        """Subsamples this dataset in-place."""
+        return self._subsample_inplace(subsampling)
 
     def _filter_inplace(
         self,
@@ -213,9 +223,9 @@ class Dataset(ABC):
 
         return self
 
-    def filter(self, population_feature_values: dict) -> "Dataset":
-        """Create a new dataset whose samples are a subset of this dataset."""
-        return copy.copy(self)._filter_inplace(population_feature_values)
+    def filter(self, population_feature_values: dict):
+        """Filter dataset rows in-place."""
+        self._filter_inplace(population_feature_values)
 
     def get_features_data(self) -> pd.DataFrame:
         return self.data[self.task.features]

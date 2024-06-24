@@ -5,14 +5,12 @@
 ![Documentation status](https://github.com/socialfoundations/folktexts/actions/workflows/python-docs.yml/badge.svg)
 ![PyPI version](https://badgen.net/pypi/v/folktexts)
 ![PyPI - License](https://img.shields.io/pypi/l/folktexts)
-<!-- ![OSI license](https://badgen.net/pypi/license/folktexts) -->
-<!-- [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE) -->
 ![Python compatibility](https://badgen.net/pypi/python/folktexts)
 
-Folktexts is a python package to evaluate and benchmark calibration of large
-language models.
-It enables using any transformers model as a classifier for tabular data tasks, 
-and extracting risk score estimates from the model's output log-odds.
+
+Folktexts is a python package to compute and evaluate classification risk scores
+using large language models.
+It enables using any transformers model as a classifier for tabular data tasks.
 
 Several benchmark tasks are provided based on data from the American Community Survey.
 Namely, each prediction task from the popular 

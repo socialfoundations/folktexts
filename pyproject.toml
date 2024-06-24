@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "folktexts"
-description = "A benchmark for LLM calibration on human populations."
+description = "Use LLMs to get classification risk scores on tabular tasks."
 license = {file = "LICENSE"}
 # license = {text = "MIT License"}
 authors = [
@@ -32,7 +32,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 
-version = "0.0.12"
+version = "0.0.13"
 requires-python = ">=3.8"
 dynamic = [
     "readme",
@@ -104,6 +104,7 @@ show_missing = true
 # MyPy
 [tool.mypy]
 ignore_missing_imports = true
+no_implicit_optional = false
 exclude = ["build", "doc"]
 
 # Tox
@@ -131,7 +132,7 @@ skip_install = true
 deps =
     flake8>=7.0
     flake8-pyproject
-commands = flake8 {posargs:.}
+commands = flake8 {posargs:folktexts tests}
 
 [testenv:type]
 description = run type checks
