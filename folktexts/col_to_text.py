@@ -59,33 +59,38 @@ class ColumnToText:
 
         # If a `question` was provided and `value_map` was not
         # > infer `value_map` from question (`value_map` is required for `__getitem__`)
-        if self._question is not None and self._value_map is None:
-            if isinstance(self._question, MultipleChoiceQA):
-                self._value_map = self._question.get_value_to_text_map()
-            else:
-                raise ValueError(
-                    f"Cannot infer `ColumnToText` value map from the provided question; "
-                    f"Must explicitly provide a `value_map` for column {self.name}.")
+        if (
+            self._question is not None
+            and isinstance(self._question, MultipleChoiceQA)
+            and self._value_map is None
+        ):
+            self._value_map = self._question.get_value_to_text_map()
 
         # If `value_map` was provided and `question` was not
         # > infer `question` from value map (if possible)
-        elif self._value_map is not None and self._question is None:
-            if isinstance(self._value_map, dict):
-                self._question = MultipleChoiceQA.create_question_from_value_map(
-                    column=self.name,
-                    value_map=self._value_map,
-                    attribute=self.short_description,
-                )
+        elif (
+            self._value_map is not None
+            and isinstance(self._value_map, dict)
+            and self._question is None
+        ):
+            self._question = MultipleChoiceQA.create_question_from_value_map(
+                column=self.name,
+                value_map=self._value_map,
+                attribute=self.short_description,
+            )
 
         # Else, warn if both were provided (as they may use inconsistent value maps)
         elif self._value_map is not None and self._question is not None:
-            logging.info(
+            logging.debug(
                 f"Got both `value_map` and `question` for column '{self.name}'. "
-                f"Please make sure value mappings are consistent.")
+                f"Please make sure value mappings are consistent:"
+                f"\n- `value_map`: {self._value_map}"
+                f"\n- `question`: {self._question.choices}"
+            )
 
-        # Else, raise an error if neither were provided
+        # Else, log critical error -- ColumnToText object is incomplete
         else:
-            raise ValueError(
+            logging.critical(
                 f"Must provide either a `value_map` or a `question` for column "
                 f"'{self.name}' but neither was provided.")
 

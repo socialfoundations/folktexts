@@ -55,6 +55,10 @@ class Dataset(ABC):
         """
         self._data = data
         self._task = task
+        if not isinstance(self._task, TaskMetadata):
+            raise ValueError(
+                f"Invalid `task` type: {type(self._task)}. "
+                f"Expected `TaskMetadata`.")
 
         self._test_size = test_size
         self._val_size = val_size or 0

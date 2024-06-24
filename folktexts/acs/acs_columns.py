@@ -244,11 +244,8 @@ acs_pubcov_qa = MultipleChoiceQA(
 acs_pubcov_target_col = ColumnToText(
     name=acs_public_coverage_threshold.apply_to_column_name("PUBCOV"),
     short_description="public health coverage status",
-    value_map={
-        1: "Covered by public health insurance",
-        0: "Not covered by public health insurance",
-    },
     question=acs_pubcov_qa,
+    use_value_map_only=True,
 )
 
 # DIS: Disability Status
@@ -341,6 +338,7 @@ acs_ancestry = ColumnToText(
         2: "Multiple ancestry",
         3: "Unclassified",
         4: "Not reported",
+        8: "N/A (information suppressed for certain area codes)",
     },
 )
 
@@ -510,7 +508,7 @@ acs_puma_col = ColumnToText(
     "PUMA",
     short_description="Public Use Microdata Area (PUMA) code",
     use_value_map_only=True,
-    value_map=lambda x: f"PUMA code: {int(x)}.",
+    value_map=lambda x: f"Public Use Microdata Area (PUMA) code: {int(x)}.",
     # missing_value_fill="N/A (less than 16 years old)",
 )
 
@@ -519,7 +517,7 @@ acs_powpuma_col = ColumnToText(
     "POWPUMA",
     short_description="place of work PUMA",
     use_value_map_only=True,
-    value_map=lambda x: f"Place of work PUMA code: {int(x)}.",
+    value_map=lambda x: f"Public Use Microdata Area (PUMA) code for the place of work: {int(x)}.",
     # missing_value_fill="N/A (not a worker, or worker who worked at home)",
 )
 
