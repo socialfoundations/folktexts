@@ -80,7 +80,7 @@ from folktexts.llm_utils import load_model_tokenizer
 model, tokenizer = load_model_tokenizer("gpt2")   # using tiny model as an example
 
 from folktexts.acs import ACSDataset
-acs_task_name = "ACSIncome"
+acs_task_name = "ACSIncome"     # Name of the benchmark ACS task to use
 
 # Create an object that classifies data using an LLM
 from folktexts import LLMClassifier
@@ -91,20 +91,20 @@ clf = LLMClassifier(
 )
 
 # Use a dataset or feed in your own data
-dataset = ACSDataset(acs_task_name)   # use `.subsample(0.01)` to get faster approximate results
+dataset = ACSDataset.make_from_task(acs_task_name)   # use `.subsample(0.01)` to get faster approximate results
 
-# Get risk score predictions out of the model
-y_scores = clf.predict_proba(dataset)
-
-# Optionally, you can fit the threshold based on a small portion of the data
-clf.fit(*dataset[0:100])
-
-# ...in order to get more accurate binary predictions
-clf.predict(dataset)
-
-# Compute a variety of evaluation metrics on calibration and accuracy
+# And simply run the benchmark to get a variety of metrics and plots
 from folktexts.benchmark import CalibrationBenchmark
 benchmark_results = CalibrationBenchmark(clf, dataset).run(results_root_dir=".")
+
+# You can compute the risk score predictions for the whole dataset
+y_scores = clf.predict_proba(dataset)
+
+# And, optionally, you can fit the threshold based on a small portion of the data
+clf.fit(*dataset[0:100])
+
+# ...in order to get more accurate binary predictions with `.predict`
+clf.predict(dataset)
 ```
 
 <!-- TODO: add code to show-case example functionalities, including the
