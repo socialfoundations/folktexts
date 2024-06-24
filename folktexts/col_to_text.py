@@ -70,14 +70,15 @@ class ColumnToText:
         # > infer `question` from value map (if possible)
         elif (
             self._value_map is not None
-            and isinstance(self._value_map, dict)
             and self._question is None
         ):
-            self._question = MultipleChoiceQA.create_question_from_value_map(
-                column=self.name,
-                value_map=self._value_map,
-                attribute=self.short_description,
-            )
+            if isinstance(self._value_map, dict):
+                logging.debug(f"Inferring multiple-choice question for column '{self.name}'.")
+                self._question = MultipleChoiceQA.create_question_from_value_map(
+                    column=self.name,
+                    value_map=self._value_map,
+                    attribute=self.short_description,
+                )
 
         # Else, warn if both were provided (as they may use inconsistent value maps)
         elif self._value_map is not None and self._question is not None:
