@@ -116,6 +116,12 @@ class ACSDataset(Dataset):
         # Parse data rows for new ACS task
         self._data = self._parse_task_data(self._full_acs_data, new_task)
 
+        # Re-Make train/test/val split
+        self._train_indices, self._test_indices, self._val_indices = (
+            self._make_train_test_val_split(
+                self._data, self.test_size, self.val_size, self._rng)
+        )
+
         # Check if task columns are in the data
         if not all(col in self.data.columns for col in (new_task.features + [new_task.get_target()])):
             raise ValueError(

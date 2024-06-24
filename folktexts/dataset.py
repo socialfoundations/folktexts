@@ -65,17 +65,10 @@ class Dataset(ABC):
         self._rng = np.random.default_rng(self._seed)
 
         # Make train/test/val split
-        indices = self._rng.permutation(len(self._data))
-        self._train_indices = indices[: int(len(indices) * self._train_size)]
-        self._test_indices = indices[
-            len(self._train_indices):
-            int(len(indices) * (self._train_size + self._test_size))]
-
-        if val_size is not None and val_size > 0:
-            self._val_indices = indices[
-                len(self._train_indices) + len(self._test_indices):]
-        else:
-            self._val_indices = None
+        self._train_indices, self._test_indices, self._val_indices = (
+            self._make_train_test_val_split(
+                self._data, self.test_size, self.val_size, self._rng)
+        )
 
         # Subsample the train/test/val data (if requested)
         self._subsampling = None
@@ -127,6 +120,36 @@ class Dataset(ABC):
         seed_str = f"seed-{self._seed}"
         hash_str = f"hash-{hash(self)}"
         return f"{self.task.name}_{subsampling_str}_{seed_str}_{hash_str}"
+
+    @staticmethod
+    def _make_train_test_val_split(
+        data,
+        test_size: float,
+        val_size: float,
+        rng: np.random.Generator,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        # Permute indices
+        indices = rng.permutation(len(data))
+
+        # Split train/test
+        train_size = 1 - test_size - val_size
+        train_indices = indices[: int(len(indices) * train_size)]
+        test_indices = indices[
+            len(train_indices):
+            int(len(indices) * (train_size + test_size))]
+
+        # Split val if requested
+        if val_size is not None and val_size > 0:
+            val_indices = indices[
+                len(train_indices) + len(test_indices):]
+        else:
+            val_indices = None
+
+        return (
+            train_indices,
+            test_indices,
+            val_indices,
+        )
 
     def _subsample_inplace(self, subsampling: float) -> "Dataset":
         """Subsample the dataset in-place."""
