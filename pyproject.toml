@@ -132,7 +132,7 @@ skip_install = true
 deps =
     flake8>=7.0
     flake8-pyproject
-commands = flake8 {posargs:.}
+commands = flake8 {posargs:folktexts tests}
 
 [testenv:type]
 description = run type checks

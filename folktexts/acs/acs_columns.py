@@ -492,20 +492,6 @@ acs_poverty_ratio = ColumnToText(
     value_map=lambda x: f"{x / 100:.1%}",
 )
 
-# HINS2: Health Insurance Coverage through Private Company
-acs_health_ins_2_col = ColumnToText(
-    "HINS2",
-    short_description="acquired health insurance directly from an insurance company",
-    use_value_map_only=True,
-    value_map={
-        1: "Person has purchased insurance directly from an insurance company",
-        2: (
-            "Person has not purchased insurance directly from an insurance "
-            "company (is either uninsured or insured through another source)",
-        )
-    },
-)
-
 # GCL: Grandparent Living with Grandchildren
 acs_gcl_col = ColumnToText(
     "GCL",
@@ -535,6 +521,20 @@ acs_powpuma_col = ColumnToText(
     use_value_map_only=True,
     value_map=lambda x: f"Place of work PUMA code: {int(x)}.",
     # missing_value_fill="N/A (not a worker, or worker who worked at home)",
+)
+
+# HINS2: Health Insurance Coverage through Private Company
+acs_health_ins_2_col = ColumnToText(
+    "HINS2",
+    short_description="acquired health insurance directly from an insurance company",
+    use_value_map_only=True,
+    value_map={
+        1: "Person has purchased insurance directly from an insurance company",
+        2: (
+            "Person has not purchased insurance directly from an insurance "
+            "company (is either uninsured or insured through another source)",
+        )
+    },
 )
 
 # HINS2: Health Insurance Coverage through Private Company (Thresholded)

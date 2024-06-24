@@ -102,7 +102,7 @@ class ACSDataset(Dataset):
         return cls(
             data=parsed_data,
             full_acs_data=full_acs_data,
-            task=task,
+            task=task_obj,
             seed=seed,
             **kwargs,
         )
