@@ -39,8 +39,8 @@ EXECUTABLE_PATH = Path(__file__).parent.resolve() / "run_acs_benchmark.py"
 ##################
 # Global configs #
 ##################
-BATCH_SIZE = 30
-CONTEXT_SIZE = 500
+BATCH_SIZE = 15
+CONTEXT_SIZE = 700
 CORRECT_ORDER_BIAS = True
 
 VERBOSE = True
