@@ -14,10 +14,10 @@ from .experiments import Experiment, launch_experiment_job
 # All ACS prediction tasks
 ACS_TASKS = (
     "ACSIncome",
-    # "ACSEmployment",          # TODO: run on other ACS tasks
-    # "ACSMobility",
-    # "ACSTravelTime",
-    # "ACSPublicCoverage",
+    "ACSEmployment",
+    "ACSMobility",
+    "ACSTravelTime",
+    "ACSPublicCoverage",
 )
 
 ################
