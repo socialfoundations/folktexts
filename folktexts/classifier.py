@@ -81,6 +81,10 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         self._inference_kwargs.setdefault("context_size", DEFAULT_CONTEXT_SIZE)
         self._inference_kwargs.setdefault("batch_size", DEFAULT_BATCH_SIZE)
 
+        # Fixed sklearn parameters
+        self.classes_ = np.array([0, 1])
+        self._is_fitted = False
+
     @property
     def model(self) -> AutoModelForCausalLM:
         return self._model
@@ -161,6 +165,11 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         else:
             return risk_scores
 
+    @staticmethod
+    def _make_predictions_multiclass(pos_class_scores: np.ndarray) -> np.ndarray:
+        """Converts positive class scores to multiclass scores."""
+        return np.column_stack([1 - pos_class_scores, pos_class_scores])
+
     def predict(
         self,
         data: pd.DataFrame | Dataset,
@@ -188,63 +197,35 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
     def _load_predictions_from_disk(
         self,
         predictions_save_path: str | Path,
-        data: pd.DataFrame | Dataset,
-    ) -> np.ndarray | dict[str, np.ndarray] | None:
+        data: pd.DataFrame,
+    ) -> np.ndarray | None:
         """Attempts to load pre-computed predictions from disk."""
-        predictions_save_path = Path(predictions_save_path)
 
-        # If DF, try to load predictions as a CSV file
-        if isinstance(data, pd.DataFrame):
-            predictions_save_path = predictions_save_path.with_suffix(".csv")
-            predictions_df = pd.read_csv(predictions_save_path, index_col=0)
+        # Load predictions from disk
+        predictions_save_path = Path(predictions_save_path).with_suffix(".csv")
+        predictions_df = pd.read_csv(predictions_save_path, index_col=0)
 
-            # Check if index matches our current dataframe
-            if predictions_df.index.equals(data.index):
-                return predictions_df[SCORE_COL_NAME].values
-            else:
-                logging.error("Saved predictions do not match the current dataframe.")
-
-        # If Dataset, try to load predictions as a pickled dict
-        elif isinstance(data, Dataset):
-            from ._io import load_pickle
-            predictions_save_path = predictions_save_path.with_suffix(".pkl")
-            predictions_dict = load_pickle(predictions_save_path)
-            if not isinstance(predictions_dict, dict):
-                logging.error("Loaded predictions are not in the expected dictionary format.")
-                return None
-
-            # Check if the predictions' indices match the current dataset
-            if all(
-                preds_array.index.equals(data.get_data_split(data_type)[0].index)
-                for data_type, preds_array in predictions_dict.items()
-            ):
-                return {
-                    data_type: predictions_dict[data_type][SCORE_COL_NAME].values
-                    for data_type in predictions_dict.keys()
-                }
-            else:
-                logging.error("Saved predictions do not match the current dataset splits.")
-
+        # Check if index matches our current dataframe
+        if predictions_df.index.equals(data.index):
+            return predictions_df[SCORE_COL_NAME].values
         else:
-            logging.error(f"Cannot load predictions from disk for data type {type(data)}.")
+            logging.error("Saved predictions do not match the current dataframe.")
             return None
 
     def predict_proba(
         self,
-        data: pd.DataFrame | Dataset,
+        data: pd.DataFrame,
         batch_size: int = None,
         context_size: int = None,
         predictions_save_path: str | Path = None,
         labels: pd.Series | np.ndarray = None,
-    ) -> np.ndarray | dict[str, np.ndarray]:
+    ) -> np.ndarray:
         """Returns probability estimates for the given data.
 
         Parameters
         ----------
-        data : pd.DataFrame | Dataset
-            The data to compute risk estimates for. Can be a pandas DataFrame or
-            a Dataset object. If a Dataset object is provided, will compute risk
-            scores for all available data splits.
+        data : pd.DataFrame
+            The DataFrame to compute risk estimates for.
         batch_size : int, optional
             The batch size to use when running inference.
         context_size : int, optional
@@ -260,9 +241,8 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
 
         Returns
         -------
-        risk_scores : np.ndarray | dict[str, np.ndarray]
-            The risk scores for the given data, or a dictionary of data split
-            name to risk scores if a Dataset object was provided.
+        risk_scores : np.ndarray
+            The risk scores for the given data.
         """
         # Validate arguments
         if labels is not None and predictions_save_path is None:
@@ -276,62 +256,35 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
             result = self._load_predictions_from_disk(predictions_save_path, data=data)
             if result is not None:
                 logging.info(f"Loaded predictions from {predictions_save_path}.")
-                return result
+                return self._make_predictions_multiclass(result)
             else:
                 logging.error(
                     f"Failed to load predictions from {predictions_save_path}. "
                     f"Re-computing predictions and overwriting local file..."
                 )
 
-        # Compute risk estimates
-        # (if local save path was not provided or does not match current data)
-        if isinstance(data, pd.DataFrame):
-            risk_scores = self._compute_risk_estimates_for_dataframe(
-                df=data,
-                batch_size=batch_size,
-                context_size=context_size,
-            )
-
-            # Save to disk if `predictions_save_path` is provided
-            if predictions_save_path is not None:
-                predictions_save_path = Path(predictions_save_path).with_suffix(".csv")
-
-                predictions_df = pd.DataFrame(risk_scores, index=data.index, columns=[SCORE_COL_NAME])
-                predictions_df[LABEL_COL_NAME] = labels
-                predictions_df.to_csv(predictions_save_path, index=True, mode="w")
-
-            return risk_scores
-
-        elif isinstance(data, Dataset):
-            # TODO: save predictions in a standardized file format when given a Dataset
-            # > we have the dataset name, splits, and seed, so we can safely save predictions for future use
-            scores_dict = self._compute_risk_estimates_for_dataset(
-                dataset=data,
-                batch_size=batch_size,
-                context_size=context_size,
-            )
-
-            # Save to disk if `predictions_save_path` is provided
-            if predictions_save_path is not None:
-                predictions_save_path = Path(predictions_save_path).with_suffix(".pkl")
-
-                from ._io import save_pickle
-                logging.warning(    # TODO
-                    f"Saving dataset predictions to {predictions_save_path.as_posix()}. "
-                    f"TODO: remove pickling functionality and save everything as csv files "
-                    f"to re-use file-handling code from `_compute_risk_estimates_for_dataframe`."
-                )
-                save_pickle(scores_dict, predictions_save_path)
-
-            return scores_dict
-
-        else:
+        if not isinstance(data, pd.DataFrame):
             raise ValueError(
-                f"`data` must be a pandas DataFrame or a Dataset object; "
-                f"received {type(data)} instead."
-            )
+                f"`data` must be a pd.DataFrame, received {type(data)} instead.")
 
-    def _compute_risk_estimates_for_dataframe(
+        # Compute risk estimates
+        risk_scores = self.compute_risk_estimates_for_dataframe(
+            df=data,
+            batch_size=batch_size,
+            context_size=context_size,
+        )
+
+        # Save to disk if `predictions_save_path` is provided
+        if predictions_save_path is not None:
+            predictions_save_path = Path(predictions_save_path).with_suffix(".csv")
+
+            predictions_df = pd.DataFrame(risk_scores, index=data.index, columns=[SCORE_COL_NAME])
+            predictions_df[LABEL_COL_NAME] = labels
+            predictions_df.to_csv(predictions_save_path, index=True, mode="w")
+
+        return self._make_predictions_multiclass(risk_scores)
+
+    def compute_risk_estimates_for_dataframe(
         self,
         df: pd.DataFrame,
         batch_size: int = None,
@@ -415,12 +368,12 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         assert not np.isclose(risk_scores, fill_value).any()
         return risk_scores
 
-    def _compute_risk_estimates_for_dataset(
+    def compute_risk_estimates_for_dataset(
         self,
         dataset: Dataset,
         batch_size: int = None,
         context_size: int = None,
-    ):
+    ) -> dict[str, np.ndarray]:
         """Computes risk estimates for each row in the dataset.
 
         Parameters
@@ -446,7 +399,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
             data_types["val"] = dataset.get_val()[0]
 
         results = {
-            data_type: self._compute_risk_estimates_for_dataframe(
+            data_type: self.compute_risk_estimates_for_dataframe(
                 df=df,
                 batch_size=batch_size,
                 context_size=context_size,
