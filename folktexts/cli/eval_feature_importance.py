@@ -16,7 +16,7 @@ DEFAULT_ROOT_DIR = Path("~").expanduser().resolve()     # LOCAL dir
 
 DEFAULT_MODELS_DIR = DEFAULT_ROOT_DIR / "huggingface-models"
 DEFAULT_DATA_DIR = DEFAULT_ROOT_DIR / "data"
-DEFAULT_RESULTS_DIR = Path("folktexts-results")
+DEFAULT_RESULTS_DIR = Path(".")
 
 DEFAULT_TASK_NAME = "ACSIncome"
 
@@ -35,7 +35,7 @@ def setup_arg_parser() -> ArgumentParser:
     # List of command-line arguments, with type and helper string
     cli_args = [
         ("--model",         str, "[str] Model name or path to model saved on disk"),
-        ("--task",     str, "[str] Name of the ACS task to run the experiment on", False, DEFAULT_TASK_NAME),
+        ("--task",          str, "[str] Name of the ACS task to run the experiment on", False, DEFAULT_TASK_NAME),
         ("--results-dir",   str, "[str] Directory under which this experiment's results will be saved", False, DEFAULT_RESULTS_DIR),
         ("--data-dir",      str, "[str] Root folder to find datasets on", False, DEFAULT_DATA_DIR),
         ("--models-dir",    str, "[str] Root folder to find huggingface models on", False, DEFAULT_MODELS_DIR),
@@ -138,8 +138,13 @@ def main():
     model, tokenizer = load_model_tokenizer(model_folder_path)
 
     # Create results directory if needed
-    results_dir = Path(args.results_dir).expanduser().resolve()
-    results_dir.mkdir(parents=False, exist_ok=True)
+    # Set-up results directory
+    from folktexts.cli._utils import get_or_create_results_dir
+    results_dir = get_or_create_results_dir(
+        model_name=Path(args.model).name,
+        task_name=args.task,
+        results_root_dir=args.results_dir,
+    )
     logging.info(f"Saving results to {results_dir.as_posix()}")
 
     # Load Task and Dataset

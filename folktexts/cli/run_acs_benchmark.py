@@ -24,7 +24,7 @@ def setup_arg_parser() -> ArgumentParser:
     # List of command-line arguments, with type and helper string
     cli_args = [
         ("--model",         str, "[str] Model name or path to model saved on disk"),
-        ("--task-name",     str, "[str] Name of the ACS task to run the experiment on"),
+        ("--task",          str, "[str] Name of the ACS task to run the experiment on"),
         ("--results-dir",   str, "[str] Directory under which this experiment's results will be saved"),
         ("--data-dir",      str, "[str] Root folder to find datasets on"),
         ("--few-shot",      int, "[int] Use few-shot prompting with the given number of shots", False),
@@ -117,7 +117,7 @@ def main():
     # Parse population filter if provided
     population_filter_dict = None
     if args.use_population_filter:
-        from ._utils import cmd_line_args_to_kwargs
+        from folktexts.cli._utils import cmd_line_args_to_kwargs
         population_filter_dict = cmd_line_args_to_kwargs(args.use_population_filter)
 
     # Load model and tokenizer
@@ -144,15 +144,20 @@ def main():
     bench = CalibrationBenchmark.make_acs_benchmark(
         model=model,
         tokenizer=tokenizer,
-        task_name=args.task_name,
+        task_name=args.task,
         data_dir=args.data_dir,
         config=config,
         subsampling=args.subsampling,
     )
 
-    # Create results directory if needed
-    results_dir = Path(args.results_dir).expanduser().resolve()
-    results_dir.mkdir(parents=False, exist_ok=True)
+    # Set-up results directory
+    from folktexts.cli._utils import get_or_create_results_dir
+    results_dir = get_or_create_results_dir(
+        model_name=Path(args.model).name,
+        task_name=args.task,
+        results_root_dir=args.results_dir,
+    )
+    logging.info(f"Saving results to {results_dir.as_posix()}")
 
     # Run benchmark
     bench.run(results_root_dir=results_dir, fit_threshold=args.fit_threshold)
