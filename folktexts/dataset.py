@@ -155,7 +155,7 @@ class Dataset(ABC):
             val_indices,
         )
 
-    def _subsample_inplace(self, subsampling: float) -> "Dataset":
+    def _subsample_inplace(self, subsampling: float) -> Dataset:
         """Subsample the dataset in-place."""
 
         # Check argument is valid
