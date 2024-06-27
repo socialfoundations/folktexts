@@ -104,7 +104,11 @@ class TaskMetadata:
 
         # Check if features are a subset of the original features
         if not set(feature_subset).issubset(self.features):
-            raise ValueError("`feature_subset` must be a subset of the original features.")
+            raise ValueError(
+                f"`feature_subset` must be a subset of the original features; "
+                f"following features are not in the original set: "
+                f"{set(feature_subset) - set(self.features)}"
+            )
 
         # Return new TaskMetadata object
         return dataclasses.replace(

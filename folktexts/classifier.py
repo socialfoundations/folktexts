@@ -138,9 +138,9 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         """Uses the provided data sample to fit the prediction threshold."""
 
         # Compute risk estimates for the data
-        y_pred_scores = self.predict_proba(X, **kwargs)
-        if len(y_pred_scores.shape) > 1:
-            y_pred_scores = y_pred_scores[:, -1]
+        y_pred_scores = self._get_positive_class_scores(
+            self.predict_proba(X, **kwargs)
+        )
 
         # Compute the best threshold for the given data
         self.threshold = compute_best_threshold(
@@ -172,7 +172,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
 
     def predict(
         self,
-        data: pd.DataFrame | Dataset,
+        data: pd.DataFrame,
         batch_size: int = None,
         context_size: int = None,
         predictions_save_path: str | Path = None,
@@ -186,13 +186,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
             predictions_save_path=predictions_save_path,
             labels=labels,
         )
-        if isinstance(risk_scores, dict):
-            return {
-                data_type: (self._get_positive_class_scores(data_scores) >= self.threshold).astype(int)
-                for data_type, data_scores in risk_scores.items()
-            }
-        else:
-            return (self._get_positive_class_scores(risk_scores) >= self.threshold).astype(int)
+        return (self._get_positive_class_scores(risk_scores) >= self.threshold).astype(int)
 
     def _load_predictions_from_disk(
         self,

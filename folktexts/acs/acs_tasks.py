@@ -23,7 +23,7 @@ from .acs_thresholds import (
 )
 
 # Map of ACS column names to ColumnToText objects
-_acs_columns_map: dict[str, object] = {
+acs_columns_map: dict[str, object] = {
     col_mapper.name: col_mapper
     for col_mapper in acs_columns.__dict__.values()
     if isinstance(col_mapper, _ColumnToText)
@@ -38,12 +38,38 @@ class ACSTaskMetadata(TaskMetadata):
     folktables_obj: BasicProblem = None
 
     @classmethod
+    def make_task(
+        cls,
+        name: str,
+        description: str,
+        features: list[str],
+        target: str,
+        target_threshold: Threshold = None,
+        sensitive_attribute: str = None,
+    ) -> ACSTaskMetadata:
+        # Validate columns mappings exist
+        if not all(col in acs_columns_map for col in (features + [target])):
+            raise ValueError("Not all columns have mappings to text descriptions.")
+
+        # TODO: CHECK IF THIS WORKS!
+        return cls(
+            name=name,
+            description=description,
+            features=features,
+            target=target,
+            cols_to_text=acs_columns_map,
+            target_threshold=target_threshold,
+            sensitive_attribute=sensitive_attribute,
+            folktables_obj=None,
+        )
+
+    @classmethod
     def make_folktables_task(
         cls,
         name: str,
         description: str,
         target_threshold: Threshold = None,
-    ) -> "ACSTaskMetadata":
+    ) -> ACSTaskMetadata:
 
         # Get the task object from the folktables package
         try:
@@ -56,7 +82,7 @@ class ACSTaskMetadata(TaskMetadata):
             description=description,
             features=folktables_task.features,
             target=folktables_task.target,
-            cols_to_text=_acs_columns_map,
+            cols_to_text=acs_columns_map,
             sensitive_attribute=folktables_task.group,
             target_threshold=target_threshold,
             folktables_obj=folktables_task,
@@ -125,6 +151,6 @@ acs_full_task = TaskMetadata(
         *acs_travel_time_task.features,
     })),
     target="HINS2",
-    cols_to_text=_acs_columns_map,
+    cols_to_text=acs_columns_map,
     target_threshold=acs_health_insurance_threshold,
 )
