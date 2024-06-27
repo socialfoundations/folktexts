@@ -17,6 +17,10 @@ def setup_arg_parser() -> ArgumentParser:
     # Init parser
     parser = ArgumentParser(description="Run an LLM as a classifier experiment.")
 
+    # Define a custom argument type for a list of strings
+    def list_of_strings(arg):
+        return arg.split(',')
+
     # List of command-line arguments, with type and helper string
     cli_args = [
         ("--model",         str, "[str] Model name or path to model saved on disk"),
@@ -72,16 +76,14 @@ def setup_arg_parser() -> ArgumentParser:
     # Optionally, receive a list of features to use (subset of original list)
     parser.add_argument(
         "--use-feature-subset",
-        type=str,
-        nargs="*",
-        help="[str] Optional subset of features to use for prediction",
+        type=list_of_strings,
+        help="[str] Optional subset of features to use for prediction, comma separated",
         required=False,
     )
 
     parser.add_argument(
         "--use-population-filter",
-        type=str,
-        nargs="*",
+        type=list_of_strings,
         help=(
             "[str] Optional population filter for this benchmark; must follow "
             "the format 'column_name=value' to filter the dataset by a specific value."
