@@ -35,9 +35,7 @@ MODELS_DIR = ROOT_DIR / "huggingface-models"
 
 # Path to the executable script to run
 # EXECUTABLE_PATH = Path(__file__).parent.resolve() / "run_acs_benchmark.py"
-EXECUTABLE_PATH = Path(__file__).parent.resolve() / "eval_feature_importance.py"
-# TODO ^ pass executable path as cmd line arg
-logging.warning(f"Using executable path: {EXECUTABLE_PATH}")
+# EXECUTABLE_PATH = Path(__file__).parent.resolve() / "eval_feature_importance.py"
 
 ##################
 # Global configs #
@@ -76,7 +74,8 @@ LLM_MODELS = [
 
 
 # Function that defines common settings among all LLM-as-clf experiments
-def make_llm_as_clf_experiment(
+def make_llm_clf_experiment(
+    executable_path: str,
     model_name: str,
     task: str,
     results_root_dir: str,
@@ -111,7 +110,7 @@ def make_llm_as_clf_experiment(
 
     # Define experiment
     exp = Experiment(
-        executable_path=EXECUTABLE_PATH.as_posix(),
+        executable_path=executable_path,
         kwargs=dict(
             model=model_path,
             task=task,
@@ -145,6 +144,13 @@ def get_llm_results_folder(exp: Experiment) -> str:
 def setup_arg_parser() -> argparse.ArgumentParser:
     # Init parser
     parser = argparse.ArgumentParser(description="Launch experiments to evaluate LLMs as classifiers.")
+
+    parser.add_argument(
+        "--executable-path",
+        type=str,
+        help="[string] Path to the executable script to run.",
+        required=True,
+    )
 
     parser.add_argument(
         "--results-root-dir",
@@ -194,11 +200,13 @@ def main():
     # Parse extra kwargs
     from ._utils import cmd_line_args_to_kwargs
     extra_kwargs = cmd_line_args_to_kwargs(extra_kwargs)
-    # TODO: use the run_acs_benchmark.py parser to parse extra kwargs
-    #       with `setup_arg_parser().convert_arg_line_to_args(extra_kwargs)` !!!
 
+    # Prepare command-line arguments
     models = args.model or LLM_MODELS
     tasks = args.task or ACS_TASKS
+    executable_path = Path(args.executable_path).resolve()
+    if not executable_path.exists() or not executable_path.is_file():
+        raise FileNotFoundError(f"Executable script not found at '{executable_path}'.")
 
     # Load experiment from JSON file if provided
     if args.experiment_json:
@@ -209,7 +217,8 @@ def main():
     # Otherwise, run all experiments planned
     else:
         all_experiments = [
-            make_llm_as_clf_experiment(
+            make_llm_clf_experiment(
+                executable_path=executable_path.as_posix(),
                 model_name=model,
                 task=task,
                 results_root_dir=args.results_root_dir,

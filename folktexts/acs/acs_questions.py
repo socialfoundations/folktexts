@@ -6,7 +6,7 @@ from folktexts.qa_interface import DirectNumericQA as _DirectNumericQA
 from folktexts.qa_interface import MultipleChoiceQA as _MultipleChoiceQA
 
 from . import acs_columns
-from .acs_tasks import _acs_columns_map
+from .acs_tasks import acs_columns_map
 
 # Map of numeric ACS questions
 acs_numeric_qa_map: dict[str, object] = {
@@ -25,7 +25,7 @@ acs_multiple_choice_qa_map: dict[str, object] = {
 # ... include all multiple-choice questions defined in the column descriptions
 acs_multiple_choice_qa_map.update({
     col_to_text.name: col_to_text.question
-    for col_to_text in _acs_columns_map.values()
+    for col_to_text in acs_columns_map.values()
     if (
         isinstance(col_to_text, ColumnToText)
         and col_to_text._question is not None
