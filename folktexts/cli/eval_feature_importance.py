@@ -24,6 +24,7 @@ DEFAULT_CONTEXT_SIZE = 500
 DEFAULT_BATCH_SIZE = 30
 DEFAULT_SEED = 42
 
+DEFAULT_SUBSAMPLING = 0.1           # NOTE: by default, uses 10% of the dataset
 DEFAULT_PERMUTATION_REPEATS = 5
 
 
@@ -42,7 +43,7 @@ def setup_arg_parser() -> ArgumentParser:
         ("--scorer",        str, "[str] Name of the scorer to use for evaluation", False, "roc_auc"),
         ("--batch-size",    int, "[int] The batch size to use for inference", False, DEFAULT_BATCH_SIZE),
         ("--context-size",  int, "[int] The maximum context size when prompting the LLM", False, DEFAULT_CONTEXT_SIZE),
-        ("--subsampling",   float, "[float] Which fraction of the dataset to use (if omitted will use all data)", False),
+        ("--subsampling",   float, "[float] Which fraction of the dataset to use (if omitted will use all data)", DEFAULT_SUBSAMPLING),
         ("--fit-threshold", int, "[int] Whether to fit the prediction threshold, and on how many samples", False),
         ("--seed",          int, "[int] Random seed -- to set for reproducibility", False, DEFAULT_SEED),
     ]
