@@ -33,9 +33,6 @@ ACS_DATA_DIR = ROOT_DIR / "data"
 # Models save directory
 MODELS_DIR = ROOT_DIR / "huggingface-models"
 
-# Path to the executable script to run
-# EXECUTABLE_PATH = Path(__file__).parent.resolve() / "run_acs_benchmark.py"
-# EXECUTABLE_PATH = Path(__file__).parent.resolve() / "eval_feature_importance.py"
 
 ##################
 # Global configs #
@@ -78,7 +75,7 @@ def make_llm_clf_experiment(
     executable_path: str,
     model_name: str,
     task: str,
-    results_root_dir: str,
+    results_dir: str,
     **kwargs,
 ) -> Experiment:
     """Create an experiment object to run.
@@ -114,31 +111,20 @@ def make_llm_clf_experiment(
         kwargs=dict(
             model=model_path,
             task=task,
+            results_dir=results_dir,
             **experiment_kwargs,
         ),
         **job_kwargs,
     )
 
     # Create LLM results directory
-    exp_results_dir = Path(results_root_dir) / get_llm_results_folder(exp)
-    exp_results_dir.mkdir(exist_ok=True, parents=True)
-    exp.kwargs["results_dir"] = exp_results_dir.as_posix()
     save_json(
         obj=exp.to_dict(),
-        path=exp_results_dir / "experiment.json",
+        path=Path(results_dir) / f"experiment.{exp.hash()}.json",
         overwrite=True,
     )
 
     return exp
-
-
-def get_llm_results_folder(exp: Experiment) -> str:
-    """Create a unique experiment name.
-    """
-    return (
-        f"model-{Path(exp.model).name}."
-        f"dataset-{exp.task}"
-    )
 
 
 def setup_arg_parser() -> argparse.ArgumentParser:
@@ -153,7 +139,7 @@ def setup_arg_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "--results-root-dir",
+        "--results-dir",
         type=str,
         help="[string] Directory under which results will be saved.",
         required=True,
@@ -208,6 +194,9 @@ def main():
     if not executable_path.exists() or not executable_path.is_file():
         raise FileNotFoundError(f"Executable script not found at '{executable_path}'.")
 
+    # Set-up results directory
+    Path(args.results_dir).mkdir(parents=True, exist_ok=True)
+
     # Load experiment from JSON file if provided
     if args.experiment_json:
         print(f"Launching job for experiment at '{args.experiment_json}'...")
@@ -221,7 +210,7 @@ def main():
                 executable_path=executable_path.as_posix(),
                 model_name=model,
                 task=task,
-                results_root_dir=args.results_root_dir,
+                results_dir=args.results_dir,
                 **extra_kwargs,
             )
             for model in models
