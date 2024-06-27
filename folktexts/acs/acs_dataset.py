@@ -14,7 +14,7 @@ from .acs_tasks import ACSTaskMetadata
 
 DEFAULT_DATA_DIR = Path("~/data").expanduser().resolve()
 DEFAULT_TEST_SIZE = 0.1
-DEFAULT_VAL_SIZE = None
+DEFAULT_VAL_SIZE = 0.1
 DEFAULT_SEED = 42
 
 DEFAULT_SURVEY_YEAR = "2018"
@@ -116,17 +116,15 @@ class ACSDataset(Dataset):
         # Parse data rows for new ACS task
         self._data = self._parse_task_data(self._full_acs_data, new_task)
 
-        # Re-Make train/test/val split
+        # Re-make train/test/val split
         self._train_indices, self._test_indices, self._val_indices = (
             self._make_train_test_val_split(
                 self._data, self.test_size, self.val_size, self._rng)
         )
 
-        # Check if task columns are in the data
-        if not all(col in self.data.columns for col in (new_task.features + [new_task.get_target()])):
-            raise ValueError(
-                f"Task columns not found in dataset: "
-                f"features={new_task.features}, target={new_task.get_target()}")
+        # Check if sub-sampling is necessary (it's applied only to train/test/val indices)
+        if self.subsampling is not None:
+            self._subsample_train_test_val_indices(self.subsampling)
 
         self._task = new_task
 
