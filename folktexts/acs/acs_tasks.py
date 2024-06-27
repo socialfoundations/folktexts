@@ -14,12 +14,12 @@ from ..threshold import Threshold
 from . import acs_columns
 from .acs_thresholds import (
     acs_employment_threshold,
+    acs_health_insurance_threshold,
+    acs_income_poverty_ratio_threshold,
     acs_income_threshold,
     acs_mobility_threshold,
     acs_public_coverage_threshold,
     acs_travel_time_threshold,
-    acs_income_poverty_ratio_threshold,
-    acs_health_insurance_threshold,
 )
 
 # Map of ACS column names to ColumnToText objects

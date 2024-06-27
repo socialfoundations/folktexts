@@ -5,10 +5,10 @@ import hashlib
 import json
 import logging
 import operator
+from contextlib import contextmanager
 from datetime import datetime
 from functools import partial, reduce
 from pathlib import Path
-from contextlib import contextmanager
 
 import numpy as np
 

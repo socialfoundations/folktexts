@@ -8,11 +8,11 @@ from ..qa_interface import Choice, DirectNumericQA, MultipleChoiceQA
 from ._utils import parse_pums_code
 from .acs_thresholds import (
     acs_employment_threshold,
+    acs_health_insurance_threshold,
     acs_income_threshold,
     acs_mobility_threshold,
     acs_public_coverage_threshold,
     acs_travel_time_threshold,
-    acs_health_insurance_threshold,
 )
 
 # Path to ACS codebook files

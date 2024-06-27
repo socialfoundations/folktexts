@@ -1,9 +1,9 @@
 """A collection of instantiated ACS column objects and ACS tasks."""
 from __future__ import annotations
 
+from folktexts.col_to_text import ColumnToText
 from folktexts.qa_interface import DirectNumericQA as _DirectNumericQA
 from folktexts.qa_interface import MultipleChoiceQA as _MultipleChoiceQA
-from folktexts.col_to_text import ColumnToText
 
 from . import acs_columns
 from .acs_tasks import _acs_columns_map

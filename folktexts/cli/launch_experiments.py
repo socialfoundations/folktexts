@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Helper script to launch htcondor jobs for all experiments.
+"""Launch htcondor jobs for all ACS benchmark experiments.
 """
 import argparse
+import logging
 import math
 from pathlib import Path
 from pprint import pprint
@@ -31,19 +32,18 @@ ACS_DATA_DIR = ROOT_DIR / "data"
 
 # Models save directory
 MODELS_DIR = ROOT_DIR / "huggingface-models"
-# MODELS_DIR = ROOT_DIR / "data" / "huggingface-models"     # on local machine
 
 # Path to the executable script to run
-EXECUTABLE_PATH = Path(__file__).parent.resolve() / "run_acs_benchmark.py"
+# EXECUTABLE_PATH = Path(__file__).parent.resolve() / "run_acs_benchmark.py"
+EXECUTABLE_PATH = Path(__file__).parent.resolve() / "eval_feature_importance.py"
+# TODO ^ pass executable path as cmd line arg
+logging.warning(f"Using executable path: {EXECUTABLE_PATH}")
 
 ##################
 # Global configs #
 ##################
-BATCH_SIZE = 15
-CONTEXT_SIZE = 700
-CORRECT_ORDER_BIAS = True
-
-VERBOSE = True
+BATCH_SIZE = 20
+CONTEXT_SIZE = 600
 
 JOB_CPUS = 4
 JOB_MEMORY_GB = 60
@@ -78,7 +78,7 @@ LLM_MODELS = [
 # Function that defines common settings among all LLM-as-clf experiments
 def make_llm_as_clf_experiment(
     model_name: str,
-    task_name: str,
+    task: str,
     results_root_dir: str,
     **kwargs,
 ) -> Experiment:
@@ -114,7 +114,7 @@ def make_llm_as_clf_experiment(
         executable_path=EXECUTABLE_PATH.as_posix(),
         kwargs=dict(
             model=model_path,
-            task_name=task_name,
+            task=task,
             **experiment_kwargs,
         ),
         **job_kwargs,
@@ -138,7 +138,7 @@ def get_llm_results_folder(exp: Experiment) -> str:
     """
     return (
         f"model-{Path(exp.model).name}."
-        f"dataset-{exp.task_name}"
+        f"dataset-{exp.task}"
     )
 
 
@@ -162,7 +162,7 @@ def setup_arg_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "--task-name",
+        "--task",
         type=str,
         help="[string] ACS task name to run experiments on - can provide multiple!",
         required=False,
@@ -198,7 +198,7 @@ def main():
     #       with `setup_arg_parser().convert_arg_line_to_args(extra_kwargs)` !!!
 
     models = args.model or LLM_MODELS
-    tasks = args.task_name or ACS_TASKS
+    tasks = args.task or ACS_TASKS
 
     # Load experiment from JSON file if provided
     if args.experiment_json:
@@ -211,7 +211,7 @@ def main():
         all_experiments = [
             make_llm_as_clf_experiment(
                 model_name=model,
-                task_name=task,
+                task=task,
                 results_root_dir=args.results_root_dir,
                 **extra_kwargs,
             )
