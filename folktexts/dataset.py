@@ -19,7 +19,7 @@ from ._utils import hash_dict, is_valid_number
 from .task import TaskMetadata
 
 DEFAULT_TEST_SIZE = 0.1
-DEFAULT_VAL_SIZE = None
+DEFAULT_VAL_SIZE = 0.1
 DEFAULT_SEED = 42
 
 
@@ -55,10 +55,17 @@ class Dataset(ABC):
         """
         self._data = data
         self._task = task
+
+        # Validate task
         if not isinstance(self._task, TaskMetadata):
             raise ValueError(
                 f"Invalid `task` type: {type(self._task)}. "
                 f"Expected `TaskMetadata`.")
+
+        if not all(col in self.data.columns for col in (task.features + [task.get_target()])):
+            raise ValueError(
+                f"Task columns not found in dataset: "
+                f"features={task.features}, target={task.get_target()}")
 
         self._test_size = test_size
         self._val_size = val_size or 0
@@ -77,7 +84,7 @@ class Dataset(ABC):
         # Subsample the train/test/val data (if requested)
         self._subsampling = None
         if subsampling is not None:
-            self._subsample_inplace(subsampling)
+            self.subsample(subsampling)
 
     @property
     def data(self) -> pd.DataFrame:
@@ -155,7 +162,7 @@ class Dataset(ABC):
             val_indices,
         )
 
-    def _subsample_inplace(self, subsampling: float) -> Dataset:
+    def _subsample_train_test_val_indices(self, subsampling: float) -> Dataset:
         """Subsample the dataset in-place."""
 
         # Check argument is valid
@@ -168,19 +175,16 @@ class Dataset(ABC):
 
         self._train_indices = self._train_indices[: new_train_size]
         self._test_indices = self._test_indices[: new_test_size]
+
         if self._val_indices is not None:
             new_val_size = int(len(self._val_indices) * subsampling + 0.5)
             self._val_indices = self._val_indices[: new_val_size]
 
-        # Update subsampling factor
-        self._subsampling = (getattr(self, "_subsampling", None) or 1) * subsampling
-
         # Log new dataset size
         msg = (
-            f"Subsampled dataset to {self.subsampling:.1%} of the original size. "
             f"Train size: {len(self._train_indices)}, "
-            f"Test size: {len(self._test_indices)}, "
-            f"Val size: {len(self._val_indices) if self._val_indices is not None else 0};"
+            f"Test size:  {len(self._test_indices)}, "
+            f"Val size:   {len(self._val_indices) if self._val_indices is not None else 0};"
         )
         logging.info(msg)
 
@@ -188,7 +192,16 @@ class Dataset(ABC):
 
     def subsample(self, subsampling: float):
         """Subsamples this dataset in-place."""
-        return self._subsample_inplace(subsampling)
+        if subsampling is None:
+            logging.warning(f"Got `subsampling={subsampling}`, skipping...")
+            return self
+
+        # Update train/test/val indices
+        self._subsample_train_test_val_indices(subsampling)
+
+        # Update subsampling factor
+        self._subsampling = (self._subsampling or 1) * subsampling
+        return self
 
     def _filter_inplace(
         self,

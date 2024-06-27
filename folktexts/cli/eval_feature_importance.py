@@ -81,11 +81,8 @@ def compute_feature_importance(
 
     # Baseline: GBM feature importance
     print("Running baseline GBM feature importance...")
-    # TODO! lightgbm seems to be failing on M1 Macs - check!
     from xgboost import XGBClassifier
     gbm_clf = XGBClassifier()
-    # from lightgbm import LGBMClassifier
-    # gbm_clf = LGBMClassifier()
     gbm_clf.fit(X_train, y_train)
 
     r = permutation_importance(gbm_clf, **permutation_kwargs)
@@ -140,9 +137,9 @@ def main():
     logging.info(f"Loading model from {model_folder_path.as_posix()}")
     model, tokenizer = load_model_tokenizer(model_folder_path)
 
-    # Set-up results directory
-    results_dir = Path(args.results_dir) / Path(model_folder_path).name
-    results_dir.mkdir(exist_ok=True, parents=True)
+    # Create results directory if needed
+    results_dir = Path(args.results_dir).expanduser().resolve()
+    results_dir.mkdir(parents=False, exist_ok=True)
     logging.info(f"Saving results to {results_dir.as_posix()}")
 
     # Load Task and Dataset
