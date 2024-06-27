@@ -51,7 +51,6 @@ class ACSTaskMetadata(TaskMetadata):
         if not all(col in acs_columns_map for col in (features + [target])):
             raise ValueError("Not all columns have mappings to text descriptions.")
 
-        # TODO: CHECK IF THIS WORKS!
         return cls(
             name=name,
             description=description,
