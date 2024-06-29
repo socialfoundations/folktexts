@@ -80,7 +80,6 @@ def compute_feature_importance(
 ) -> dict:
 
     # Get train and test data
-    X_train, y_train = dataset.get_train()
     X_test, y_test = dataset.get_test()
     logging.info(f"{X_test.shape=}")
 
@@ -90,27 +89,6 @@ def compute_feature_importance(
         n_repeats=DEFAULT_PERMUTATION_REPEATS,
         random_state=seed,
     )
-
-    # Baseline: GBM feature importance
-    print("Running baseline GBM feature importance...")
-    from xgboost import XGBClassifier
-    gbm_clf = XGBClassifier()
-    gbm_clf.fit(X_train, y_train)
-
-    r = permutation_importance(gbm_clf, **permutation_kwargs)
-    gbm_imp_file_path = results_dir / f"feature-importance.{llm_clf.task.name}.GBM.pkl"
-    save_pickle(obj=r, path=gbm_imp_file_path.with_suffix(".pkl"))
-    save_json(
-        parse_feature_importance(results=r, columns=X_test.columns),
-        path=gbm_imp_file_path.with_suffix(".json"))
-
-    # Print results:
-    print("GBM feature importance:")
-    for i in r.importances_mean.argsort()[::-1]:
-        print(
-            f"{X_test.columns[i]:<8}"
-            f"{r.importances_mean[i]:.3f}"
-            f" +/- {r.importances_std[i]:.3f}")
 
     # Optionally, fit the LLM classifier's threshold on a few data samples.
     if fit_threshold and isinstance(fit_threshold, int):
