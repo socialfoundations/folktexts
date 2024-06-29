@@ -14,8 +14,10 @@ author = 'AndreFCruz'
 # Import package version programmatically
 import sys
 from pathlib import Path
+
 sys.path.insert(0, Path(__file__).parent.as_posix())
 from folktexts._version import __version__
+
 release = __version__
 version = __version__
 

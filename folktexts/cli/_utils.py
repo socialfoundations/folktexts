@@ -1,8 +1,8 @@
 """Utils for the folktexts cmd-line interface.
 """
 from __future__ import annotations
-import logging
 
+import logging
 from pathlib import Path
 
 

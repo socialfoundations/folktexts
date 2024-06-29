@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 import logging
 from argparse import ArgumentParser
+from collections import defaultdict
 from pathlib import Path
 
 from sklearn.inspection import permutation_importance
 
-from folktexts._io import save_pickle
+from folktexts._io import save_json, save_pickle
 from folktexts.classifier import LLMClassifier
 from folktexts.dataset import Dataset
 from folktexts.llm_utils import get_model_folder_path, load_model_tokenizer
@@ -59,6 +60,16 @@ def setup_arg_parser() -> ArgumentParser:
     return parser
 
 
+def parse_feature_importance(results: dict, columns: list[str]) -> dict:
+    """Parse the results dictionary of sklearn's permutation_importance."""
+    parsed_r = defaultdict(dict)
+    for idx, col in enumerate(columns):
+        parsed_r[col]["imp_mean"] = results.importances_mean[idx]
+        parsed_r[col]["imp_std"] = results.importances_std[idx]
+
+    return parsed_r
+
+
 def compute_feature_importance(
     llm_clf: LLMClassifier,
     dataset: Dataset,
@@ -87,10 +98,11 @@ def compute_feature_importance(
     gbm_clf.fit(X_train, y_train)
 
     r = permutation_importance(gbm_clf, **permutation_kwargs)
-    save_pickle(
-        obj=r,
-        path=results_dir / f"feature-importance.{llm_clf.task.name}.GBM.pkl",
-    )
+    gbm_imp_file_path = results_dir / f"feature-importance.{llm_clf.task.name}.GBM.pkl"
+    save_pickle(obj=r, path=gbm_imp_file_path.with_suffix(".pkl"))
+    save_json(
+        parse_feature_importance(results=r, columns=X_test.columns),
+        path=gbm_imp_file_path.with_suffix(".json"))
 
     # Print results:
     print("GBM feature importance:")
@@ -107,10 +119,11 @@ def compute_feature_importance(
 
     # LLM feature importance
     r = permutation_importance(llm_clf, **permutation_kwargs)
-    save_pickle(
-        obj=r,
-        path=results_dir / f"feature-importance.{llm_clf.task.name}.{llm_clf.model_name}.pkl",
-    )
+    llm_imp_file_path = results_dir / f"feature-importance.{llm_clf.task.name}.{llm_clf.model_name}.pkl"
+    save_pickle(obj=r, path=llm_imp_file_path)
+    save_json(
+        parse_feature_importance(results=r, columns=X_test.columns),
+        path=llm_imp_file_path.with_suffix(".json"))
 
     print("LLM feature importance:")
     for i in r.importances_mean.argsort()[::-1]:

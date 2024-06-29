@@ -2,9 +2,8 @@
 """
 from __future__ import annotations
 
-import pytest
 import numpy as np
-
+import pytest
 
 TEST_CAUSAL_LMS = [
     "hf-internal-testing/tiny-random-gpt2",

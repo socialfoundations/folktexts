@@ -7,6 +7,8 @@ import sys
 from argparse import ArgumentParser
 from pathlib import Path
 
+DEFAULT_ACS_TASK = "ACSIncome"
+
 DEFAULT_BATCH_SIZE = 30
 DEFAULT_CONTEXT_SIZE = 500
 DEFAULT_SEED = 42
@@ -24,9 +26,9 @@ def setup_arg_parser() -> ArgumentParser:
     # List of command-line arguments, with type and helper string
     cli_args = [
         ("--model",         str, "[str] Model name or path to model saved on disk"),
-        ("--task",          str, "[str] Name of the ACS task to run the experiment on"),
         ("--results-dir",   str, "[str] Directory under which this experiment's results will be saved"),
         ("--data-dir",      str, "[str] Root folder to find datasets on"),
+        ("--task",          str, "[str] Name of the ACS task to run the experiment on", False, DEFAULT_ACS_TASK),
         ("--few-shot",      int, "[int] Use few-shot prompting with the given number of shots", False),
         ("--batch-size",    int, "[int] The batch size to use for inference", False, DEFAULT_BATCH_SIZE),
         ("--context-size",  int, "[int] The maximum context size when prompting the LLM", False, DEFAULT_CONTEXT_SIZE),
