@@ -12,33 +12,54 @@ TMP_DIR = Path("/tmp/")
 
 # Default list of models to download
 DEFAULT_MODEL_LIST = [
-    # ** Small models **
+    # OpenAI GPTs (all small models)
     "openai-community/gpt2",
     "openai-community/gpt2-large",
     "openai-community/gpt2-xl",
+
+    # Google Gemma models
     "google/gemma-2b",
     "google/gemma-1.1-2b-it",
 
-    # ** Medium models **
     "google/gemma-7b",
     "google/gemma-1.1-7b-it",
-    "mistralai/Mistral-7B-v0.1",
-    "mistralai/Mistral-7B-Instruct-v0.2",
+
+    "google/gemma-2-9b",
+    "google/gemma-2-9b-it",
+
+    "google/gemma-2-27b",
+    "google/gemma-2-27b-it",
+
+    # Meta Llama3 models
     "meta-llama/Meta-Llama-3-8B",
     "meta-llama/Meta-Llama-3-8B-Instruct",
 
-    # ** Large models **
-    "01-ai/Yi-34B",
-    "01-ai/Yi-34B-Chat",
-    "mistralai/Mixtral-8x7B-v0.1",
-    "mistralai/Mixtral-8x7B-Instruct-v0.1",
     "meta-llama/Meta-Llama-3-70B",
     "meta-llama/Meta-Llama-3-70B-Instruct",
-    "Qwen/Qwen1.5-72B",
-    "Qwen/Qwen1.5-72B-Chat",
-    "allenai/tulu-2-dpo-70b",
+
+    # Mistral AI models
+    "mistralai/Mistral-7B-v0.1",
+    "mistralai/Mistral-7B-Instruct-v0.2",
+
+    "mistralai/Mixtral-8x7B-v0.1",
+    "mistralai/Mixtral-8x7B-Instruct-v0.1",
+
     "mistralai/Mixtral-8x22B-v0.1",
     "mistralai/Mixtral-8x22B-Instruct-v0.1",
+
+    # Yi models
+    "01-ai/Yi-34B",
+    "01-ai/Yi-34B-Chat",
+
+    # Qwen2 models
+    "Qwen/Qwen2-1.5B",
+    "Qwen/Qwen2-1.5B-Instruct",
+
+    "Qwen/Qwen2-7B",
+    "Qwen/Qwen2-7B-Instruct",
+
+    "Qwen/Qwen2-72B",
+    "Qwen/Qwen2-72B-Instruct",
 ]
 
 
