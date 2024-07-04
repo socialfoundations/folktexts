@@ -7,10 +7,8 @@
 ![PyPI - License](https://img.shields.io/pypi/l/folktexts)
 ![Python compatibility](https://badgen.net/pypi/python/folktexts)
 
-
-Folktexts is a python package to compute and evaluate classification risk scores
-using large language models.
-It enables using any transformers model as a classifier for tabular data tasks.
+Folktexts is a python package to evaluate statistical properties of LLMs as classifiers.
+It enables computing and evaluating classification _risk scores_ for tabular prediction tasks using LLMs.
 
 Several benchmark tasks are provided based on data from the American Community Survey.
 Namely, each prediction task from the popular 
@@ -23,6 +21,7 @@ Package documentation can be found [here](https://socialfoundations.github.io/fo
 - [Installing](#installing)
 - [Basic setup](#basic-setup)
 - [Example usage](#example-usage)
+- [Evaluating feature importance](#evaluating-feature-importance)
 - [Benchmark options](#benchmark-options)
 - [License and terms of use](#license-and-terms-of-use)
 
@@ -110,6 +109,23 @@ clf.predict(dataset)
 <!-- TODO: add code to show-case example functionalities, including the
 LLMClassifier (maybe the above code is fine for this), the benchmark, and
 creating a custom ACS prediction task -->
+
+## Evaluating feature importance
+
+By evaluating LLMs on tabular classification tasks, we can use standard feature importance methods to assess which features the model uses to compute risk scores.
+
+You can do so yourself by calling `folktexts.cli.eval_feature_importance` (add `--help` for a full list of options).
+
+Here's an example for the Llama3-70B-Instruct model on the ACSIncome task (*warning: takes 24h on an Nvidia H100*):
+```
+python -m folktexts.cli.eval_feature_importance --model 'meta-llama/Meta-Llama-3-70B-Instruct' --task ACSIncome --subsampling 0.1
+```
+<div style="text-align: center;">
+<img src="docs/_static/feat-imp_meta-llama--Meta-Llama-3-70B-Instruct.png" alt="feature importance on llama3 70b it" width="50%">
+</div>
+
+This script uses sklearn's [`permutation_importance`](https://scikit-learn.org/stable/modules/generated/sklearn.inspection.permutation_importance.html#sklearn.inspection.permutation_importance) to assess which features contribute the most for the ROC AUC metric (other metrics can be assessed using the `--scorer [scorer]` parameter).
+
 
 ## Benchmark options
 
