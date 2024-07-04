@@ -4,6 +4,12 @@ import re
 import json
 import logging
 from pathlib import Path
+from datetime import datetime
+
+
+def get_current_timestamp() -> str:
+    """Return a timestamp representing the current time up to the second."""
+    return datetime.now().strftime("%Y.%m.%d-%H.%M.%S")
 
 
 def load_json(path: str | Path) -> object:
