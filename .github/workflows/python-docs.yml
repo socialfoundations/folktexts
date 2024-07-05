@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - docs
+      - dev
 
 permissions:
   contents: write
