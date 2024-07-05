@@ -171,3 +171,7 @@ cython_debug/
 # Logs
 *.err
 *.out
+
+# sphinx docs
+docs/_build/
+docs/notebooks/
