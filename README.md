@@ -60,13 +60,13 @@ mkdir data
 
 4. Download transformers model and tokenizer
 ```
-download_models --model "google/gemma-2b" --save-dir models
+download_models --model 'google/gemma-2b' --save-dir models
 ```
 
 5. Run benchmark on a given task
 
 ```
-run_acs_benchmark --results-dir results --data-dir data --task-name "ACSIncome" --model models/google--gemma-2b
+run_acs_benchmark --results-dir results --data-dir data --task 'ACSIncome' --model models/google--gemma-2b
 ```
 
 Run `run_acs_benchmark --help` to get a list of all available benchmark flags.
