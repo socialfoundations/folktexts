@@ -5,3 +5,9 @@ myst-parser
 sphinx-copybutton
 sphinxcontrib-bibtex
 sphinxemoji
+sphinx-autodoc-typehints
+numpydoc
+nbsphinx
+sphinx_gallery
+IPython
+ipykernel

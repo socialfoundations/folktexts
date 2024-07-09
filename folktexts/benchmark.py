@@ -75,8 +75,6 @@ class BenchmarkConfig:
 class CalibrationBenchmark:
     """A benchmark class for measuring and evaluating LLM calibration."""
 
-    DEFAULT_BENCHMARK_METRIC = "ece"
-
     """
     Standardized configurations for the ACS data to use for benchmarking.
     """
@@ -260,7 +258,7 @@ class CalibrationBenchmark:
         # Save results to disk
         self.save_results()
 
-        return self._results[self.DEFAULT_BENCHMARK_METRIC]
+        return self._results
 
     def plot_results(self, *, show_plots: bool = True):
         """Render evaluation plots and save to disk.

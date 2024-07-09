@@ -163,6 +163,7 @@ cython_debug/
 # MacOS
 .DS_Store
 ._.DS_Store
+._*
 
 # HTCondor submission files
 *.sub
@@ -170,3 +171,7 @@ cython_debug/
 # Logs
 *.err
 *.out
+
+# sphinx docs
+docs/_build/
+docs/notebooks/

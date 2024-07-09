@@ -26,8 +26,13 @@ jobs:
         run: |
           pip install -e ".[docs]"
 
+      - name: Install pandoc (external dependency)
+        run: |
+          sudo apt-get update && sudo apt-get install -y pandoc
+
       - name: Build Documentation
         run: |
+          sphinx-apidoc -o docs/source ../folktexts tests/
           sphinx-build docs _build
 
       - name: Deploy to GitHub Pages
