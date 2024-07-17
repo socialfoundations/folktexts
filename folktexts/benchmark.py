@@ -72,8 +72,8 @@ class BenchmarkConfig:
         return int(hash_dict(cfg), 16)
 
 
-class CalibrationBenchmark:
-    """A benchmark class for measuring and evaluating LLM calibration."""
+class Benchmark:
+    """Measures and evaluates risk scores produced by an LLM."""
 
     """
     Standardized configurations for the ACS data to use for benchmarking.
@@ -340,7 +340,7 @@ class CalibrationBenchmark:
         data_dir: str | Path = None,
         config: BenchmarkConfig = BenchmarkConfig.default_config(),
         **kwargs,
-    ) -> CalibrationBenchmark:
+    ) -> Benchmark:
         """Create a standardized calibration benchmark on ACS data.
 
         Parameters
@@ -362,7 +362,7 @@ class CalibrationBenchmark:
 
         Returns
         -------
-        bench : CalibrationBenchmark
+        bench : Benchmark
             The ACS calibration benchmark object.
         """
 
@@ -403,7 +403,7 @@ class CalibrationBenchmark:
         task: TaskMetadata | str,
         dataset: Dataset,
         config: BenchmarkConfig = BenchmarkConfig.default_config(),
-    ) -> CalibrationBenchmark:
+    ) -> Benchmark:
         """Create a calibration benchmark from a given configuration.
 
         Parameters
@@ -422,7 +422,7 @@ class CalibrationBenchmark:
 
         Returns
         -------
-        bench : CalibrationBenchmark
+        bench : Benchmark
             The calibration benchmark object.
         """
         # Handle TaskMetadata object
