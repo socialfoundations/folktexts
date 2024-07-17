@@ -93,8 +93,8 @@ clf = LLMClassifier(
 dataset = ACSDataset.make_from_task(acs_task_name)   # use `.subsample(0.01)` to get faster approximate results
 
 # And simply run the benchmark to get a variety of metrics and plots
-from folktexts.benchmark import CalibrationBenchmark
-benchmark_results = CalibrationBenchmark(clf, dataset).run(results_root_dir=".")
+from folktexts.benchmark import Benchmark
+benchmark_results = Benchmark(clf, dataset).run(results_root_dir=".")
 
 # You can compute the risk score predictions for the whole dataset
 y_scores = clf.predict_proba(dataset)

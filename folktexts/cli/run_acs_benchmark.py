@@ -142,8 +142,8 @@ def main():
     )
 
     # Create ACS Benchmark object
-    from folktexts.benchmark import CalibrationBenchmark
-    bench = CalibrationBenchmark.make_acs_benchmark(
+    from folktexts.benchmark import Benchmark
+    bench = Benchmark.make_acs_benchmark(
         model=model,
         tokenizer=tokenizer,
         task_name=args.task,
