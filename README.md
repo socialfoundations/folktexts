@@ -7,6 +7,8 @@
 ![PyPI - License](https://img.shields.io/pypi/l/folktexts)
 ![Python compatibility](https://badgen.net/pypi/python/folktexts)
 
+> This package is accompanied by a paper titled ["Evaluating language models as risk scores"](https://arxiv.org/abs/2407.14614)
+
 Folktexts is a python package to evaluate statistical properties of LLMs as classifiers.
 It enables computing and evaluating classification _risk scores_ for tabular prediction tasks using LLMs.
 
@@ -23,6 +25,7 @@ Package documentation can be found [here](https://socialfoundations.github.io/fo
 - [Example usage](#example-usage)
 - [Evaluating feature importance](#evaluating-feature-importance)
 - [Benchmark options](#benchmark-options)
+- [Citation](#citation)
 - [License and terms of use](#license-and-terms-of-use)
 
 
@@ -166,6 +169,20 @@ options:
                         [str] Optional population filter for this benchmark; must follow the format 'column_name=value' to filter the dataset by a specific value.
   --logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                         [str] The logging level to use for the experiment
+```
+
+
+## Citation
+
+```
+@misc{cruz2024evaluating,
+    title={Evaluating language models as risk scores},
+    author={Andr\'{e} F. Cruz and Moritz Hardt and Celestine Mendler-Dünner},
+    year={2024},
+    eprint={2407.14614},
+    archivePrefix={arXiv},
+    primaryClass={cs.LG}
+}
 ```
 
 
