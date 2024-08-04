@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Render paper plots and tables &mdash; folktexts 0.0.18 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=8bafd125"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+        <script src="../_static/copybutton.js?v=f281be69"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script src="../_static/custom.js?v=882eb7ae"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            folktexts
+          </a>
+              <div class="version">
+                0.0.18
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../readme.html">Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../source/modules.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebooks.html">Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Render paper plots and tables</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/notebooks/paper-plots-and-tables.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Render-paper-plots-and-tables">
+<h1>Render paper plots and tables<a class="headerlink" href="#Render-paper-plots-and-tables" title="Link to this heading"></a></h1>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">tqdm.auto</span> <span class="kn">import</span> <span class="n">tqdm</span>
+</pre></div>
+</div>
+</div>
+<p>Load aggregated results data (can be obtained using the <code class="docutils literal notranslate"><span class="pre">parse-acs-results.ipynb</span></code> notebook).</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ACS_AGG_RESULTS_PATH</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/fast/groups/sf/folktexts-results&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;2024-06-30&quot;</span> <span class="o">/</span> <span class="s2">&quot;aggregated_results.2024.07.02-12.06.37.csv&quot;</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">results_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">ACS_AGG_RESULTS_PATH</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">results_df</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>accuracy</th>
+      <th>accuracy_diff</th>
+      <th>accuracy_ratio</th>
+      <th>balanced_accuracy</th>
+      <th>balanced_accuracy_diff</th>
+      <th>balanced_accuracy_ratio</th>
+      <th>brier_score_loss</th>
+      <th>ece</th>
+      <th>ece_quantile</th>
+      <th>equalized_odds_diff</th>
+      <th>...</th>
+      <th>name</th>
+      <th>is_inst</th>
+      <th>num_features</th>
+      <th>uses_all_features</th>
+      <th>fit_thresh_on_100</th>
+      <th>fit_thresh_accuracy</th>
+      <th>optimal_thresh</th>
+      <th>optimal_thresh_accuracy</th>
+      <th>score_stdev</th>
+      <th>score_mean</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Mistral-7B-Instruct-v0.2__ACSPublicCoverage__-1</th>
+      <td>0.701552</td>
+      <td>0.245193</td>
+      <td>0.679916</td>
+      <td>0.500011</td>
+      <td>0.001067</td>
+      <td>0.997869</td>
+      <td>0.298334</td>
+      <td>0.298337</td>
+      <td>0.298295</td>
+      <td>0.001733</td>
+      <td>...</td>
+      <td>Mistral 7B (it)</td>
+      <td>True</td>
+      <td>-1</td>
+      <td>True</td>
+      <td>0.000010</td>
+      <td>0.678052</td>
+      <td>0.000011</td>
+      <td>0.693145</td>
+      <td>0.006395</td>
+      <td>0.000144</td>
+    </tr>
+    <tr>
+      <th>Meta-Llama-3-8B__ACSPublicCoverage__-1</th>
+      <td>0.298439</td>
+      <td>0.245500</td>
+      <td>0.487652</td>
+      <td>0.500000</td>
+      <td>0.000000</td>
+      <td>1.000000</td>
+      <td>0.377804</td>
+      <td>0.411637</td>
+      <td>0.411637</td>
+      <td>0.000000</td>
+      <td>...</td>
+      <td>Llama 3 8B</td>
+      <td>False</td>
+      <td>-1</td>
+      <td>True</td>
+      <td>0.754837</td>
+      <td>0.700375</td>
+      <td>0.718565</td>
+      <td>0.562519</td>
+      <td>0.022004</td>
+      <td>0.710076</td>
+    </tr>
+  </tbody>
+</table>
+<p>2 rows × 64 columns</p>
+</div></div>
+</div>
+<section id="Run-baseline-ML-classifiers-on-the-benchmark-ACS-tasks">
+<h2>Run baseline ML classifiers on the benchmark ACS tasks<a class="headerlink" href="#Run-baseline-ML-classifiers-on-the-benchmark-ACS-tasks" title="Link to this heading"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">DATA_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/fast/groups/sf&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;data&quot;</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ALL_TASKS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;ACSIncome&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ACSMobility&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ACSEmployment&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ACSTravelTime&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ACSPublicCoverage&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<p>List all baseline classifiers here:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.linear_model</span> <span class="kn">import</span> <span class="n">LogisticRegression</span>
+<span class="kn">from</span> <span class="nn">sklearn.ensemble</span> <span class="kn">import</span> <span class="n">HistGradientBoostingClassifier</span>
+<span class="kn">from</span> <span class="nn">xgboost</span> <span class="kn">import</span> <span class="n">XGBClassifier</span>    <span class="c1"># NOTE: comment if xgboost is not installed</span>
+
+<span class="n">baselines</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;LR&quot;</span><span class="p">:</span> <span class="n">LogisticRegression</span><span class="p">(),</span>
+    <span class="s2">&quot;GBM&quot;</span><span class="p">:</span> <span class="n">HistGradientBoostingClassifier</span><span class="p">(),</span>
+    <span class="s2">&quot;XGBoost&quot;</span><span class="p">:</span> <span class="n">XGBClassifier</span><span class="p">(),</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">folktexts.acs.acs_dataset</span> <span class="kn">import</span> <span class="n">ACSDataset</span>
+<span class="kn">from</span> <span class="nn">folktexts.evaluation</span> <span class="kn">import</span> <span class="n">evaluate_predictions</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+
+<span class="k">def</span> <span class="nf">fit_and_eval</span><span class="p">(</span>
+    <span class="n">clf</span><span class="p">,</span>
+    <span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span>
+    <span class="n">X_test</span><span class="p">,</span> <span class="n">y_test</span><span class="p">,</span> <span class="n">s_test</span><span class="p">,</span>
+    <span class="n">fillna</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Fit and evaluate a given classifier on the given data.&quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">X_train</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_train</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_test</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">s_test</span><span class="p">)</span>
+
+    <span class="n">train_nan_count</span> <span class="o">=</span> <span class="n">X_train</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">fillna</span> <span class="ow">and</span> <span class="n">train_nan_count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># Fill NaNs with value=-1</span>
+        <span class="n">X_train</span> <span class="o">=</span> <span class="n">X_train</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s2">&quot;columns&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">X_test</span> <span class="o">=</span> <span class="n">X_test</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s2">&quot;columns&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Fit on train data</span>
+    <span class="n">clf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
+
+    <span class="c1"># Evaluate on test data</span>
+    <span class="n">y_test_scores</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">X_test</span><span class="p">)[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">evaluate_predictions</span><span class="p">(</span>
+        <span class="n">y_true</span><span class="o">=</span><span class="n">y_test</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span>
+        <span class="n">y_pred_scores</span><span class="o">=</span><span class="n">y_test_scores</span><span class="p">,</span>
+        <span class="n">sensitive_attribute</span><span class="o">=</span><span class="n">s_test</span><span class="p">,</span>
+        <span class="n">threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+    <span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">run_baselines</span><span class="p">(</span><span class="n">baselines</span><span class="p">,</span> <span class="n">tasks</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Run baseline classifiers on all acs tasks.&quot;&quot;&quot;</span>
+    <span class="n">baseline_results</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+
+    <span class="c1"># Prepare progress bar</span>
+    <span class="n">progress_bar</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span>
+        <span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">baselines</span><span class="p">),</span>
+        <span class="n">leave</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">:</span>
+        <span class="n">progress_bar</span><span class="o">.</span><span class="n">set_postfix</span><span class="p">({</span><span class="s2">&quot;task&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">})</span>
+
+        <span class="c1"># Load ACS task data</span>
+        <span class="n">acs_dataset</span> <span class="o">=</span> <span class="n">ACSDataset</span><span class="o">.</span><span class="n">make_from_task</span><span class="p">(</span><span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span> <span class="n">cache_dir</span><span class="o">=</span><span class="n">DATA_DIR</span><span class="p">)</span>
+
+        <span class="c1"># Get train/test data</span>
+        <span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span> <span class="o">=</span> <span class="n">acs_dataset</span><span class="o">.</span><span class="n">get_train</span><span class="p">()</span>
+        <span class="n">X_test</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">acs_dataset</span><span class="o">.</span><span class="n">get_test</span><span class="p">()</span>
+
+        <span class="c1"># Get sensitive attribute test data</span>
+        <span class="n">s_test</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">acs_dataset</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">sensitive_attribute</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">s_test</span> <span class="o">=</span> <span class="n">acs_dataset</span><span class="o">.</span><span class="n">get_sensitive_attribute_data</span><span class="p">()</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">y_test</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">clf_name</span><span class="p">,</span> <span class="n">clf</span> <span class="ow">in</span> <span class="n">baselines</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">progress_bar</span><span class="o">.</span><span class="n">set_postfix</span><span class="p">({</span><span class="s2">&quot;task&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">,</span> <span class="s2">&quot;clf&quot;</span><span class="p">:</span> <span class="n">clf_name</span><span class="p">})</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">baseline_results</span><span class="p">[</span><span class="n">task</span><span class="p">][</span><span class="n">clf_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">fit_and_eval</span><span class="p">(</span>
+                    <span class="n">clf</span><span class="o">=</span><span class="n">clf</span><span class="p">,</span>
+                    <span class="n">X_train</span><span class="o">=</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="o">=</span><span class="n">y_train</span><span class="p">,</span>
+                    <span class="n">X_test</span><span class="o">=</span><span class="n">X_test</span><span class="p">,</span> <span class="n">y_test</span><span class="o">=</span><span class="n">y_test</span><span class="p">,</span> <span class="n">s_test</span><span class="o">=</span><span class="n">s_test</span><span class="p">,</span>
+                    <span class="n">fillna</span><span class="o">=</span><span class="p">(</span><span class="n">clf_name</span> <span class="o">==</span> <span class="s2">&quot;LR&quot;</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="n">progress_bar</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">baseline_results</span>
+</pre></div>
+</div>
+</div>
+<p>Flatten results and add extra columns.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">parse_baseline_results</span><span class="p">(</span><span class="n">baseline_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Flatten and parse baseline results.&quot;&quot;&quot;</span>
+    <span class="n">parsed_results_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">task</span><span class="p">,</span> <span class="n">task_results</span> <span class="ow">in</span> <span class="n">baseline_results</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+
+        <span class="k">for</span> <span class="n">clf</span><span class="p">,</span> <span class="n">clf_results</span> <span class="ow">in</span> <span class="n">task_results</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">parsed_results</span> <span class="o">=</span> <span class="n">clf_results</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+            <span class="n">parsed_results</span><span class="p">[</span><span class="s2">&quot;config_task_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">task</span>
+            <span class="n">parsed_results</span><span class="p">[</span><span class="s2">&quot;config_model_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">clf</span>
+            <span class="n">parsed_results</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">clf</span>
+            <span class="n">parsed_results</span><span class="p">[</span><span class="s2">&quot;num_features&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="n">parsed_results</span><span class="p">[</span><span class="s2">&quot;uses_all_features&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="n">parsed_results_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parsed_results</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">parsed_results_list</span>
+</pre></div>
+</div>
+</div>
+<p>Check if baseline results were already computed. If so, load csv; otherwise, compute and save.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">BASELINE_RESULTS_PATH</span> <span class="o">=</span> <span class="n">ACS_AGG_RESULTS_PATH</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;baseline-results.csv&quot;</span>
+
+<span class="c1"># If saved results exists: load</span>
+<span class="k">if</span> <span class="n">BASELINE_RESULTS_PATH</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loading pre-computed baseline results from </span><span class="si">{</span><span class="n">BASELINE_RESULTS_PATH</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">baselines_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">BASELINE_RESULTS_PATH</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="c1"># Compute baseline results</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="c1"># Compute baseline results</span>
+    <span class="n">baseline_results</span> <span class="o">=</span> <span class="n">run_baselines</span><span class="p">(</span><span class="n">baselines</span><span class="p">,</span> <span class="n">tasks</span><span class="o">=</span><span class="n">ALL_TASKS</span><span class="p">)</span>
+
+    <span class="c1"># Parse results</span>
+    <span class="n">parsed_results_list</span> <span class="o">=</span> <span class="n">parse_baseline_results</span><span class="p">(</span><span class="n">baseline_results</span><span class="p">)</span>
+
+    <span class="c1"># Construct DF</span>
+    <span class="n">baselines_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">parsed_results_list</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="n">r</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">parsed_results_list</span><span class="p">])</span>
+
+    <span class="c1"># Save DF to disk</span>
+    <span class="n">baselines_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">BASELINE_RESULTS_PATH</span><span class="p">)</span>
+
+<span class="c1"># Show 2 random rows</span>
+<span class="n">baselines_df</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Loading pre-computed baseline results from /fast/groups/sf/folktexts-results/2024-06-30/baseline-results.csv
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>threshold</th>
+      <th>n_samples</th>
+      <th>n_positives</th>
+      <th>n_negatives</th>
+      <th>model_name</th>
+      <th>accuracy</th>
+      <th>tpr</th>
+      <th>fnr</th>
+      <th>fpr</th>
+      <th>tnr</th>
+      <th>...</th>
+      <th>equalized_odds_ratio</th>
+      <th>equalized_odds_diff</th>
+      <th>roc_auc</th>
+      <th>ece</th>
+      <th>ece_quantile</th>
+      <th>config_task_name</th>
+      <th>config_model_name</th>
+      <th>name</th>
+      <th>num_features</th>
+      <th>uses_all_features</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>XGBoost</th>
+      <td>0.5</td>
+      <td>166450</td>
+      <td>61233</td>
+      <td>105217</td>
+      <td>NaN</td>
+      <td>0.817309</td>
+      <td>0.732089</td>
+      <td>0.267911</td>
+      <td>0.133096</td>
+      <td>0.866904</td>
+      <td>...</td>
+      <td>0.077643</td>
+      <td>0.519188</td>
+      <td>0.894961</td>
+      <td>0.004253</td>
+      <td>0.00362</td>
+      <td>ACSIncome</td>
+      <td>XGBoost</td>
+      <td>XGBoost</td>
+      <td>-1</td>
+      <td>True</td>
+    </tr>
+    <tr>
+      <th>GBM</th>
+      <td>0.5</td>
+      <td>62094</td>
+      <td>45648</td>
+      <td>16446</td>
+      <td>NaN</td>
+      <td>0.763117</td>
+      <td>0.947774</td>
+      <td>0.052226</td>
+      <td>0.749422</td>
+      <td>0.250578</td>
+      <td>...</td>
+      <td>0.280813</td>
+      <td>0.342357</td>
+      <td>0.738222</td>
+      <td>0.005408</td>
+      <td>0.00497</td>
+      <td>ACSMobility</td>
+      <td>GBM</td>
+      <td>GBM</td>
+      <td>-1</td>
+      <td>True</td>
+    </tr>
+  </tbody>
+</table>
+<p>2 rows × 41 columns</p>
+</div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">all_results_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">((</span><span class="n">results_df</span><span class="p">,</span> <span class="n">baselines_df</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">all_results_df</span><span class="o">.</span><span class="n">shape</span><span class="si">=}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+all_results_df.shape=(109, 64)
+</pre></div></div>
+</div>
+<section id="Render-results-table-for-each-task">
+<h3>Render results table for each task<a class="headerlink" href="#Render-results-table-for-each-task" title="Link to this heading"></a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">table_metrics</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;ece&quot;</span><span class="p">,</span> <span class="s2">&quot;brier_score_loss&quot;</span><span class="p">,</span> <span class="s2">&quot;roc_auc&quot;</span><span class="p">,</span> <span class="s2">&quot;accuracy&quot;</span><span class="p">,</span> <span class="s2">&quot;fit_thresh_accuracy&quot;</span><span class="p">,</span> <span class="s2">&quot;score_stdev&quot;</span><span class="p">]</span> <span class="c1">#, &quot;score_mean&quot;]</span>
+
+<span class="n">model_col</span> <span class="o">=</span> <span class="s2">&quot;config_model_name&quot;</span>
+<span class="n">task_col</span> <span class="o">=</span> <span class="s2">&quot;config_task_name&quot;</span>
+</pre></div>
+</div>
+</div>
+<p>Add model size and model family columns:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">folktexts.llm_utils</span> <span class="kn">import</span> <span class="n">get_model_size_B</span>
+
+<span class="n">all_results_df</span><span class="p">[</span><span class="s2">&quot;model_size&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span>
+        <span class="n">get_model_size_B</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span> <span class="n">default</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="s2">&quot;nan&quot;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">baselines</span> <span class="k">else</span> <span class="s2">&quot;-&quot;</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">all_results_df</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()</span>
+<span class="p">]</span>
+
+<span class="k">def</span> <span class="nf">get_model_family</span><span class="p">(</span><span class="n">model_name</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">if</span> <span class="s2">&quot;llama&quot;</span> <span class="ow">in</span> <span class="n">model_name</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;Llama&quot;</span>
+    <span class="k">elif</span> <span class="s2">&quot;mistral&quot;</span> <span class="ow">in</span> <span class="n">model_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">or</span> <span class="s2">&quot;mixtral&quot;</span> <span class="ow">in</span> <span class="n">model_name</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;Mistral&quot;</span>
+    <span class="k">elif</span> <span class="s2">&quot;gemma&quot;</span> <span class="ow">in</span> <span class="n">model_name</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;Gemma&quot;</span>
+    <span class="k">elif</span> <span class="s2">&quot;yi&quot;</span> <span class="ow">in</span> <span class="n">model_name</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;Yi&quot;</span>
+    <span class="k">elif</span> <span class="s2">&quot;qwen&quot;</span> <span class="ow">in</span> <span class="n">model_name</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+        <span class="k">return</span> <span class="s2">&quot;Qwen&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;-&quot;</span>
+
+<span class="n">all_results_df</span><span class="p">[</span><span class="s2">&quot;model_family&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">get_model_family</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="n">model_col</span><span class="p">])</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">all_results_df</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()]</span>
+<span class="n">all_results_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="n">task_col</span><span class="p">,</span> <span class="s2">&quot;model_family&quot;</span><span class="p">])[</span><span class="s2">&quot;accuracy&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+config_task_name   model_family
+ACSEmployment      -               3
+                   Gemma           8
+                   Llama           4
+                   Mistral         6
+                   Yi              1
+ACSIncome          -               3
+                   Gemma           7
+                   Llama           4
+                   Mistral         6
+                   Yi              2
+ACSMobility        -               3
+                   Gemma           8
+                   Llama           4
+                   Mistral         5
+                   Yi              2
+ACSPublicCoverage  -               3
+                   Gemma           8
+                   Llama           4
+                   Mistral         5
+                   Yi              2
+ACSTravelTime      -               3
+                   Gemma           8
+                   Llama           4
+                   Mistral         4
+                   Yi              2
+Name: accuracy, dtype: int64
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[35]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">utils</span> <span class="kn">import</span> <span class="n">prettify_model_name</span>
+
+<span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">ALL_TASKS</span><span class="p">:</span>
+    <span class="n">task_df</span> <span class="o">=</span> <span class="n">all_results_df</span><span class="p">[</span><span class="n">all_results_df</span><span class="p">[</span><span class="n">task_col</span><span class="p">]</span> <span class="o">==</span> <span class="n">task</span><span class="p">]</span>
+
+    <span class="n">latex_table</span> <span class="o">=</span> <span class="n">task_df</span><span class="o">.</span><span class="n">sort_values</span><span class="p">([</span><span class="s2">&quot;model_family&quot;</span><span class="p">,</span> <span class="s2">&quot;model_size&quot;</span><span class="p">,</span> <span class="s2">&quot;is_inst&quot;</span><span class="p">],</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="n">model_col</span><span class="p">)[</span><span class="n">table_metrics</span><span class="p">]</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">latex_table</span> <span class="o">=</span> <span class="n">latex_table</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="k">lambda</span> <span class="n">col</span><span class="p">:</span> <span class="n">col</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">))</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Prettify model names</span>
+    <span class="n">latex_table</span><span class="p">[</span><span class="s2">&quot;Model&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">prettify_model_name</span><span class="p">(</span><span class="n">id_</span><span class="p">)</span> <span class="k">if</span> <span class="n">id_</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">baselines</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">else</span> <span class="n">id_</span>
+        <span class="k">for</span> <span class="n">id_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">latex_table</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()</span>
+    <span class="p">]</span>
+    <span class="n">latex_table</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;Model&quot;</span><span class="p">,</span> <span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;*** </span><span class="si">{</span><span class="n">task</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2"> ***</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">latex_table</span><span class="o">.</span><span class="n">to_latex</span><span class="p">(</span><span class="n">float_format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%.2f</span><span class="s2">&quot;</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+*** ACSINCOME ***
+
+\begin{tabular}{lrrrrll}
+\toprule
+ &amp; ece &amp; brier score loss &amp; roc auc &amp; accuracy &amp; fit thresh accuracy &amp; score stdev \\
+Model &amp;  &amp;  &amp;  &amp;  &amp;  &amp;  \\
+\midrule
+Yi 34B (chat) &amp; 0.19 &amp; 0.19 &amp; 0.86 &amp; 0.72 &amp; 0.76 &amp; 0.34 \\
+Yi 34B &amp; 0.25 &amp; 0.22 &amp; 0.85 &amp; 0.62 &amp; 0.77 &amp; 0.20 \\
+Mixtral 8x22B (it) &amp; 0.21 &amp; 0.22 &amp; 0.85 &amp; 0.76 &amp; 0.75 &amp; 0.48 \\
+Mixtral 8x22B &amp; 0.16 &amp; 0.19 &amp; 0.85 &amp; 0.68 &amp; 0.78 &amp; 0.10 \\
+Mixtral 8x7B (it) &amp; 0.16 &amp; 0.18 &amp; 0.86 &amp; 0.78 &amp; 0.78 &amp; 0.42 \\
+Mixtral 8x7B &amp; 0.17 &amp; 0.21 &amp; 0.83 &amp; 0.65 &amp; 0.74 &amp; 0.06 \\
+Mistral 7B (it) &amp; 0.21 &amp; 0.22 &amp; 0.83 &amp; 0.77 &amp; 0.77 &amp; 0.42 \\
+Mistral 7B &amp; 0.20 &amp; 0.23 &amp; 0.80 &amp; 0.73 &amp; 0.73 &amp; 0.04 \\
+Llama 3 70B (it) &amp; 0.27 &amp; 0.27 &amp; 0.86 &amp; 0.69 &amp; 0.78 &amp; 0.42 \\
+Llama 3 70B &amp; 0.20 &amp; 0.20 &amp; 0.86 &amp; 0.70 &amp; 0.78 &amp; 0.14 \\
+Llama 3 8B (it) &amp; 0.32 &amp; 0.30 &amp; 0.85 &amp; 0.62 &amp; 0.77 &amp; 0.37 \\
+Llama 3 8B &amp; 0.25 &amp; 0.26 &amp; 0.81 &amp; 0.38 &amp; 0.69 &amp; 0.05 \\
+Gemma 2 27B (it) &amp; 0.34 &amp; 0.35 &amp; 0.71 &amp; 0.57 &amp; 0.67 &amp; 0.36 \\
+Gemma 2 9B (it) &amp; 0.20 &amp; 0.20 &amp; 0.84 &amp; 0.78 &amp; 0.78 &amp; 0.45 \\
+Gemma 2 9B &amp; 0.26 &amp; 0.25 &amp; 0.83 &amp; 0.40 &amp; 0.72 &amp; 0.06 \\
+Gemma 7B (it) &amp; 0.61 &amp; 0.59 &amp; 0.84 &amp; 0.37 &amp; 0.70 &amp; 0.06 \\
+Gemma 7B &amp; 0.24 &amp; 0.27 &amp; 0.76 &amp; 0.37 &amp; 0.69 &amp; 0.04 \\
+Gemma 2B (it) &amp; 0.63 &amp; 0.63 &amp; 0.73 &amp; 0.37 &amp; 0.63 &amp; 0.00 \\
+Gemma 2B &amp; 0.14 &amp; 0.25 &amp; 0.62 &amp; 0.45 &amp; 0.63 &amp; 0.02 \\
+LR &amp; 0.03 &amp; 0.18 &amp; 0.79 &amp; 0.74 &amp; - &amp; - \\
+GBM &amp; 0.01 &amp; 0.13 &amp; 0.89 &amp; 0.81 &amp; - &amp; - \\
+XGBoost &amp; 0.00 &amp; 0.13 &amp; 0.90 &amp; 0.82 &amp; - &amp; - \\
+\bottomrule
+\end{tabular}
+
+
+*** ACSMOBILITY ***
+
+\begin{tabular}{lrrrrll}
+\toprule
+ &amp; ece &amp; brier score loss &amp; roc auc &amp; accuracy &amp; fit thresh accuracy &amp; score stdev \\
+Model &amp;  &amp;  &amp;  &amp;  &amp;  &amp;  \\
+\midrule
+Yi 34B (chat) &amp; 0.09 &amp; 0.20 &amp; 0.56 &amp; 0.72 &amp; 0.61 &amp; 0.15 \\
+Yi 34B &amp; 0.07 &amp; 0.20 &amp; 0.57 &amp; 0.73 &amp; 0.61 &amp; 0.08 \\
+Mixtral 8x22B &amp; 0.11 &amp; 0.20 &amp; 0.56 &amp; 0.73 &amp; 0.47 &amp; 0.02 \\
+Mixtral 8x7B (it) &amp; 0.26 &amp; 0.26 &amp; 0.58 &amp; 0.73 &amp; 0.62 &amp; 0.02 \\
+Mixtral 8x7B &amp; 0.14 &amp; 0.21 &amp; 0.57 &amp; 0.73 &amp; 0.52 &amp; 0.03 \\
+Mistral 7B (it) &amp; 0.26 &amp; 0.26 &amp; 0.57 &amp; 0.73 &amp; 0.54 &amp; 0.02 \\
+Mistral 7B &amp; 0.20 &amp; 0.23 &amp; 0.53 &amp; 0.73 &amp; 0.58 &amp; 0.01 \\
+Llama 3 70B (it) &amp; 0.20 &amp; 0.25 &amp; 0.57 &amp; 0.61 &amp; 0.48 &amp; 0.18 \\
+Llama 3 70B &amp; 0.22 &amp; 0.24 &amp; 0.55 &amp; 0.67 &amp; 0.53 &amp; 0.04 \\
+Llama 3 8B (it) &amp; 0.15 &amp; 0.22 &amp; 0.56 &amp; 0.70 &amp; 0.53 &amp; 0.17 \\
+Llama 3 8B &amp; 0.10 &amp; 0.20 &amp; 0.55 &amp; 0.73 &amp; 0.49 &amp; 0.04 \\
+Gemma 2 27B (it) &amp; 0.40 &amp; 0.40 &amp; 0.52 &amp; 0.45 &amp; 0.58 &amp; 0.33 \\
+Gemma 2 27B &amp; 0.23 &amp; 0.28 &amp; 0.49 &amp; 0.61 &amp; 0.54 &amp; 0.27 \\
+Gemma 2 9B (it) &amp; 0.20 &amp; 0.23 &amp; 0.54 &amp; 0.73 &amp; 0.67 &amp; 0.07 \\
+Gemma 2 9B &amp; 0.31 &amp; 0.29 &amp; 0.54 &amp; 0.29 &amp; 0.40 &amp; 0.04 \\
+Gemma 7B (it) &amp; 0.25 &amp; 0.26 &amp; 0.58 &amp; 0.73 &amp; 0.67 &amp; 0.11 \\
+Gemma 7B &amp; 0.41 &amp; 0.37 &amp; 0.50 &amp; 0.39 &amp; 0.51 &amp; 0.10 \\
+Gemma 2B (it) &amp; 0.73 &amp; 0.73 &amp; 0.52 &amp; 0.27 &amp; 0.40 &amp; 0.00 \\
+Gemma 2B &amp; 0.25 &amp; 0.26 &amp; 0.51 &amp; 0.40 &amp; 0.48 &amp; 0.02 \\
+LR &amp; 0.02 &amp; 0.19 &amp; 0.61 &amp; 0.74 &amp; - &amp; - \\
+GBM &amp; 0.01 &amp; 0.17 &amp; 0.74 &amp; 0.76 &amp; - &amp; - \\
+XGBoost &amp; 0.00 &amp; 0.16 &amp; 0.74 &amp; 0.76 &amp; - &amp; - \\
+\bottomrule
+\end{tabular}
+
+
+*** ACSEMPLOYMENT ***
+
+\begin{tabular}{lrrrrll}
+\toprule
+ &amp; ece &amp; brier score loss &amp; roc auc &amp; accuracy &amp; fit thresh accuracy &amp; score stdev \\
+Model &amp;  &amp;  &amp;  &amp;  &amp;  &amp;  \\
+\midrule
+Yi 34B (chat) &amp; 0.14 &amp; 0.21 &amp; 0.79 &amp; 0.69 &amp; 0.73 &amp; 0.20 \\
+Mixtral 8x22B (it) &amp; 0.38 &amp; 0.39 &amp; 0.60 &amp; 0.51 &amp; 0.60 &amp; 0.27 \\
+Mixtral 8x22B &amp; 0.21 &amp; 0.24 &amp; 0.86 &amp; 0.52 &amp; 0.77 &amp; 0.08 \\
+Mixtral 8x7B (it) &amp; 0.22 &amp; 0.24 &amp; 0.82 &amp; 0.73 &amp; 0.75 &amp; 0.44 \\
+Mixtral 8x7B &amp; 0.29 &amp; 0.31 &amp; 0.81 &amp; 0.45 &amp; 0.74 &amp; 0.06 \\
+Mistral 7B (it) &amp; 0.35 &amp; 0.36 &amp; 0.72 &amp; 0.63 &amp; 0.66 &amp; 0.49 \\
+Mistral 7B &amp; 0.26 &amp; 0.30 &amp; 0.76 &amp; 0.45 &amp; 0.69 &amp; 0.04 \\
+Llama 3 70B (it) &amp; 0.17 &amp; 0.19 &amp; 0.85 &amp; 0.73 &amp; 0.78 &amp; 0.29 \\
+Llama 3 70B &amp; 0.25 &amp; 0.26 &amp; 0.82 &amp; 0.52 &amp; 0.74 &amp; 0.12 \\
+Llama 3 8B (it) &amp; 0.07 &amp; 0.19 &amp; 0.79 &amp; 0.74 &amp; 0.73 &amp; 0.22 \\
+Llama 3 8B &amp; 0.34 &amp; 0.34 &amp; 0.76 &amp; 0.45 &amp; 0.69 &amp; 0.06 \\
+Gemma 2 27B (it) &amp; 0.31 &amp; 0.36 &amp; 0.51 &amp; 0.52 &amp; 0.53 &amp; 0.35 \\
+Gemma 2 27B &amp; 0.26 &amp; 0.34 &amp; 0.50 &amp; 0.49 &amp; 0.52 &amp; 0.27 \\
+Gemma 2 9B (it) &amp; 0.16 &amp; 0.20 &amp; 0.82 &amp; 0.70 &amp; 0.74 &amp; 0.25 \\
+Gemma 2 9B &amp; 0.13 &amp; 0.24 &amp; 0.73 &amp; 0.52 &amp; 0.67 &amp; 0.07 \\
+Gemma 7B (it) &amp; 0.36 &amp; 0.38 &amp; 0.59 &amp; 0.58 &amp; 0.59 &amp; 0.44 \\
+Gemma 7B &amp; 0.15 &amp; 0.25 &amp; 0.65 &amp; 0.48 &amp; 0.63 &amp; 0.13 \\
+Gemma 2B (it) &amp; 0.38 &amp; 0.41 &amp; 0.42 &amp; 0.46 &amp; 0.48 &amp; 0.23 \\
+Gemma 2B &amp; 0.01 &amp; 0.24 &amp; 0.63 &amp; 0.54 &amp; 0.61 &amp; 0.03 \\
+LR &amp; 0.02 &amp; 0.15 &amp; 0.86 &amp; 0.78 &amp; - &amp; - \\
+GBM &amp; 0.00 &amp; 0.12 &amp; 0.91 &amp; 0.83 &amp; - &amp; - \\
+XGBoost &amp; 0.00 &amp; 0.12 &amp; 0.91 &amp; 0.83 &amp; - &amp; - \\
+\bottomrule
+\end{tabular}
+
+
+*** ACSTRAVELTIME ***
+
+\begin{tabular}{lrrrrll}
+\toprule
+ &amp; ece &amp; brier score loss &amp; roc auc &amp; accuracy &amp; fit thresh accuracy &amp; score stdev \\
+Model &amp;  &amp;  &amp;  &amp;  &amp;  &amp;  \\
+\midrule
+Yi 34B (chat) &amp; 0.35 &amp; 0.36 &amp; 0.65 &amp; 0.56 &amp; 0.52 &amp; 0.02 \\
+Yi 34B &amp; 0.08 &amp; 0.24 &amp; 0.62 &amp; 0.56 &amp; 0.54 &amp; 0.06 \\
+Mixtral 8x7B (it) &amp; 0.45 &amp; 0.45 &amp; 0.66 &amp; 0.52 &amp; 0.55 &amp; 0.29 \\
+Mixtral 8x7B &amp; 0.28 &amp; 0.32 &amp; 0.60 &amp; 0.44 &amp; 0.56 &amp; 0.03 \\
+Mistral 7B (it) &amp; 0.41 &amp; 0.42 &amp; 0.59 &amp; 0.57 &amp; 0.53 &amp; 0.19 \\
+Mistral 7B &amp; 0.05 &amp; 0.25 &amp; 0.57 &amp; 0.56 &amp; 0.55 &amp; 0.02 \\
+Llama 3 70B (it) &amp; 0.15 &amp; 0.24 &amp; 0.70 &amp; 0.60 &amp; 0.61 &amp; 0.12 \\
+Llama 3 70B &amp; 0.09 &amp; 0.24 &amp; 0.67 &amp; 0.55 &amp; 0.61 &amp; 0.05 \\
+Llama 3 8B (it) &amp; 0.19 &amp; 0.28 &amp; 0.60 &amp; 0.57 &amp; 0.55 &amp; 0.11 \\
+Llama 3 8B &amp; 0.08 &amp; 0.25 &amp; 0.53 &amp; 0.56 &amp; 0.54 &amp; 0.03 \\
+Gemma 2 27B (it) &amp; 0.32 &amp; 0.36 &amp; 0.52 &amp; 0.53 &amp; 0.48 &amp; 0.34 \\
+Gemma 2 27B &amp; 0.23 &amp; 0.32 &amp; 0.50 &amp; 0.49 &amp; 0.46 &amp; 0.25 \\
+Gemma 2 9B (it) &amp; 0.07 &amp; 0.23 &amp; 0.67 &amp; 0.60 &amp; 0.57 &amp; 0.15 \\
+Gemma 2 9B &amp; 0.02 &amp; 0.24 &amp; 0.58 &amp; 0.56 &amp; 0.51 &amp; 0.02 \\
+Gemma 7B (it) &amp; 0.42 &amp; 0.43 &amp; 0.53 &amp; 0.56 &amp; 0.52 &amp; 0.02 \\
+Gemma 7B &amp; 0.04 &amp; 0.24 &amp; 0.61 &amp; 0.58 &amp; 0.57 &amp; 0.02 \\
+Gemma 2B (it) &amp; 0.34 &amp; 0.36 &amp; 0.49 &amp; 0.56 &amp; 0.54 &amp; 0.03 \\
+Gemma 2B &amp; 0.09 &amp; 0.26 &amp; 0.48 &amp; 0.44 &amp; 0.54 &amp; 0.01 \\
+LR &amp; 0.04 &amp; 0.24 &amp; 0.58 &amp; 0.56 &amp; - &amp; - \\
+GBM &amp; 0.02 &amp; 0.20 &amp; 0.75 &amp; 0.69 &amp; - &amp; - \\
+XGBoost &amp; 0.02 &amp; 0.19 &amp; 0.77 &amp; 0.70 &amp; - &amp; - \\
+\bottomrule
+\end{tabular}
+
+
+*** ACSPUBLICCOVERAGE ***
+
+\begin{tabular}{lrrrrll}
+\toprule
+ &amp; ece &amp; brier score loss &amp; roc auc &amp; accuracy &amp; fit thresh accuracy &amp; score stdev \\
+Model &amp;  &amp;  &amp;  &amp;  &amp;  &amp;  \\
+\midrule
+Yi 34B (chat) &amp; 0.06 &amp; 0.19 &amp; 0.67 &amp; 0.74 &amp; 0.70 &amp; 0.13 \\
+Yi 34B &amp; 0.04 &amp; 0.21 &amp; 0.59 &amp; 0.70 &amp; 0.32 &amp; 0.07 \\
+Mixtral 8x22B &amp; 0.32 &amp; 0.30 &amp; 0.59 &amp; 0.30 &amp; 0.53 &amp; 0.05 \\
+Mixtral 8x7B (it) &amp; 0.20 &amp; 0.23 &amp; 0.70 &amp; 0.74 &amp; 0.72 &amp; 0.35 \\
+Mixtral 8x7B &amp; 0.41 &amp; 0.37 &amp; 0.57 &amp; 0.30 &amp; 0.38 &amp; 0.03 \\
+Mistral 7B (it) &amp; 0.30 &amp; 0.30 &amp; 0.61 &amp; 0.70 &amp; 0.68 &amp; 0.01 \\
+Mistral 7B &amp; 0.29 &amp; 0.30 &amp; 0.45 &amp; 0.30 &amp; 0.70 &amp; 0.02 \\
+Llama 3 70B (it) &amp; 0.16 &amp; 0.21 &amp; 0.69 &amp; 0.75 &amp; 0.49 &amp; 0.20 \\
+Llama 3 70B &amp; 0.18 &amp; 0.22 &amp; 0.67 &amp; 0.63 &amp; 0.50 &amp; 0.07 \\
+Llama 3 8B (it) &amp; 0.11 &amp; 0.21 &amp; 0.59 &amp; 0.71 &amp; 0.72 &amp; 0.19 \\
+Llama 3 8B &amp; 0.41 &amp; 0.38 &amp; 0.55 &amp; 0.30 &amp; 0.70 &amp; 0.02 \\
+Gemma 2 27B (it) &amp; 0.24 &amp; 0.29 &amp; 0.54 &amp; 0.63 &amp; 0.57 &amp; 0.30 \\
+Gemma 2 27B &amp; 0.43 &amp; 0.43 &amp; 0.51 &amp; 0.38 &amp; 0.52 &amp; 0.24 \\
+Gemma 2 9B (it) &amp; 0.16 &amp; 0.23 &amp; 0.61 &amp; 0.67 &amp; 0.68 &amp; 0.28 \\
+Gemma 2 9B &amp; 0.20 &amp; 0.25 &amp; 0.50 &amp; 0.38 &amp; 0.65 &amp; 0.02 \\
+Gemma 7B (it) &amp; 0.30 &amp; 0.34 &amp; 0.46 &amp; 0.50 &amp; 0.32 &amp; 0.32 \\
+Gemma 7B &amp; 0.15 &amp; 0.23 &amp; 0.49 &amp; 0.49 &amp; 0.37 &amp; 0.10 \\
+Gemma 2B (it) &amp; 0.70 &amp; 0.70 &amp; 0.54 &amp; 0.30 &amp; 0.33 &amp; 0.00 \\
+Gemma 2B &amp; 0.26 &amp; 0.28 &amp; 0.54 &amp; 0.30 &amp; 0.62 &amp; 0.01 \\
+LR &amp; 0.03 &amp; 0.19 &amp; 0.70 &amp; 0.73 &amp; - &amp; - \\
+GBM &amp; 0.01 &amp; 0.14 &amp; 0.83 &amp; 0.80 &amp; - &amp; - \\
+XGBoost &amp; 0.00 &amp; 0.14 &amp; 0.84 &amp; 0.80 &amp; - &amp; - \\
+\bottomrule
+\end{tabular}
+
+
+</pre></div></div>
+</div>
+</section>
+<section id="Render-plots">
+<h3>Render plots<a class="headerlink" href="#Render-plots" title="Link to this heading"></a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
