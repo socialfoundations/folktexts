@@ -12,6 +12,7 @@ import pandas as pd
 from ._utils import hash_dict
 from .col_to_text import ColumnToText
 from .threshold import Threshold
+from .qa_interface import QAInterface
 
 
 @dataclass
@@ -43,6 +44,7 @@ class TaskMetadata:
     cols_to_text: dict[str, ColumnToText]
     sensitive_attribute: str = None
     target_threshold: Threshold = None
+    qa_interface: QAInterface = None    # This will override whichever QA interface is set in the ColumnToText object
 
     # Class-level task storage
     _tasks: ClassVar[dict[str, "TaskMetadata"]] = field(default={}, init=False, repr=False)
@@ -75,10 +77,15 @@ class TaskMetadata:
         return cls._tasks[name]
 
     @property
-    def question(self):
-        if self.cols_to_text[self.get_target()]._question is None:
+    def question(self) -> QAInterface:
+        if self.qa_interface is not None:
+            return self.qa_interface
+
+        elif self.cols_to_text[self.get_target()]._question is not None:
+            return self.cols_to_text[self.get_target()].question
+
+        else:
             raise ValueError(f"No question provided for the target column '{self.get_target()}'.")
-        return self.cols_to_text[self.get_target()].question
 
     def get_row_description(self, row: pd.Series) -> str:
         """Encode a description of a given data row in textual form."""
