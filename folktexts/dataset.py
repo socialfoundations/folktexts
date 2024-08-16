@@ -99,6 +99,9 @@ class Dataset(ABC):
                 f"Task columns not found in dataset: "
                 f"features={self.task.features}, target={self.task.get_target()}")
 
+        # Update data
+        self._data = new_data
+
         # Reset train/test/val indices
         self._train_indices, self._test_indices, self._val_indices = (
             self._make_train_test_val_split(
@@ -109,8 +112,6 @@ class Dataset(ABC):
         # (data was manually set, any subsampling will have to be re-done)
         self._subsampling = None
 
-        # Update data
-        self._data = new_data
         return self._data
 
     @property
