@@ -46,6 +46,7 @@ class ACSTaskMetadata(TaskMetadata):
         target: str,
         target_threshold: Threshold = None,
         sensitive_attribute: str = None,
+        **kwargs,
     ) -> ACSTaskMetadata:
         # Validate columns mappings exist
         if not all(col in acs_columns_map for col in (features + [target])):
@@ -60,6 +61,7 @@ class ACSTaskMetadata(TaskMetadata):
             target_threshold=target_threshold,
             sensitive_attribute=sensitive_attribute,
             folktables_obj=None,
+            **kwargs,
         )
 
     @classmethod
@@ -135,7 +137,7 @@ acs_income_poverty_ratio_task = ACSTaskMetadata.make_folktables_task(
 
 
 # Dummy/test ACS task to predict health insurance coverage using all other available features
-acs_full_task = TaskMetadata(
+acs_full_task = ACSTaskMetadata.make_task(
     name="ACSHealthInsurance-test",
     description=(
         "predict whether an individual has purchased health insurance directly "
@@ -150,6 +152,5 @@ acs_full_task = TaskMetadata(
         *acs_travel_time_task.features,
     })),
     target="HINS2",
-    cols_to_text=acs_columns_map,
     target_threshold=acs_health_insurance_threshold,
 )

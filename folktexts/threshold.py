@@ -18,7 +18,7 @@ class Threshold:
     value : float | int
         The threshold value to compare against.
     op : str
-        The comparison operator to use. One of '>', '<', '>=', '<=', '=='.
+        The comparison operator to use. One of '>', '<', '>=', '<=', '==', '!='.
     """
     value: float | int
     op: str
@@ -29,6 +29,7 @@ class Threshold:
         ">=": operator.ge,
         "<=": operator.le,
         "==": operator.eq,
+        "!=": operator.ne,
     }
 
     def __post_init__(self):

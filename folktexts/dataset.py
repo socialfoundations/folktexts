@@ -10,7 +10,6 @@ TODO
 from __future__ import annotations
 
 import logging
-from abc import ABC
 
 import numpy as np
 import pandas as pd
@@ -23,7 +22,7 @@ DEFAULT_VAL_SIZE = 0.1
 DEFAULT_SEED = 42
 
 
-class Dataset(ABC):
+class Dataset:
     def __init__(
         self,
         data: pd.DataFrame,
@@ -64,8 +63,9 @@ class Dataset(ABC):
 
         if not all(col in self.data.columns for col in (task.features + [task.get_target()])):
             raise ValueError(
-                f"Task columns not found in dataset: "
-                f"features={task.features}, target={task.get_target()}")
+                f"The following task columns were not found in the dataset: "
+                f"{list(set(task.features + [task.get_target()]) - set(self.data.columns))};"
+            )
 
         self._test_size = test_size
         self._val_size = val_size or 0
@@ -88,6 +88,29 @@ class Dataset(ABC):
 
     @property
     def data(self) -> pd.DataFrame:
+        return self._data
+
+    @data.setter
+    def data(self, new_data) -> pd.DataFrame:
+        # Check if task columns are in the data
+        if not all(col in new_data.columns for col in (self.task.features + [self.task.get_target()])):
+            raise ValueError(
+                f"Task columns not found in dataset: "
+                f"features={self.task.features}, target={self.task.get_target()}")
+
+        # Update data
+        self._data = new_data
+
+        # Reset train/test/val indices
+        self._train_indices, self._test_indices, self._val_indices = (
+            self._make_train_test_val_split(
+                self._data, self.test_size, self.val_size, self._rng)
+        )
+
+        # Set subsampling to None
+        # (data was manually set, any subsampling will have to be re-done)
+        self._subsampling = None
+
         return self._data
 
     @property

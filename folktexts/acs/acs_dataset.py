@@ -145,12 +145,11 @@ class ACSDataset(Dataset):
         parsed_df : pd.DataFrame
             Parsed DataFrame in accordance with the given task.
         """
-        if not isinstance(task, ACSTaskMetadata):
-            logging.error(f"Expected task of type `ACSTaskMetadata` for {type(task)}")
-            return full_df
-
-        # Parse data
-        parsed_df = task.folktables_obj._preprocess(full_df)
+        # Pre-process the data if necessary
+        if isinstance(task, ACSTaskMetadata) and task.folktables_obj is not None:
+            parsed_df = task.folktables_obj._preprocess(full_df)
+        else:
+            parsed_df = full_df
 
         # Threshold the target column if necessary
         if task.target_threshold is not None and task.get_target() not in parsed_df.columns:

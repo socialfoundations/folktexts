@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import logging
 import statistics
-from typing import Optional
+from functools import partial
+from typing import Optional, Callable
 
 import numpy as np
 from netcal.metrics import ECE
@@ -294,40 +295,40 @@ def evaluate_predictions(
     return results
 
 
-def evaluate_predictions_bootstrap(
+def bootstrap_estimate(
+    eval_func: Callable[[np.ndarray, np.ndarray, np.ndarray], dict[str, float]],
+    *,
     y_true: np.ndarray,
     y_pred_scores: np.ndarray,
-    *,
     sensitive_attribute: np.ndarray = None,
-    threshold: float | str = "best",
     k: int = 200,
     confidence_pct: float = 95,
     seed: int = 42,
 ) -> dict:
-    """Computes bootstrap estimates of several metrics for the given predictions.
+    """Computes bootstrap estimates of the given evaluation function.
 
     Parameters
     ----------
+    eval_func : Callable[[np.ndarray, np.ndarray, np.ndarray], dict[str, float]]
+        The evaluation function to run for each bootstrap sample. Must follow
+        the signature `eval_func(y_true, y_pred_scores, sensitive_attribute)`.
     y_true : np.ndarray
         The true labels.
     y_pred_scores : np.ndarray
-        The score predictions.
+        The predicted scores.
     sensitive_attribute : np.ndarray, optional
-        The sensitive attribute data. Will compute fairness metrics if provided.
-    threshold : float | str, optional
-        The threshold to use for binarizing the predictions, or "best" to infer
-        which threshold maximizes accuracy, by default "best".
+        Optionally, provide the sensitive attribute data to compute fairness
+        metrics, by default None.
     k : int, optional
         How many bootstrap samples to draw, by default 200.
     confidence_pct : float, optional
-        How large of a confidence interval to use when reporting lower and upper
-        bounds, by default 95 (i.e., 2.5 to 97.5 percentile of results).
+        The confidence interval to use, in percentage, by default 95.
     seed : int, optional
         The random seed, by default 42.
 
     Returns
     -------
-    results : dict
+    results : dict[str, float]
         A dictionary containing bootstrap estimates for a variety of metrics.
     """
     assert len(y_true) == len(y_pred_scores)
@@ -341,11 +342,11 @@ def evaluate_predictions_bootstrap(
 
         # Evaluate predictions on this bootstrap sample
         results.append(
-            evaluate_predictions(
-                y_true=y_true[indices],
-                y_pred_scores=y_pred_scores[indices],
-                sensitive_attribute=sensitive_attribute[indices] if sensitive_attribute is not None else None,
-                threshold=threshold,
+            eval_func(
+                y_true[indices],            # ground-truth labels
+                y_pred_scores[indices],     # predicted risk scores
+                sensitive_attribute[indices]
+                if sensitive_attribute is not None else None,  # sensitive attributes
             )
         )
 
@@ -377,4 +378,56 @@ def evaluate_predictions_bootstrap(
             }
             for metric in sorted(bt_mean.keys())
         )
+    )
+
+
+def evaluate_predictions_bootstrap(
+    y_true: np.ndarray,
+    y_pred_scores: np.ndarray,
+    *,
+    sensitive_attribute: np.ndarray = None,
+    threshold: float | str = "best",
+    k: int = 200,
+    confidence_pct: float = 95,
+    seed: int = 42,
+) -> dict:
+    """Computes bootstrap estimates of classification metrics for the given predictions.
+
+    Parameters
+    ----------
+    y_true : np.ndarray
+        The true labels.
+    y_pred_scores : np.ndarray
+        The score predictions.
+    sensitive_attribute : np.ndarray, optional
+        The sensitive attribute data. Will compute fairness metrics if provided.
+    threshold : float | str, optional
+        The threshold to use for binarizing the predictions, or "best" to infer
+        which threshold maximizes accuracy, by default "best".
+    k : int, optional
+        How many bootstrap samples to draw, by default 200.
+    confidence_pct : float, optional
+        How large of a confidence interval to use when reporting lower and upper
+        bounds, by default 95 (i.e., 2.5 to 97.5 percentile of results).
+    seed : int, optional
+        The random seed, by default 42.
+
+    Returns
+    -------
+    results : dict[str, float]
+        A dictionary containing bootstrap estimates for a variety of metrics.
+    """
+    return bootstrap_estimate(
+        eval_func=lambda labels, scores, sens_attr=None: evaluate_predictions(
+            y_true=labels,
+            y_pred_scores=scores,
+            sensitive_attribute=sens_attr,
+            threshold=threshold,
+        ),
+        y_true=y_true,
+        y_pred_scores=y_pred_scores,
+        sensitive_attribute=sensitive_attribute,
+        k=k,
+        confidence_pct=confidence_pct,
+        seed=seed,
     )

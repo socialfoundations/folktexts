@@ -29,7 +29,7 @@ _error_msg = (
 
 
 # Minimum fraction of the dataset size to consider a group for plotting
-GROUP_SIZE_THRESHOLD = 0.03
+GROUP_SIZE_THRESHOLD = 0.04
 
 
 def _check_plotting_deps() -> bool:
