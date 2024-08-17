@@ -10,7 +10,6 @@ TODO
 from __future__ import annotations
 
 import logging
-from abc import ABC
 
 import numpy as np
 import pandas as pd
@@ -23,7 +22,7 @@ DEFAULT_VAL_SIZE = 0.1
 DEFAULT_SEED = 42
 
 
-class Dataset(ABC):
+class Dataset:
     def __init__(
         self,
         data: pd.DataFrame,
