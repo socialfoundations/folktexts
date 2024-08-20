@@ -98,16 +98,17 @@ dataset = ACSDataset.make_from_task(acs_task_name)   # use `.subsample(0.01)` to
 
 # And simply run the benchmark to get a variety of metrics and plots
 from folktexts.benchmark import Benchmark
-benchmark_results = Benchmark(clf, dataset).run(results_root_dir=".")
+benchmark_results = Benchmark(clf, dataset).run(results_root_dir="results")
 
-# You can compute the risk score predictions for the whole dataset
-y_scores = clf.predict_proba(dataset)
+# You can compute risk score predictions using an sklearn-style interface
+X_test, y_test = dataset.get_test()
+test_scores = clf.predict_proba(X_test)
 
-# And, optionally, you can fit the threshold based on a small portion of the data
-clf.fit(*dataset[0:100])
+# Optionally, you can fit the threshold based on a few samples
+clf.fit(*dataset[0:100])    # (`dataset[...]` will access training data)
 
 # ...in order to get more accurate binary predictions with `.predict`
-clf.predict(dataset)
+test_preds = clf.predict(X_test)
 ```
 
 <!-- TODO: add code to show-case example functionalities, including the
