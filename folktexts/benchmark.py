@@ -460,13 +460,13 @@ class Benchmark:
 
         # Load the QA interface to be used for risk-score prompting
         if config.direct_risk_prompting:
-            logging.warning(f"Untested feature: direct_risk_prompting={config.direct_risk_prompting}")  # TODO!
+            logging.warning(f"Untested feature: direct_risk_prompting={config.direct_risk_prompting}")
             question = acs_numeric_qa_map[task_obj.get_target()]
         else:
             question = acs_multiple_choice_qa_map[task_obj.get_target()]
 
         # Set the task's target question
-        task_obj.cols_to_text[task_obj.get_target()]._question = question
+        task_obj.question = question
 
         # Construct the LLMClassifier object
         llm_inference_kwargs = {"correct_order_bias": config.correct_order_bias}

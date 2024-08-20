@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import Iterator
 
 import torch
+import numpy as np
 from transformers import AutoTokenizer
 
 from ._utils import hash_dict
@@ -40,15 +41,17 @@ class QAInterface(ABC):
 
     def get_answer_from_model_output(
         self,
-        last_token_probs: torch.Tensor,
+        last_token_probs: np.ndarray,
         tokenizer: AutoTokenizer,
     ) -> float:
         """Decodes the model's output into an answer for the given question.
 
         Parameters
         ----------
-        output : torch.Tensor
-            The model's last token probabilities for the question.
+        last_token_probs : np.ndarray
+            The model's last token probabilities for the question. The first
+            dimension corresponds to the number of forward passes as specified
+            by `self.num_forward_passes`.
         tokenizer : AutoTokenizer
             The tokenizer used to encode the question.
 
@@ -114,14 +117,14 @@ class DirectNumericQA(QAInterface):
 
     def get_answer_from_model_output(
         self,
-        last_token_probs: torch.Tensor,
+        last_token_probs: np.ndarray,
         tokenizer: AutoTokenizer,
     ) -> float | int:
         """Outputs a numeric answer inferred from the model's output.
 
         Parameters
         ----------
-        last_token_probs : torch.Tensor
+        last_token_probs : np.ndarray
             The last token probabilities of the model for the question.
             The first dimension must correspond to the number for forward passes
             as specified by `num_forward_passes`.
@@ -146,7 +149,6 @@ class DirectNumericQA(QAInterface):
         )
 
         answer_text = ""
-        # import ipdb; ipdb.set_trace() # TODO: check if this works
         for ltp in last_token_probs:
             # Get the probability of each numeric token
             number_probs = {
@@ -289,14 +291,14 @@ Answer:""")
 
     def _decode_model_output_to_choice_distribution(
         self,
-        last_token_probs: torch.Tensor,
+        last_token_probs: np.ndarray,
         tokenizer: AutoTokenizer,
     ) -> float:
         """Decodes the model's output into an answer distribution.
 
         Parameters
         ----------
-        last_token_probs : torch.Tensor
+        last_token_probs : np.ndarray
             The model's last token probabilities for the question.
         tokenizer : AutoTokenizer
             The tokenizer used to train the model.
@@ -352,15 +354,17 @@ Answer:""")
 
     def get_answer_from_model_output(
         self,
-        last_token_probs: torch.Tensor,
+        last_token_probs: np.ndarray,
         tokenizer: AutoTokenizer,
     ) -> float:
         """Decodes the model's output into an answer for the given question.
 
         Parameters
         ----------
-        output : torch.Tensor
-            The model's last token probabilities for the question.
+        last_token_probs : np.ndarray
+            The model's last token probabilities for the question. The first
+            dimension corresponds to the number of forward passes as specified
+            by `self.num_forward_passes`.
         tokenizer : AutoTokenizer
             The tokenizer used to encode the question.
 
@@ -369,6 +373,10 @@ Answer:""")
         answer : float
             The answer to the question.
         """
+        if last_token_probs.ndim > 1:
+            # Using only first forward pass, since only one pass is expected
+            last_token_probs = last_token_probs[0]
+
         answers = self._decode_model_output_to_choice_distribution(
             last_token_probs=last_token_probs,
             tokenizer=tokenizer,

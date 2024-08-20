@@ -14,7 +14,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from folktexts.dataset import Dataset
 from folktexts.evaluation import compute_best_threshold
-from folktexts.llm_utils import query_model_batch
+from folktexts.llm_utils import query_model_batch, query_model_batch_multiple_passes
 from folktexts.prompting import encode_row_prompt as default_encode_row_prompt
 from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA
 from folktexts.task import TaskMetadata
@@ -328,7 +328,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
             batch_data = df.iloc[start_idx:end_idx]
 
             batch_risk_scores = np.empty((len(batch_data), len(questions)))
-            for idx, q in enumerate(questions):
+            for q_idx, q in enumerate(questions):
 
                 # Encode batch data into natural text prompts
                 data_texts_batch = [
@@ -337,11 +337,12 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
                 ]
 
                 # Query model
-                last_token_probs_batch = query_model_batch(
+                last_token_probs_batch = query_model_batch_multiple_passes(
                     data_texts_batch,
                     self.model,
                     self.tokenizer,
                     context_size=context_size,
+                    n_passes=q.num_forward_passes,
                 )
 
                 # Decode model output
@@ -354,9 +355,9 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
                 ]
 
                 # Store risk estimates for current question
-                batch_risk_scores[:, idx] = risk_estimates_batch
+                batch_risk_scores[:, q_idx] = risk_estimates_batch
 
-            risk_scores[start_idx:end_idx] = batch_risk_scores.mean(axis=1)
+            risk_scores[start_idx: end_idx] = batch_risk_scores.mean(axis=1)
 
         # Check that all risk scores were computed
         assert not np.isclose(risk_scores, fill_value).any()

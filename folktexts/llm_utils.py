@@ -31,9 +31,9 @@ def query_model_batch(
 
     Returns
     -------
-    np.array
+    last_token_probs : np.array
         Model's last token probabilities for each input as a np.array of shape
-        (len(text_inputs), vocab_size).
+        (batch_size, vocab_size).
     """
     model_device = next(model.parameters()).device
 
@@ -59,6 +59,63 @@ def query_model_batch(
     last_token_logits = logits[torch.arange(len(idx_last_token)), idx_last_token]
     last_token_probs = torch.nn.functional.softmax(last_token_logits, dim=-1)
     return last_token_probs.to(dtype=torch.float16).cpu().numpy()
+
+
+def query_model_batch_multiple_passes(
+    text_inputs: list[str],
+    model: AutoModelForCausalLM,
+    tokenizer: AutoTokenizer,
+    context_size: int,
+    n_passes: int = 1,
+) -> np.array:
+    """Queries an LM for multiple forward passes.
+
+    Each forward pass takes the highest likelihood token from the previous pass.
+
+    TODO: Search all 10x10 possible combinations of tokens to maximize likelihood.
+
+    Parameters
+    ----------
+    text_inputs : list[str]
+        The batch inputs to the model as a list of strings.
+    model : AutoModelForCausalLM
+        The model to query.
+    tokenizer : AutoTokenizer
+        The tokenizer used to encode the text inputs.
+    context_size : int
+        The maximum context size to consider for each input (in tokens).
+    n_passes : int, optional
+        The number of forward passes to run, by default 1.
+
+    Returns
+    -------
+    last_token_probs : np.array
+        Last token probabilities for each forward pass, for each text in the
+        input batch. The output has shape (batch_size, n_passes, vocab_size).
+    """
+
+    # Current text batch
+    current_batch = text_inputs
+
+    # For each forward pass, add one token to each text in the batch
+    last_token_probs = []
+
+    for _ in range(n_passes):
+        # Query the model with the current batch
+        current_probs = query_model_batch(current_batch, model, tokenizer, context_size)
+
+        # Add the highest likelihood token to each text in the batch
+        next_tokens = [tokenizer.decode([np.argmax(probs)]) for probs in current_probs]
+        current_batch = [text + next_token for text, next_token in zip(current_batch, next_tokens)]
+
+        # Store the probabilities of the last token for each text in the batch
+        last_token_probs.append(current_probs)
+
+    # Cast output to np.array with correct shape
+    last_token_probs_array = np.array(last_token_probs)
+    last_token_probs_array = np.moveaxis(last_token_probs_array, 0, 1)
+    assert last_token_probs_array.shape == (len(text_inputs), n_passes, tokenizer.vocab_size)
+    return last_token_probs_array
 
 
 def add_pad_token(tokenizer):
