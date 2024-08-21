@@ -343,7 +343,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
                     self.tokenizer,
                     context_size=context_size,
                     n_passes=q.num_forward_passes,
-                    digits_only=True,
+                    digits_only=True if isinstance(q, DirectNumericQA) else False,
                 )
 
                 # Decode model output
