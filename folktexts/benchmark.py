@@ -30,10 +30,40 @@ DEFAULT_ROOT_RESULTS_DIR = Path(".")
 
 @dataclasses.dataclass(frozen=True, eq=True)
 class BenchmarkConfig:
-    """A dataclass to hold the configuration for a calibration benchmark."""
+    """A dataclass to hold the configuration for risk-score benchmark.
+
+    Attributes
+    ----------
+    chat_prompt : bool, optional
+        Whether to use chat-style prompting, by default False.
+    numeric_risk_prompting : bool, optional
+        Whether to prompt for numeric risk-estimates instead of multiple-choice
+        Q&A, by default False.
+    few_shot : int | None, optional
+        Whether to use few-shot prompting with a given number of examples, by
+        default None.
+    reuse_few_shot_examples : bool, optional
+        Whether to reuse the same samples for few-shot prompting (or sample new
+        ones every time), by default False.
+    batch_size : int | None, optional
+        The batch size to use for inference.
+    context_size : int | None, optional
+        The maximum context size when prompting the LLM.
+    correct_order_bias : bool, optional
+        Whether to correct the ordering bias in multiple-choice Q&A when
+        prompting the LLM, by default True.
+    feature_subset : list[str] | None, optional
+        Whether to use a subset of the standard feature set for the task. The
+        list should contain the names of the columns of features to use.
+    population_filter : dict | None, optional
+        Optional population filter for this benchmark; must follow the format
+        `{"column_name": "value"}`.
+    seed : int, optional
+        Random seed -- to set for reproducibility.
+    """
 
     chat_prompt: bool = False
-    direct_risk_prompting: bool = False
+    numeric_risk_prompting: bool = False
     few_shot: int | None = None
     reuse_few_shot_examples: bool = False
     batch_size: int | None = None
@@ -459,8 +489,8 @@ class Benchmark:
             )
 
         # Load the QA interface to be used for risk-score prompting
-        if config.direct_risk_prompting:
-            logging.warning(f"Untested feature: direct_risk_prompting={config.direct_risk_prompting}")
+        if config.numeric_risk_prompting:
+            logging.warning(f"Untested feature: numeric_risk_prompting={config.numeric_risk_prompting}")
             question = acs_numeric_qa_map[task_obj.get_target()]
         else:
             question = acs_multiple_choice_qa_map[task_obj.get_target()]

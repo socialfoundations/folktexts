@@ -136,19 +136,19 @@ This script uses sklearn's [`permutation_importance`](https://scikit-learn.org/s
 ## Benchmark options
 
 ```
-usage: run_acs_benchmark [-h] --model MODEL --task-name TASK_NAME --results-dir RESULTS_DIR --data-dir DATA_DIR [--few-shot FEW_SHOT] [--batch-size BATCH_SIZE] [--context-size CONTEXT_SIZE] [--fit-threshold FIT_THRESHOLD] [--subsampling SUBSAMPLING] [--seed SEED] [--dont-correct-order-bias] [--chat-prompt] [--direct-risk-prompting] [--reuse-few-shot-examples] [--use-feature-subset [USE_FEATURE_SUBSET ...]]
-                         [--use-population-filter [USE_POPULATION_FILTER ...]] [--logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
+usage: run_acs_benchmark [-h] --model MODEL --results-dir RESULTS_DIR --data-dir DATA_DIR [--task TASK] [--few-shot FEW_SHOT] [--batch-size BATCH_SIZE] [--context-size CONTEXT_SIZE] [--fit-threshold FIT_THRESHOLD] [--subsampling SUBSAMPLING]
+                         [--seed SEED] [--dont-correct-order-bias] [--chat-prompt] [--numeric-risk-prompting] [--reuse-few-shot-examples] [--use-feature-subset USE_FEATURE_SUBSET] [--use-population-filter USE_POPULATION_FILTER]
+                         [--logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
 
-Run an LLM as a classifier experiment.
+Benchmark risk scores produced by a language model on ACS data.
 
 options:
   -h, --help            show this help message and exit
   --model MODEL         [str] Model name or path to model saved on disk
-  --task-name TASK_NAME
-                        [str] Name of the ACS task to run the experiment on
   --results-dir RESULTS_DIR
                         [str] Directory under which this experiment's results will be saved
   --data-dir DATA_DIR   [str] Root folder to find datasets on
+  --task TASK           [str] Name of the ACS task to run the experiment on
   --few-shot FEW_SHOT   [int] Use few-shot prompting with the given number of shots
   --batch-size BATCH_SIZE
                         [int] The batch size to use for inference
@@ -162,14 +162,14 @@ options:
   --dont-correct-order-bias
                         [bool] Whether to avoid correcting ordering bias, by default will correct it
   --chat-prompt         [bool] Whether to use chat-based prompting (for instruct models)
-  --direct-risk-prompting
-                        [bool] Whether to directly prompt for risk-estimates instead of multiple-choice Q&A
+  --numeric-risk-prompting
+                        [bool] Whether to prompt for numeric risk-estimates instead of multiple-choice Q&A
   --reuse-few-shot-examples
                         [bool] Whether to reuse the same samples for few-shot prompting (or sample new ones every time)
-  --use-feature-subset [USE_FEATURE_SUBSET ...]
-                        [str] Optional subset of features to use for prediction
-  --use-population-filter [USE_POPULATION_FILTER ...]
-                        [str] Optional population filter for this benchmark; must follow the format 'column_name=value' to filter the dataset by a specific value.
+  --use-feature-subset USE_FEATURE_SUBSET
+                        [str] Optional subset of features to use for prediction, comma separated
+  --use-population-filter USE_POPULATION_FILTER
+                        [str] Optional population filter for this benchmark; must follow the format 'column_name=value' to filter the dataset by a specific value
   --logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                         [str] The logging level to use for the experiment
 ```
