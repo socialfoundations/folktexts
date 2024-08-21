@@ -5,9 +5,13 @@ import logging
 import re
 from pathlib import Path
 
-import numpy as np
 import torch
+import numpy as np
 from transformers import AutoModelForCausalLM, AutoTokenizer
+
+
+# Will warn if the sum of digit probabilities is below this threshold
+PROB_WARN_THR = 0.5
 
 
 def query_model_batch(
@@ -66,13 +70,15 @@ def query_model_batch_multiple_passes(
     model: AutoModelForCausalLM,
     tokenizer: AutoTokenizer,
     context_size: int,
-    n_passes: int = 1,
+    n_passes: int,
+    digits_only: bool = False,
 ) -> np.array:
     """Queries an LM for multiple forward passes.
 
-    Each forward pass takes the highest likelihood token from the previous pass.
+    Greedy token search over multiple forward passes: Each forward pass takes 
+    the highest likelihood token from the previous pass.
 
-    TODO: Search all 10x10 possible combinations of tokens to maximize likelihood.
+    NOTE: could use model.generate in the future!
 
     Parameters
     ----------
@@ -85,7 +91,9 @@ def query_model_batch_multiple_passes(
     context_size : int
         The maximum context size to consider for each input (in tokens).
     n_passes : int, optional
-        The number of forward passes to run, by default 1.
+        The number of forward passes to run.
+    digits_only : bool, optional
+        Whether to only sample for digit tokens.
 
     Returns
     -------
@@ -93,6 +101,16 @@ def query_model_batch_multiple_passes(
         Last token probabilities for each forward pass, for each text in the
         input batch. The output has shape (batch_size, n_passes, vocab_size).
     """
+    # If `digits_only`, get token IDs for digit tokens
+    allowed_tokens_filter = np.ones(len(tokenizer.vocab), dtype=bool)
+    if digits_only:
+        allowed_token_ids = np.array([
+            tok_id
+            for token, tok_id in tokenizer.vocab.items() if token.isdecimal()
+        ])
+
+        allowed_tokens_filter = np.zeros(len(tokenizer.vocab), dtype=bool)
+        allowed_tokens_filter[allowed_token_ids] = True
 
     # Current text batch
     current_batch = text_inputs
@@ -100,9 +118,18 @@ def query_model_batch_multiple_passes(
     # For each forward pass, add one token to each text in the batch
     last_token_probs = []
 
-    for _ in range(n_passes):
+    for iter in range(n_passes):
         # Query the model with the current batch
         current_probs = query_model_batch(current_batch, model, tokenizer, context_size)
+
+        # Filter out probabilities for tokens that are not allowed
+        current_probs[:, ~allowed_tokens_filter] = 0
+
+        # Sanity check digit probabilities
+        if iter == 0 and digits_only:
+            total_digit_probs = np.sum(current_probs, axis=-1)
+            if any(probs < PROB_WARN_THR for probs in total_digit_probs):
+                logging.error(f"Digit probabilities are too low: {total_digit_probs}")
 
         # Add the highest likelihood token to each text in the batch
         next_tokens = [tokenizer.decode([np.argmax(probs)]) for probs in current_probs]
@@ -114,7 +141,7 @@ def query_model_batch_multiple_passes(
     # Cast output to np.array with correct shape
     last_token_probs_array = np.array(last_token_probs)
     last_token_probs_array = np.moveaxis(last_token_probs_array, 0, 1)
-    assert last_token_probs_array.shape == (len(text_inputs), n_passes, tokenizer.vocab_size)
+    assert last_token_probs_array.shape == (len(text_inputs), n_passes, len(tokenizer.vocab))
     return last_token_probs_array
 
 
