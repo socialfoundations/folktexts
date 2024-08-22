@@ -5,6 +5,7 @@ import math
 from functools import partial
 from pathlib import Path
 from typing import Callable
+from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd
@@ -23,75 +24,66 @@ from ._utils import hash_dict, hash_function
 
 DEFAULT_CONTEXT_SIZE = 500
 DEFAULT_BATCH_SIZE = 16
-DEFAULT_CORRECT_ORDER_BIAS = True
 
 SCORE_COL_NAME = "risk_score"
 LABEL_COL_NAME = "label"
 
 
-class LLMClassifier(BaseEstimator, ClassifierMixin):
-    """An interface to use a transformer-based LLM as a binary classifier."""
+class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
+    """An interface to produce risk scores and class predictions with an LLM."""
+
+    DEFAULT_INFERENCE_KWARGS = {
+        "context_size": DEFAULT_CONTEXT_SIZE,
+        "batch_size": DEFAULT_BATCH_SIZE,
+    }
 
     def __init__(
         self,
-        model: AutoModelForCausalLM,
-        tokenizer: AutoTokenizer,
+        model_name: str,
         task: TaskMetadata | str,
         encode_row: Callable[[pd.Series], str] = None,
-        correct_order_bias: bool = DEFAULT_CORRECT_ORDER_BIAS,
+        correct_order_bias: bool = True,
         threshold: float = 0.5,
         **inference_kwargs,
     ):
-        """Creates an LLMClassifier object.
 
-        Parameters
-        ----------
-        model : AutoModelForCausalLM
-            The torch language model to use for inference.
-        tokenizer : AutoTokenizer
-            The tokenizer used to train the model.
-        task : TaskMetadata | str
-            The task metadata object or name of an already created task. This
-            will be used to encode tabular rows into natural text prompts.
-        encode_row : Callable[[pd.Series], str], optional
-            The function used to encode tabular rows into natural text. If not
-            provided, will use the default encoding function for the task.
-        threshold : float, optional
-            The classification threshold to use when outputting binary
-            predictions, by default 0.5. Must be between 0 and 1. Will be
-            re-calibrated if `fit` is called.
-        **inference_kwargs
-            Additional keyword arguments to pass to `self.predict_proba(...)`
-            during inference. By default, will use `context_size=500` and
-            `batch_size=16`.
-        """
-        self._model = model
-        self._tokenizer = tokenizer
+        # Set classifier metadata
+        self._model_name = model_name
+
         self._task = TaskMetadata.get_task(task) if isinstance(task, str) else task
         self._encode_row = encode_row or partial(
             default_encode_row_prompt,
             task=self.task,
         )
-        self._threshold = threshold
 
-        self.correct_order_bias = correct_order_bias
+        self._threshold = threshold
+        self._correct_order_bias = correct_order_bias
 
         # Default inference kwargs
-        self._inference_kwargs = inference_kwargs
-        self._inference_kwargs.setdefault("context_size", DEFAULT_CONTEXT_SIZE)
-        self._inference_kwargs.setdefault("batch_size", DEFAULT_BATCH_SIZE)
+        self._inference_kwargs = self.DEFAULT_INFERENCE_KWARGS.copy()
+        self._inference_kwargs.update(inference_kwargs)
 
         # Fixed sklearn parameters
         self.classes_ = np.array([0, 1])
         self._is_fitted = False
 
-    @property
-    def model(self) -> AutoModelForCausalLM:
-        return self._model
+    def __hash__(self) -> int:
+        """Generate a unique hash for this object."""
+
+        # All parameters that affect the model's behavior
+        hash_params = dict(
+            model_name=self.model_name,
+            task_hash=hash(self.task),
+            correct_order_bias=self.correct_order_bias,
+            threshold=self.threshold,
+            encode_row_hash=hash_function(self.encode_row),
+        )
+
+        return int(hash_dict(hash_params), 16)
 
     @property
-    def tokenizer(self) -> AutoTokenizer:
-        return self._tokenizer
+    def model_name(self) -> str:
+        return self._model_name
 
     @property
     def task(self) -> TaskMetadata:
@@ -100,10 +92,6 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
     @property
     def encode_row(self) -> Callable[[pd.Series], str]:
         return self._encode_row
-
-    @property
-    def model_name(self) -> str:
-        return Path(self.model.name_or_path).name
 
     @property
     def threshold(self) -> float:
@@ -116,42 +104,24 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
 
         # Clip threshold to valid range
         self._threshold = np.clip(value, 0, 1)
-        logging.info(f"Set threshold to {self._threshold}.")
+        logging.warning(f"Setting {self.model_name} threshold to {self._threshold}.")
 
-    def __hash__(self) -> int:
-        """Generate a unique hash for the LLMClassifier object."""
+    @property
+    def correct_order_bias(self) -> bool:
+        return self._correct_order_bias
 
-        # All parameters that affect the model's behavior
-        hash_params = dict(
-            model_name=self.model_name,
-            model_size=self.model.num_parameters(),
-            tokenizer_vocab_size=self.tokenizer.vocab_size,
-            task_hash=hash(self.task),
-            correct_order_bias=self.correct_order_bias,
-            threshold=self.threshold,
-            encode_row_hash=hash_function(self.encode_row),
-        )
+    @correct_order_bias.setter
+    def correct_order_bias(self, value: bool):
+        self._correct_order_bias = value
+        logging.warning(f"Setting {self.model_name} correct_order_bias to {value}.")
 
-        return int(hash_dict(hash_params), 16)
+    @property
+    def inference_kwargs(self) -> dict:
+        return self._inference_kwargs
 
-    def fit(self, X, y, *, false_pos_cost=1.0, false_neg_cost=1.0, **kwargs):
-        """Uses the provided data sample to fit the prediction threshold."""
-
-        # Compute risk estimates for the data
-        y_pred_scores = self._get_positive_class_scores(
-            self.predict_proba(X, **kwargs)
-        )
-
-        # Compute the best threshold for the given data
-        self.threshold = compute_best_threshold(
-            y, y_pred_scores,
-            false_pos_cost=false_pos_cost,
-            false_neg_cost=false_neg_cost,
-        )
-
-        # Update sklearn is_fitted status
-        self._is_fitted = True
-        return self
+    def set_inference_kwargs(self, **kwargs):
+        """Set inference kwargs for the model."""
+        self._inference_kwargs.update(kwargs)
 
     def __sklearn_is_fitted__(self):
         """Check fitted status and return a Boolean value."""
@@ -169,24 +139,6 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
     def _make_predictions_multiclass(pos_class_scores: np.ndarray) -> np.ndarray:
         """Converts positive class scores to multiclass scores."""
         return np.column_stack([1 - pos_class_scores, pos_class_scores])
-
-    def predict(
-        self,
-        data: pd.DataFrame,
-        batch_size: int = None,
-        context_size: int = None,
-        predictions_save_path: str | Path = None,
-        labels: pd.Series | np.ndarray = None,
-    ) -> np.ndarray | dict[str, np.ndarray]:
-        """Returns binary predictions for the given data."""
-        risk_scores = self.predict_proba(
-            data,
-            batch_size=batch_size,
-            context_size=context_size,
-            predictions_save_path=predictions_save_path,
-            labels=labels,
-        )
-        return (self._get_positive_class_scores(risk_scores) >= self.threshold).astype(int)
 
     def _load_predictions_from_disk(
         self,
@@ -206,11 +158,23 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
             logging.error("Saved predictions do not match the current dataframe.")
             return None
 
+    def predict(
+        self,
+        data: pd.DataFrame,
+        predictions_save_path: str | Path = None,
+        labels: pd.Series | np.ndarray = None,
+    ) -> np.ndarray | dict[str, np.ndarray]:
+        """Returns binary predictions for the given data."""
+        risk_scores = self.predict_proba(
+            data,
+            predictions_save_path=predictions_save_path,
+            labels=labels,
+        )
+        return (self._get_positive_class_scores(risk_scores) >= self.threshold).astype(int)
+
     def predict_proba(
         self,
         data: pd.DataFrame,
-        batch_size: int = None,
-        context_size: int = None,
         predictions_save_path: str | Path = None,
         labels: pd.Series | np.ndarray = None,
     ) -> np.ndarray:
@@ -220,10 +184,6 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         ----------
         data : pd.DataFrame
             The DataFrame to compute risk estimates for.
-        batch_size : int, optional
-            The batch size to use when running inference.
-        context_size : int, optional
-            The context size to use when running inference (in number of tokens).
         predictions_save_path : str | Path, optional
             If provided, will save the computed risk scores to this path in
             disk. If the path exists, will attempt to load pre-computed
@@ -262,11 +222,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
                 f"`data` must be a pd.DataFrame, received {type(data)} instead.")
 
         # Compute risk estimates
-        risk_scores = self.compute_risk_estimates_for_dataframe(
-            df=data,
-            batch_size=batch_size,
-            context_size=context_size,
-        )
+        risk_scores = self.compute_risk_estimates_for_dataframe(df=data)
 
         # Save to disk if `predictions_save_path` is provided
         if predictions_save_path is not None:
@@ -278,11 +234,19 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
 
         return self._make_predictions_multiclass(risk_scores)
 
+    @abstractmethod
+    def prompt_batch_query(
+        self,
+        data_texts_batch: list[str],
+        *,
+        question: MultipleChoiceQA | DirectNumericQA,
+    ) -> np.ndarray:
+        """Query the model with a batch of data texts and return the last token probabilities."""
+        raise NotImplementedError("Calling an abstract method :: Use one of the subclasses of LLMClassifier.")
+
     def compute_risk_estimates_for_dataframe(
         self,
         df: pd.DataFrame,
-        batch_size: int = None,
-        context_size: int = None,
     ) -> np.ndarray:
         """Compute risk estimates for a specific dataframe (internal helper function).
 
@@ -290,10 +254,6 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         ----------
         df : pd.DataFrame
             The dataframe to compute risk estimates for.
-        batch_size : int, optional
-            The batch size to use when running inference.
-        context_size : int, optional
-            The context size to use when running inference (in number of tokens).
 
         Returns
         -------
@@ -306,8 +266,8 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         risk_scores = np.empty(len(df))
         risk_scores.fill(fill_value)    # fill with -1's
 
-        batch_size = batch_size or self._inference_kwargs["batch_size"]
-        context_size = context_size or self._inference_kwargs["context_size"]
+        batch_size = self._inference_kwargs["batch_size"]
+        context_size = self._inference_kwargs["context_size"]
         num_batches = math.ceil(len(df) / batch_size)
 
         # Get questions to ask
@@ -337,20 +297,17 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
                 ]
 
                 # Query model
-                last_token_probs_batch = query_model_batch_multiple_passes(
-                    data_texts_batch,
-                    self.model,
-                    self.tokenizer,
+                last_token_probs_batch = self.prompt_batch_query(
+                    data_texts_batch=data_texts_batch,
+                    question=q,
                     context_size=context_size,
-                    n_passes=q.num_forward_passes,
-                    digits_only=True if isinstance(q, DirectNumericQA) else False,
                 )
 
                 # Decode model output
                 risk_estimates_batch = [
                     q.get_answer_from_model_output(
                         ltp,
-                        tokenizer=self.tokenizer,
+                        tokenizer=self._tokenizer,
                     )
                     for ltp in last_token_probs_batch
                 ]
@@ -367,8 +324,6 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
     def compute_risk_estimates_for_dataset(
         self,
         dataset: Dataset,
-        batch_size: int = None,
-        context_size: int = None,
     ) -> dict[str, np.ndarray]:
         """Computes risk estimates for each row in the dataset.
 
@@ -376,10 +331,6 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         ----------
         dataset : Dataset
             The dataset to compute risk estimates for.
-        batch_size : int, optional
-            The batch size to use when running inference.
-        context_size : int, optional
-            The context size to use when running inference (in number of tokens).
 
         Returns
         -------
@@ -397,10 +348,157 @@ class LLMClassifier(BaseEstimator, ClassifierMixin):
         results = {
             data_type: self.compute_risk_estimates_for_dataframe(
                 df=df,
-                batch_size=batch_size,
-                context_size=context_size,
             )
             for data_type, df in data_types.items()
         }
 
         return results
+
+
+class TransformerLLMClassifier(LLMClassifier):
+    """Use a huggingface transformers model to produce risk scores."""
+
+    def __init__(
+        self,
+        model: AutoModelForCausalLM,
+        tokenizer: AutoTokenizer,
+        task: TaskMetadata | str,
+        encode_row: Callable[[pd.Series], str] = None,
+        correct_order_bias: bool = True,
+        threshold: float = 0.5,
+        **inference_kwargs,
+    ):
+        """Creates an LLMClassifier object.
+
+        Parameters
+        ----------
+        model : AutoModelForCausalLM
+            The torch language model to use for inference.
+        tokenizer : AutoTokenizer
+            The tokenizer used to train the model.
+        task : TaskMetadata | str
+            The task metadata object or name of an already created task. This
+            will be used to encode tabular rows into natural text prompts.
+        encode_row : Callable[[pd.Series], str], optional
+            The function used to encode tabular rows into natural text. If not
+            provided, will use the default encoding function for the task.
+        threshold : float, optional
+            The classification threshold to use when outputting binary
+            predictions, by default 0.5. Must be between 0 and 1. Will be
+            re-calibrated if `fit` is called.
+        **inference_kwargs
+            Additional keyword arguments to pass to `self.predict_proba(...)`
+            during inference. By default, will use `context_size=500` and
+            `batch_size=16`.
+        """
+        # Transformers objects for the model and tokenizer
+        self._model = model
+        self._tokenizer = tokenizer
+
+        # Fetch name for transformers model
+        model_name = Path(self._model.name_or_path).name
+
+        super().__init__(
+            model_name=model_name,
+            task=task,
+            encode_row=encode_row,
+            correct_order_bias=correct_order_bias,
+            threshold=threshold,
+            **inference_kwargs,
+        )
+
+    def __hash__(self) -> int:
+        """Generate a unique hash for the LLMClassifier object."""
+
+        # All parameters that affect the model's behavior
+        hash_params = dict(
+            super_hash=super().__hash__(),
+            model_size=self._model.num_parameters(),
+            tokenizer_vocab_size=self._tokenizer.vocab_size,
+        )
+
+        return int(hash_dict(hash_params), 16)
+
+    def fit(self, X, y, *, false_pos_cost=1.0, false_neg_cost=1.0, **kwargs):
+        """Uses the provided data sample to fit the prediction threshold."""
+
+        # Compute risk estimates for the data
+        y_pred_scores = self._get_positive_class_scores(
+            self.predict_proba(X, **kwargs)
+        )
+
+        # Compute the best threshold for the given data
+        self.threshold = compute_best_threshold(
+            y, y_pred_scores,
+            false_pos_cost=false_pos_cost,
+            false_neg_cost=false_neg_cost,
+        )
+
+        # Update sklearn is_fitted status
+        self._is_fitted = True
+        return self
+
+    def prompt_batch_query(
+        self,
+        data_texts_batch: list[str],
+        *,
+        context_size: int,
+        question: MultipleChoiceQA | DirectNumericQA,
+    ) -> np.ndarray:
+        """Query the model with a batch of data texts and return the last token probabilities."""
+
+        return query_model_batch_multiple_passes(
+            text_inputs=data_texts_batch,
+            model=self._model,
+            tokenizer=self._tokenizer,
+            context_size=context_size,
+            n_passes=question.num_forward_passes,
+            digits_only=True if isinstance(question, DirectNumericQA) else False,
+        )
+
+
+class WebAPILLMClassifier(LLMClassifier):
+    """Use an LLM through a web API to produce risk scores."""
+
+    def __init__(
+        self,
+        model_name: str,
+        task: TaskMetadata | str,
+        correct_order_bias: bool = True,
+        threshold: float = 0.5,
+        **inference_kwargs,
+    ):
+        """Creates an LLMClassifier object that uses a web API for inference.
+
+        Parameters
+        ----------
+        model_name : str
+            The model ID to be resolved by `litellm`.
+        task : TaskMetadata | str
+            The task metadata object or name of an already created task.
+        correct_order_bias : bool, optional
+            Whether to correct ordering bias in multiple-choice Q&A, by default
+            True.
+        threshold : float, optional
+            The threshold used to binarize risk scores produced by the model, by
+            default 0.5.
+        """
+        super().__init__(
+            model_name=model_name,
+            task=task,
+            correct_order_bias=correct_order_bias,
+            threshold=threshold,
+            **inference_kwargs,
+        )
+
+        # Set-up litellm client
+        # TODO?
+        pass
+
+    def compute_risk_estimates_for_dataframe(
+        self,
+        df: pd.DataFrame,
+    ) -> np.ndarray:
+        """Compute risk estimates for a specific dataframe.
+        """
+        raise NotImplementedError("WebAPILLMClassifier is not yet implemented.")

@@ -16,7 +16,7 @@ from ._utils import hash_dict, is_valid_number
 from .acs.acs_dataset import ACSDataset
 from .acs.acs_questions import acs_multiple_choice_qa_map, acs_numeric_qa_map
 from .acs.acs_tasks import ACSTaskMetadata
-from .classifier import LLMClassifier
+from .classifier import TransformerLLMClassifier
 from .dataset import Dataset
 from .evaluation import evaluate_predictions
 from .plotting import render_evaluation_plots, render_fairness_plots
@@ -125,7 +125,7 @@ class Benchmark:
 
     def __init__(
         self,
-        llm_clf: LLMClassifier,
+        llm_clf: TransformerLLMClassifier,
         dataset: Dataset,
         config: BenchmarkConfig = BenchmarkConfig.default_config(),
     ):
@@ -508,7 +508,7 @@ class Benchmark:
         if config.context_size is not None:
             llm_inference_kwargs["context_size"] = config.context_size
 
-        llm_clf = LLMClassifier(
+        llm_clf = TransformerLLMClassifier(
             model=model,
             tokenizer=tokenizer,
             task=task_obj,
