@@ -7,7 +7,7 @@ from pathlib import Path
 from sklearn.inspection import permutation_importance
 
 from folktexts._io import save_json, save_pickle
-from folktexts.classifier import TransformerLLMClassifier
+from folktexts.classifier import LLMClassifier, TransformersLLMClassifier
 from folktexts.dataset import Dataset
 from folktexts.llm_utils import get_model_folder_path, load_model_tokenizer
 
@@ -71,7 +71,7 @@ def parse_feature_importance(results: dict, columns: list[str]) -> dict:
 
 
 def compute_feature_importance(
-    llm_clf: TransformerLLMClassifier,
+    llm_clf: LLMClassifier,
     dataset: Dataset,
     scorer: str,
     results_dir: Path,
@@ -156,8 +156,8 @@ def main():
         logging.info(f"{dataset.subsampling=}")
 
     # Construct LLM Classifier
-    from folktexts.classifier import TransformerLLMClassifier
-    llm_clf = TransformerLLMClassifier(
+    from folktexts.classifier import TransformersLLMClassifier
+    llm_clf = TransformersLLMClassifier(
         model=model,
         tokenizer=tokenizer,
         task=task,

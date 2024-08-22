@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import logging
+import time
 import math
+import logging
 from functools import partial
 from pathlib import Path
 from typing import Callable
@@ -15,7 +16,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from folktexts.dataset import Dataset
 from folktexts.evaluation import compute_best_threshold
-from folktexts.llm_utils import query_model_batch, query_model_batch_multiple_passes
+from folktexts.llm_utils import query_model_batch_multiple_passes
 from folktexts.prompting import encode_row_prompt as default_encode_row_prompt
 from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA
 from folktexts.task import TaskMetadata
@@ -42,10 +43,35 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         model_name: str,
         task: TaskMetadata | str,
         encode_row: Callable[[pd.Series], str] = None,
-        correct_order_bias: bool = True,
         threshold: float = 0.5,
+        correct_order_bias: bool = True,
+        seed: int = 42,
         **inference_kwargs,
     ):
+        """Creates an LLMClassifier object.
+
+        Parameters
+        ----------
+        model_name : str
+            The model name or ID.
+        task : TaskMetadata | str
+            The task metadata object or name of an already created task.
+        encode_row : Callable[[pd.Series], str], optional
+            The function used to encode tabular rows into natural text. If not
+            provided, will use the default encoding function for the task.
+        threshold : float, optional
+            The classification threshold to use when outputting binary
+            predictions, by default 0.5. Must be between 0 and 1. Will be
+            re-calibrated if `fit` is called.
+        correct_order_bias : bool, optional
+            Whether to correct ordering bias in multiple-choice Q&A questions,
+            by default True.
+        seed : int, optional
+            The random seed - used for reproducibility.
+        **inference_kwargs
+            Additional keyword arguments to be used at inference time. Options
+            include `context_size` and `batch_size`.
+        """
 
         # Set classifier metadata
         self._model_name = model_name
@@ -58,6 +84,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
 
         self._threshold = threshold
         self._correct_order_bias = correct_order_bias
+        self._seed = seed
 
         # Default inference kwargs
         self._inference_kwargs = self.DEFAULT_INFERENCE_KWARGS.copy()
@@ -116,6 +143,10 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         logging.warning(f"Setting {self.model_name} correct_order_bias to {value}.")
 
     @property
+    def seed(self) -> int:
+        return self._seed
+
+    @property
     def inference_kwargs(self) -> dict:
         return self._inference_kwargs
 
@@ -126,6 +157,11 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
     def __sklearn_is_fitted__(self):
         """Check fitted status and return a Boolean value."""
         return hasattr(self, "_is_fitted") and self._is_fitted
+
+    @staticmethod
+    def log_probs_to_linear_probs(log_probs: np.ndarray) -> np.ndarray:
+        """Converts log probabilities to linear probabilities."""
+        return np.exp(log_probs)
 
     @staticmethod
     def _get_positive_class_scores(risk_scores: np.ndarray) -> np.ndarray:
@@ -237,7 +273,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
     @abstractmethod
     def prompt_batch_query(
         self,
-        data_texts_batch: list[str],
+        prompts_batch: list[str],
         *,
         question: MultipleChoiceQA | DirectNumericQA,
     ) -> np.ndarray:
@@ -298,10 +334,12 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
 
                 # Query model
                 last_token_probs_batch = self.prompt_batch_query(
-                    data_texts_batch=data_texts_batch,
+                    prompts_batch=data_texts_batch,
                     question=q,
-                    context_size=context_size,
                 )
+
+                # TODO: prompt_batch_query should return a dict of token to token probability!!
+                # (so that we're compatible with both transformers and litellm)
 
                 # Decode model output
                 risk_estimates_batch = [
@@ -355,7 +393,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         return results
 
 
-class TransformerLLMClassifier(LLMClassifier):
+class TransformersLLMClassifier(LLMClassifier):
     """Use a huggingface transformers model to produce risk scores."""
 
     def __init__(
@@ -364,11 +402,12 @@ class TransformerLLMClassifier(LLMClassifier):
         tokenizer: AutoTokenizer,
         task: TaskMetadata | str,
         encode_row: Callable[[pd.Series], str] = None,
-        correct_order_bias: bool = True,
         threshold: float = 0.5,
+        correct_order_bias: bool = True,
+        seed: int = 42,
         **inference_kwargs,
     ):
-        """Creates an LLMClassifier object.
+        """Creates an LLMClassifier based on a huggingface transformers model.
 
         Parameters
         ----------
@@ -377,8 +416,7 @@ class TransformerLLMClassifier(LLMClassifier):
         tokenizer : AutoTokenizer
             The tokenizer used to train the model.
         task : TaskMetadata | str
-            The task metadata object or name of an already created task. This
-            will be used to encode tabular rows into natural text prompts.
+            The task metadata object or name of an already created task.
         encode_row : Callable[[pd.Series], str], optional
             The function used to encode tabular rows into natural text. If not
             provided, will use the default encoding function for the task.
@@ -386,10 +424,14 @@ class TransformerLLMClassifier(LLMClassifier):
             The classification threshold to use when outputting binary
             predictions, by default 0.5. Must be between 0 and 1. Will be
             re-calibrated if `fit` is called.
+        correct_order_bias : bool, optional
+            Whether to correct ordering bias in multiple-choice Q&A questions,
+            by default True.
+        seed : int, optional
+            The random seed - used for reproducibility.
         **inference_kwargs
-            Additional keyword arguments to pass to `self.predict_proba(...)`
-            during inference. By default, will use `context_size=500` and
-            `batch_size=16`.
+            Additional keyword arguments to be used at inference time. Options
+            include `context_size` and `batch_size`.
         """
         # Transformers objects for the model and tokenizer
         self._model = model
@@ -404,6 +446,7 @@ class TransformerLLMClassifier(LLMClassifier):
             encode_row=encode_row,
             correct_order_bias=correct_order_bias,
             threshold=threshold,
+            seed=seed,
             **inference_kwargs,
         )
 
@@ -440,18 +483,17 @@ class TransformerLLMClassifier(LLMClassifier):
 
     def prompt_batch_query(
         self,
-        data_texts_batch: list[str],
+        prompts_batch: list[str],
         *,
-        context_size: int,
         question: MultipleChoiceQA | DirectNumericQA,
     ) -> np.ndarray:
         """Query the model with a batch of data texts and return the last token probabilities."""
 
         return query_model_batch_multiple_passes(
-            text_inputs=data_texts_batch,
+            text_inputs=prompts_batch,
             model=self._model,
             tokenizer=self._tokenizer,
-            context_size=context_size,
+            context_size=self.inference_kwargs["context_size"],
             n_passes=question.num_forward_passes,
             digits_only=True if isinstance(question, DirectNumericQA) else False,
         )
@@ -464,8 +506,10 @@ class WebAPILLMClassifier(LLMClassifier):
         self,
         model_name: str,
         task: TaskMetadata | str,
-        correct_order_bias: bool = True,
+        encode_row: Callable[[pd.Series], str] = None,
         threshold: float = 0.5,
+        correct_order_bias: bool = True,
+        seed: int = 42,
         **inference_kwargs,
     ):
         """Creates an LLMClassifier object that uses a web API for inference.
@@ -486,8 +530,10 @@ class WebAPILLMClassifier(LLMClassifier):
         super().__init__(
             model_name=model_name,
             task=task,
-            correct_order_bias=correct_order_bias,
+            encode_row=encode_row,
             threshold=threshold,
+            correct_order_bias=correct_order_bias,
+            seed=seed,
             **inference_kwargs,
         )
 
@@ -503,7 +549,11 @@ class WebAPILLMClassifier(LLMClassifier):
         from litellm import completion
         self.text_completion_api = completion
 
-    @classmethod
+        # Get supported parameters
+        from litellm import get_supported_openai_params
+        self.supported_params = set(get_supported_openai_params(model=self.model_name))
+
+    @staticmethod
     def check_webAPI_deps() -> bool:
         """Check if litellm dependencies are available."""
         try:
@@ -519,12 +569,66 @@ class WebAPILLMClassifier(LLMClassifier):
 
     def prompt_batch_query(
         self,
-        data_texts_batch: list[str],
+        prompts_batch: list[str],
         *,
         question: MultipleChoiceQA | DirectNumericQA,
     ) -> np.ndarray:
         """Query the model with a batch of data texts and return the last token probabilities."""
-        raise NotImplementedError("WebAPILLMClassifier is not yet implemented.")
+
+        api_call_params = dict(
+            temperature=1,
+            max_tokens=question.num_forward_passes,
+            stream=False,
+            seed=self.seed,
+            logprobs=True,
+            top_logprobs=20,
+        )
+
+        if set(api_call_params.keys()) - self.supported_params:
+            raise RuntimeError(
+                f"Unsupported API parameters for model '{self.model_name}': "
+                f"{set(api_call_params.keys()) - self.supported_params}"
+            )
+
+        # Get system prompt depending on Q&A type
+        if isinstance(question, DirectNumericQA):
+            system_prompt = "Please respond with number."
+        elif isinstance(question, MultipleChoiceQA):
+            system_prompt = "Please respond with a single letter."
+        else:
+            raise ValueError(f"Unknown question type '{type(question)}'.")
+
+        # TODO: use litellm.create_batch ?
+        # Query model for each prompt in the batch
+        for prompt in prompts_batch:
+
+            # Construct prompt messages object
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt},
+            ]
+
+            # Query the model API
+            import ipdb; ipdb.set_trace()
+            response = self.text_completion_api(
+                model=self.model_name,
+                messages=messages,
+                **api_call_params,
+            )
+
+            import ipdb; ipdb.set_trace()
+            top_logprobs = response.choices[0].logprobs["content"][0]["top_logprobs"]
+
+            # Covnert log-probs to lienar-probs
+            token_probs_dict = {
+                token_lprob["token"]: self.log_probs_to_linear_probs(token_lprob["logprob"])
+                for token_lprob in top_logprobs
+            }
+
+            # TODO: Parse response and store in a list
+
+            # TODO! Add a sleep wait period after each call to avoid rate-limiting
+            time.sleep(0.2)
 
     def track_cost_callback(
         self,
