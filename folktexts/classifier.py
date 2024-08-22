@@ -491,14 +491,51 @@ class WebAPILLMClassifier(LLMClassifier):
             **inference_kwargs,
         )
 
-        # Set-up litellm client
-        # TODO?
-        pass
+        # Check extra dependencies
+        assert self.check_webAPI_deps(), "Web API dependencies are not installed."
 
-    def compute_risk_estimates_for_dataframe(
+        # Set-up litellm API client
+        self._total_cost = 0
+
+        import litellm
+        litellm.success_callback = [self.track_cost_callback]
+
+        from litellm import completion
+        self.text_completion_api = completion
+
+    @classmethod
+    def check_webAPI_deps() -> bool:
+        """Check if litellm dependencies are available."""
+        try:
+            import litellm      # noqa: F401
+        except ImportError:
+            logging.critical(
+                "Please install extra API dependencies with "
+                "`pip install 'folktexts[apis]'` "
+                "to use the WebAPILLMClassifier."
+            )
+            return False
+        return True
+
+    def prompt_batch_query(
         self,
-        df: pd.DataFrame,
+        data_texts_batch: list[str],
+        *,
+        question: MultipleChoiceQA | DirectNumericQA,
     ) -> np.ndarray:
-        """Compute risk estimates for a specific dataframe.
-        """
+        """Query the model with a batch of data texts and return the last token probabilities."""
         raise NotImplementedError("WebAPILLMClassifier is not yet implemented.")
+
+    def track_cost_callback(
+        self,
+        kwargs,
+        completion_response,
+        start_time,
+        end_time,
+    ):
+        """Callback function to cost of API calls."""
+        try:
+            response_cost = kwargs.get("response_cost", 0)
+            self._total_cost += response_cost
+        except Exception as e:
+            logging.error(f"Failed to track cost of API calls: {e}")
