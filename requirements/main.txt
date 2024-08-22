@@ -4,7 +4,7 @@ numpy
 pandas
 tqdm
 accelerate
-transformers
+transformers>=4.42.4    # most models also work with prior versions of transformers
 torch
 sentencepiece
 protobuf
