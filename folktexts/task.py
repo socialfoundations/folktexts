@@ -87,6 +87,13 @@ class TaskMetadata:
         else:
             raise ValueError(f"No question provided for the target column '{self.get_target()}'.")
 
+    @question.setter
+    def question(self, new_qa: QAInterface):
+        if new_qa is not None and new_qa.column == self.get_target():
+            self.qa_interface = new_qa
+        else:
+            logging.error("Mismatch between task target column and provided question.")
+
     def get_row_description(self, row: pd.Series) -> str:
         """Encode a description of a given data row in textual form."""
         row = row[self.features]

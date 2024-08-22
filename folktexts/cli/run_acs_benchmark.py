@@ -17,7 +17,7 @@ DEFAULT_SEED = 42
 def setup_arg_parser() -> ArgumentParser:
 
     # Init parser
-    parser = ArgumentParser(description="Run an LLM as a classifier experiment.")
+    parser = ArgumentParser(description="Benchmark risk scores produced by a language model on ACS data.")
 
     # Define a custom argument type for a list of strings
     def list_of_strings(arg):
@@ -62,8 +62,8 @@ def setup_arg_parser() -> ArgumentParser:
     )
 
     parser.add_argument(
-        "--direct-risk-prompting",
-        help="[bool] Whether to directly prompt for risk-estimates instead of multiple-choice Q&A",
+        "--numeric-risk-prompting",
+        help="[bool] Whether to prompt for numeric risk-estimates instead of multiple-choice Q&A",
         action="store_true",
         default=False,
     )
@@ -131,7 +131,7 @@ def main():
     config = BenchmarkConfig(
         few_shot=args.few_shot,
         chat_prompt=args.chat_prompt,
-        direct_risk_prompting=args.direct_risk_prompting,
+        numeric_risk_prompting=args.numeric_risk_prompting,
         reuse_few_shot_examples=args.reuse_few_shot_examples,
         batch_size=args.batch_size,
         context_size=args.context_size,

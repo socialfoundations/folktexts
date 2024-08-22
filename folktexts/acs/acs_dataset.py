@@ -56,7 +56,9 @@ class ACSDataset(Dataset):
         seed: int = DEFAULT_SEED,
         **kwargs,
     ):
-        """Construct an ACSDataset object using ACS survey parameters.
+        """Construct an ACSDataset object from a given ACS task.
+
+        Can customize survey sample parameters (survey year, horizon, survey type).
 
         Parameters
         ----------
