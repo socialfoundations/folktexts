@@ -1,0 +1,2 @@
+# Requirements for running folktexts with external model APIs
+litellm
