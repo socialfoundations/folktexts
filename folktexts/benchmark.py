@@ -283,7 +283,10 @@ class Benchmark:
         logging.info(msg)
 
         # Render plots
-        self.plot_results(show_plots=False)
+        try:
+            self.plot_results(show_plots=False)
+        except Exception as e:
+            logging.error(f"Failed to render plots: {e}")
 
         # Save results to disk
         self.save_results()
