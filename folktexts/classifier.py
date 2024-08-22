@@ -159,11 +159,6 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         return hasattr(self, "_is_fitted") and self._is_fitted
 
     @staticmethod
-    def log_probs_to_linear_probs(log_probs: np.ndarray) -> np.ndarray:
-        """Converts log probabilities to linear probabilities."""
-        return np.exp(log_probs)
-
-    @staticmethod
     def _get_positive_class_scores(risk_scores: np.ndarray) -> np.ndarray:
         """Helper function to get positive class scores from risk scores."""
         if len(risk_scores.shape) > 1:
@@ -462,6 +457,14 @@ class TransformersLLMClassifier(LLMClassifier):
 
         return int(hash_dict(hash_params), 16)
 
+    @property
+    def model(self) -> AutoModelForCausalLM:
+        return self._model
+
+    @property
+    def tokenizer(self) -> AutoTokenizer:
+        return self._tokenizer
+
     def fit(self, X, y, *, false_pos_cost=1.0, false_neg_cost=1.0, **kwargs):
         """Uses the provided data sample to fit the prediction threshold."""
 
@@ -489,7 +492,7 @@ class TransformersLLMClassifier(LLMClassifier):
     ) -> np.ndarray:
         """Query the model with a batch of data texts and return the last token probabilities."""
 
-        return query_model_batch_multiple_passes(
+        ltp_batch = query_model_batch_multiple_passes(
             text_inputs=prompts_batch,
             model=self._model,
             tokenizer=self._tokenizer,
@@ -497,6 +500,24 @@ class TransformersLLMClassifier(LLMClassifier):
             n_passes=question.num_forward_passes,
             digits_only=True if isinstance(question, DirectNumericQA) else False,
         )
+
+        import ipdb; ipdb.set_trace()
+
+        # Parse last token probabilities into a dictionary
+        # This object has shape `(batch_size, n_passes, vocab_size)`
+        ltp_batch_parsed = [
+            [
+                {
+                    token: forward_pass[token_id]
+                    for token, token_id in self.tokenizer.vocab.items()
+                }
+                for forward_pass in ltp
+            ]
+            for ltp in ltp_batch
+        ]
+
+        assert len(ltp_batch_parsed) == len(prompts_batch) == len(ltp_batch)
+        return ltp_batch_parsed
 
 
 class WebAPILLMClassifier(LLMClassifier):
@@ -572,7 +593,7 @@ class WebAPILLMClassifier(LLMClassifier):
         prompts_batch: list[str],
         *,
         question: MultipleChoiceQA | DirectNumericQA,
-    ) -> np.ndarray:
+    ) -> list[dict]:
         """Query the model with a batch of data texts and return the last token probabilities."""
 
         api_call_params = dict(
@@ -600,6 +621,7 @@ class WebAPILLMClassifier(LLMClassifier):
 
         # TODO: use litellm.create_batch ?
         # Query model for each prompt in the batch
+        prompts_token_probs = []
         for prompt in prompts_batch:
 
             # Construct prompt messages object
@@ -609,26 +631,27 @@ class WebAPILLMClassifier(LLMClassifier):
             ]
 
             # Query the model API
-            import ipdb; ipdb.set_trace()
             response = self.text_completion_api(
                 model=self.model_name,
                 messages=messages,
                 **api_call_params,
             )
 
-            import ipdb; ipdb.set_trace()
+            # Get top token log-probs for this prompt
             top_logprobs = response.choices[0].logprobs["content"][0]["top_logprobs"]
 
-            # Covnert log-probs to lienar-probs
+            # Construct dictionary of token to linear token probability
             token_probs_dict = {
-                token_lprob["token"]: self.log_probs_to_linear_probs(token_lprob["logprob"])
+                token_lprob["token"]: np.exp(token_lprob["logprob"])
                 for token_lprob in top_logprobs
             }
 
-            # TODO: Parse response and store in a list
+            prompts_token_probs.append(token_probs_dict)
 
-            # TODO! Add a sleep wait period after each call to avoid rate-limiting
-            time.sleep(0.2)
+            # Sleep for short period to avoid rate-limiting (500 RPM for OpenAI API)
+            time.sleep(0.2)     # At most 300 RPM
+
+        return prompts_token_probs
 
     def track_cost_callback(
         self,

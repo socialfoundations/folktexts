@@ -36,8 +36,8 @@ def query_model_batch(
     Returns
     -------
     last_token_probs : np.array
-        Model's last token probabilities for each input as a np.array of shape
-        (batch_size, vocab_size).
+        Model's last token *linear* probabilities for each input as an
+        np.array of shape (batch_size, vocab_size).
     """
     model_device = next(model.parameters()).device
 
@@ -75,7 +75,7 @@ def query_model_batch_multiple_passes(
 ) -> np.array:
     """Queries an LM for multiple forward passes.
 
-    Greedy token search over multiple forward passes: Each forward pass takes 
+    Greedy token search over multiple forward passes: Each forward pass takes
     the highest likelihood token from the previous pass.
 
     NOTE: could use model.generate in the future!
@@ -98,8 +98,8 @@ def query_model_batch_multiple_passes(
     Returns
     -------
     last_token_probs : np.array
-        Last token probabilities for each forward pass, for each text in the
-        input batch. The output has shape (batch_size, n_passes, vocab_size).
+        Last token *linear* probabilities for each forward pass, for each text
+        in the input batch. The output has shape (batch_size, n_passes, vocab_size).
     """
     # If `digits_only`, get token IDs for digit tokens
     allowed_tokens_filter = np.ones(len(tokenizer.vocab), dtype=bool)
