@@ -625,7 +625,6 @@ class WebAPILLMClassifier(LLMClassifier):
         # NOTE: Models often generate "0." instead of directly outputting the fractional part
         # > Therefore: for multi-token answers, extra forward passes may be required
         else:
-            import ipdb; ipdb.set_trace()
             num_forward_passes = question.num_forward_passes + 2    # +2 tokens for "0."
 
         api_call_params = dict(
@@ -694,7 +693,6 @@ class WebAPILLMClassifier(LLMClassifier):
         risk_estimate : float
             The risk estimate for the API query.
         """
-        import ipdb; ipdb.set_trace()
         # Get response message
         response_message: str = response.choices[0].message.content
 
@@ -710,7 +708,6 @@ class WebAPILLMClassifier(LLMClassifier):
             for top_token_logprobs in token_choices_all_passes
         ]
 
-        import ipdb; ipdb.set_trace()
         # Decode model output into risk estimates
         # 1. Construct vocabulary dict for this response
         vocab_tokens = {tok for forward_pass in token_probs_all_passes for tok in forward_pass}
@@ -786,7 +783,6 @@ class WebAPILLMClassifier(LLMClassifier):
         """
 
         # Query model through web API
-        import ipdb; ipdb.set_trace()
         api_responses_batch = self._query_webapi_batch(
             prompts_batch=prompts_batch,
             question=question,

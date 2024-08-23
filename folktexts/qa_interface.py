@@ -153,18 +153,17 @@ class DirectNumericQA(QAInterface):
         answer_text = ""
         for ltp in last_token_probs:
             # Get the probability of each numeric token
-            number_probs = {
+            num_tokens_probs = {
                 num_token: ltp[token_id] if isinstance(ltp[token_id], float) else ltp[token_id].item()
                 for num_token, token_id in numeric_tokens_vocab.items()
             }
 
             # Get the most likely numeric token
-            most_likely_number = max(number_probs, key=number_probs.get)
-            answer_text += str(most_likely_number)
+            most_likely_numeric_token = max(num_tokens_probs, key=num_tokens_probs.get)
+            answer_text += str(most_likely_numeric_token)
 
-            logging.debug(f"Total prob. assigned to numeric tokens: {sum(number_probs.values()):.2%}")
+            logging.debug(f"Total prob. assigned to numeric tokens: {sum(num_tokens_probs.values()):.2%}")
 
-        import ipdb; ipdb.set_trace()
         # Filter out any non-numeric characters
         numeric_answer_text = re.match(r"[-+]?\d*\.\d+|\d+", answer_text).group()
         assert numeric_answer_text, f"Could not find numeric answer in '{answer_text}'."
