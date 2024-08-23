@@ -125,8 +125,7 @@ def main():
     # Load model and tokenizer
     # > Web-hosted LLM
     if args.use_web_api_model:
-        from folktexts.classifier import WebAPILLMClassifier
-        model = WebAPILLMClassifier(model_name=args.model)
+        model = args.model
         tokenizer = None
 
     # > Local LLM
