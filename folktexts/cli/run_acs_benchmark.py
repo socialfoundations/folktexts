@@ -62,13 +62,6 @@ def setup_arg_parser() -> ArgumentParser:
     )
 
     parser.add_argument(
-        "--chat-prompt",
-        help="[bool] Whether to use chat-based prompting (for instruct models)",
-        action="store_true",
-        default=False,
-    )
-
-    parser.add_argument(
         "--numeric-risk-prompting",
         help="[bool] Whether to prompt for numeric risk-estimates instead of multiple-choice Q&A",
         action="store_true",
@@ -137,7 +130,6 @@ def main():
     from folktexts.benchmark import BenchmarkConfig
     config = BenchmarkConfig(
         few_shot=args.few_shot,
-        chat_prompt=args.chat_prompt,
         numeric_risk_prompting=args.numeric_risk_prompting,
         reuse_few_shot_examples=args.reuse_few_shot_examples,
         batch_size=args.batch_size,
@@ -151,9 +143,9 @@ def main():
     # Create ACS Benchmark object
     from folktexts.benchmark import Benchmark
     bench = Benchmark.make_acs_benchmark(
+        task_name=args.task,
         model=model,
         tokenizer=tokenizer,
-        task_name=args.task,
         data_dir=args.data_dir,
         config=config,
         subsampling=args.subsampling,

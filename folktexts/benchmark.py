@@ -16,11 +16,11 @@ from ._utils import hash_dict, is_valid_number
 from .acs.acs_dataset import ACSDataset
 from .acs.acs_questions import acs_multiple_choice_qa_map, acs_numeric_qa_map
 from .acs.acs_tasks import ACSTaskMetadata
-from .classifier import LLMClassifier, TransformersLLMClassifier
+from .classifier import LLMClassifier, TransformersLLMClassifier, WebAPILLMClassifier
 from .dataset import Dataset
 from .evaluation import evaluate_predictions
 from .plotting import render_evaluation_plots, render_fairness_plots
-from .prompting import encode_row_prompt, encode_row_prompt_chat, encode_row_prompt_few_shot
+from .prompting import encode_row_prompt, encode_row_prompt_few_shot
 from .task import TaskMetadata
 
 DEFAULT_SEED = 42
@@ -34,8 +34,6 @@ class BenchmarkConfig:
 
     Attributes
     ----------
-    chat_prompt : bool, optional
-        Whether to use chat-style prompting, by default False.
     numeric_risk_prompting : bool, optional
         Whether to prompt for numeric risk-estimates instead of multiple-choice
         Q&A, by default False.
@@ -62,7 +60,6 @@ class BenchmarkConfig:
         Random seed -- to set for reproducibility.
     """
 
-    chat_prompt: bool = False
     numeric_risk_prompting: bool = False
     few_shot: int | None = None
     reuse_few_shot_examples: bool = False
@@ -367,9 +364,10 @@ class Benchmark:
     @classmethod
     def make_acs_benchmark(
         cls,
-        model: AutoModelForCausalLM,
-        tokenizer: AutoTokenizer,
         task_name: str,
+        *,
+        model: AutoModelForCausalLM | str,
+        tokenizer: AutoTokenizer = None,
         data_dir: str | Path = None,
         config: BenchmarkConfig = BenchmarkConfig.default_config(),
         **kwargs,
@@ -378,12 +376,14 @@ class Benchmark:
 
         Parameters
         ----------
-        model : AutoModelForCausalLM
-            The torch/transformers language model to use.
-        tokenizer : AutoTokenizer
-            The tokenizer used to train the model.
         task_name : str
             The name of the ACS task to use.
+        model : AutoModelForCausalLM | str
+            The transformers language model to use, or the model ID for a webAPI
+            hosted model (e.g., "openai/gpt-4o-mini").
+        tokenizer : AutoTokenizer, optional
+            The tokenizer used to train the model (if using a transformers
+            model). Not required for webAPI models.
         data_dir : str | Path, optional
             Path to the directory to load data from and save data in.
         config : BenchmarkConfig, optional
@@ -421,34 +421,37 @@ class Benchmark:
             **acs_dataset_configs)
 
         return cls.make_benchmark(
-            model=model,
-            tokenizer=tokenizer,
             task=acs_task,
             dataset=acs_dataset,
+            model=model,
+            tokenizer=tokenizer,
             config=config,
         )
 
     @classmethod
     def make_benchmark(
         cls,
-        model: AutoModelForCausalLM,
-        tokenizer: AutoTokenizer,
+        *,
         task: TaskMetadata | str,
         dataset: Dataset,
+        model: AutoModelForCausalLM | str,
+        tokenizer: AutoTokenizer = None,    # WebAPI models have no local tokenizer
         config: BenchmarkConfig = BenchmarkConfig.default_config(),
     ) -> Benchmark:
         """Create a calibration benchmark from a given configuration.
 
         Parameters
         ----------
-        model : AutoModelForCausalLM
-            The torch/transformers language model to use.
-        tokenizer : AutoTokenizer
-            The tokenizer used to train the model.
         task : TaskMetadata | str
             The task metadata object or name of the task to use.
         dataset : Dataset
             The dataset to use for the benchmark.
+        model : AutoModelForCausalLM | str
+            The transformers language model to use, or the model ID for a webAPI
+            hosted model (e.g., "openai/gpt-4o-mini").
+        tokenizer : AutoTokenizer, optional
+            The tokenizer used to train the model (if using a transformers
+            model). Not required for webAPI models.
         config : BenchmarkConfig, optional
             Extra benchmark configurations, by default will use
             `BenchmarkConfig.default_config()`.
@@ -475,14 +478,9 @@ class Benchmark:
             dataset = dataset.filter(config.population_filter)
 
         # Get prompting function
-        if config.chat_prompt:
-            logging.warning(f"Untested feature: chat_prompt={config.chat_prompt}")  # TODO!
-            encode_row_function = partial(encode_row_prompt_chat, task=task_obj, tokenizer=tokenizer)
-        else:
-            encode_row_function = partial(encode_row_prompt, task=task_obj)
+        encode_row_function = partial(encode_row_prompt, task=task_obj)
 
         if config.few_shot:
-            assert not config.chat_prompt, "Few-shot prompting is not currently compatible with chat prompting."
             encode_row_function = partial(
                 encode_row_prompt_few_shot,
                 task=task_obj,
@@ -508,13 +506,27 @@ class Benchmark:
         if config.context_size is not None:
             llm_inference_kwargs["context_size"] = config.context_size
 
-        llm_clf = TransformersLLMClassifier(
-            model=model,
-            tokenizer=tokenizer,
-            task=task_obj,
-            encode_row=encode_row_function,
-            **llm_inference_kwargs,
-        )
+        # Create LLMClassifier object
+        if isinstance(model, str):
+            logging.info(f"Using webAPI model: {model}")
+
+            llm_clf = WebAPILLMClassifier(
+                model_name=model,
+                task=task_obj,
+                encode_row=encode_row_function,
+                **llm_inference_kwargs,
+            )
+
+        else:
+            llm_clf = TransformersLLMClassifier(
+                model=model,
+                tokenizer=tokenizer,
+                task=task_obj,
+                encode_row=encode_row_function,
+                **llm_inference_kwargs,
+            )
+
+            logging.info(f"Using local transformers model: {llm_clf.model_name}")
 
         return cls(
             llm_clf=llm_clf,
