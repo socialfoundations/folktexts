@@ -625,6 +625,7 @@ class WebAPILLMClassifier(LLMClassifier):
         # NOTE: Models often generate "0." instead of directly outputting the fractional part
         # > Therefore: for multi-token answers, extra forward passes may be required
         else:
+            import ipdb; ipdb.set_trace()
             num_forward_passes = question.num_forward_passes + 2    # +2 tokens for "0."
 
         api_call_params = dict(
@@ -809,14 +810,7 @@ class WebAPILLMClassifier(LLMClassifier):
     ):
         """Callback function to cost of API calls."""
         try:
-            import ipdb; ipdb.set_trace()
             response_cost = kwargs.get("response_cost", 0)
-
-            from litellm import completion_cost
-            response_cost = completion_cost(
-                completion_response,
-                model=self.model_name,
-            )
             self._total_cost += response_cost
 
         except Exception as e:

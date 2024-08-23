@@ -145,9 +145,10 @@ class DirectNumericQA(QAInterface):
         """
         numeric_tokens_vocab = self._get_numeric_tokens(tokenizer_vocab)
 
-        assert len(last_token_probs) == self.num_forward_passes, (
-            f"Expected {self.num_forward_passes} forward passes, got {len(last_token_probs)}."
-        )
+        if len(last_token_probs) < self.num_forward_passes:
+            logging.warning(
+                f"Expected {self.num_forward_passes} forward passes, got {len(last_token_probs)}."
+            )
 
         answer_text = ""
         for ltp in last_token_probs:
