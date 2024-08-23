@@ -531,7 +531,7 @@ class WebAPILLMClassifier(LLMClassifier):
         encode_row: Callable[[pd.Series], str] = None,
         threshold: float = 0.5,
         correct_order_bias: bool = True,
-        max_requests_per_minute: int = 1000,
+        max_requests_per_minute: int = 5000,
         seed: int = 42,
         **inference_kwargs,
     ):

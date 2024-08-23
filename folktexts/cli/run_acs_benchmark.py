@@ -48,6 +48,13 @@ def setup_arg_parser() -> ArgumentParser:
 
     # Add special arguments (e.g., boolean flags or multiple-choice args)
     parser.add_argument(
+        "--use-web-api-model",
+        help="[bool] Whether use a model hosted on a web API (instead of a local model)",
+        action="store_true",
+        default=False,
+    )
+
+    parser.add_argument(
         "--dont-correct-order-bias",
         help="[bool] Whether to avoid correcting ordering bias, by default will correct it",
         action="store_false",
