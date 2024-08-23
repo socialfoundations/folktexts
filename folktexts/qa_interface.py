@@ -6,16 +6,15 @@
 """
 from __future__ import annotations
 
-import dataclasses
-import itertools
+import re
 import logging
+import itertools
+import dataclasses
 from abc import ABC
 from dataclasses import dataclass
 from typing import Iterator
 
-import torch
 import numpy as np
-from transformers import AutoTokenizer
 
 from ._utils import hash_dict
 
@@ -42,7 +41,7 @@ class QAInterface(ABC):
     def get_answer_from_model_output(
         self,
         last_token_probs: np.ndarray,
-        tokenizer: AutoTokenizer,
+        tokenizer_vocab: dict[str, int],
     ) -> float:
         """Decodes the model's output into an answer for the given question.
 
@@ -52,8 +51,8 @@ class QAInterface(ABC):
             The model's last token probabilities for the question. The first
             dimension corresponds to the number of forward passes as specified
             by `self.num_forward_passes`.
-        tokenizer : AutoTokenizer
-            The tokenizer used to encode the question.
+        tokenizer : dict[str, int]
+            The tokenizer's vocabulary.
 
         Returns
         -------
@@ -101,24 +100,26 @@ class DirectNumericQA(QAInterface):
 
         return question_prompt
 
-    def _get_numeric_tokens(self, tokenizer: AutoTokenizer, cache: dict = {}) -> dict[str, int]:
+    def _get_numeric_tokens(self, tokenizer_vocab: dict[str, int]) -> dict[str, int]:
         """Returns the indices of tokens that correspond to numbers.
 
-        At least, this will correspond to one token for each digit 0-9, plus
-        some tokenizers have additional tokens for multiple-digit numbers.
+        This can include digits ("0"-"9"), multi-digit tokens (e.g., "100"), and
+        the decimal point (".").
         """
-        tokenizer_hash = hash(tokenizer)
-        if tokenizer_hash not in cache:
-            cache[tokenizer_hash] = {
-                key: token_id for key, token_id in tokenizer.get_vocab().items()
-                if key.isdigit()
-            }
-        return cache[tokenizer_hash]
+        numeric_tokens = {
+            key: token_id for key, token_id in tokenizer_vocab.items()
+            if key.isdigit()
+        }
+
+        if "." in tokenizer_vocab:
+            numeric_tokens["."] = tokenizer_vocab["."]
+
+        return numeric_tokens
 
     def get_answer_from_model_output(
         self,
         last_token_probs: np.ndarray,
-        tokenizer: AutoTokenizer,
+        tokenizer_vocab: dict[str, int],
     ) -> float | int:
         """Outputs a numeric answer inferred from the model's output.
 
@@ -128,8 +129,8 @@ class DirectNumericQA(QAInterface):
             The last token probabilities of the model for the question.
             The first dimension must correspond to the number for forward passes
             as specified by `num_forward_passes`.
-        tokenizer : AutoTokenizer
-            The tokenizer used to train the model.
+        tokenizer_vocab: dict[str, int],
+            The tokenizer's vocabulary.
 
         Returns
         -------
@@ -142,7 +143,7 @@ class DirectNumericQA(QAInterface):
         answer over multiple forward passes, but for now we'll just take the
         argmax on each forward pass.
         """
-        number_to_token_id = self._get_numeric_tokens(tokenizer)
+        numeric_tokens_vocab = self._get_numeric_tokens(tokenizer_vocab)
 
         assert len(last_token_probs) == self.num_forward_passes, (
             f"Expected {self.num_forward_passes} forward passes, got {len(last_token_probs)}."
@@ -152,8 +153,8 @@ class DirectNumericQA(QAInterface):
         for ltp in last_token_probs:
             # Get the probability of each numeric token
             number_probs = {
-                num: ltp[token_id].item()
-                for num, token_id in number_to_token_id.items()
+                num_token: ltp[token_id] if isinstance(ltp[token_id], float) else ltp[token_id].item()
+                for num_token, token_id in numeric_tokens_vocab.items()
             }
 
             # Get the most likely numeric token
@@ -162,7 +163,15 @@ class DirectNumericQA(QAInterface):
 
             logging.debug(f"Total prob. assigned to numeric tokens: {sum(number_probs.values()):.2%}")
 
-        return int(answer_text) if not self.answer_probability else float(f"0.{answer_text}")
+        import ipdb; ipdb.set_trace()
+        # Filter out any non-numeric characters
+        numeric_answer_text = re.match(r"[-+]?\d*\.\d+|\d+", answer_text).group()
+        assert numeric_answer_text, f"Could not find numeric answer in '{answer_text}'."
+
+        if self.answer_probability and "." not in numeric_answer_text:
+            return float(f"0.{numeric_answer_text}")
+        else:
+            return float(numeric_answer_text)
 
 
 @dataclass(frozen=True, eq=True)
@@ -292,7 +301,7 @@ Answer:""")
     def _decode_model_output_to_choice_distribution(
         self,
         last_token_probs: np.ndarray,
-        tokenizer: AutoTokenizer,
+        tokenizer_vocab: dict[str, int],
     ) -> float:
         """Decodes the model's output into an answer distribution.
 
@@ -300,8 +309,8 @@ Answer:""")
         ----------
         last_token_probs : np.ndarray
             The model's last token probabilities for the question.
-        tokenizer : AutoTokenizer
-            The tokenizer used to train the model.
+        tokenizer_vocab: dict[str, int],
+            The tokenizer's vocabulary.
 
         Returns
         -------
@@ -314,19 +323,21 @@ Answer:""")
         both "A" and " A" templates.
         """
         def _get_choice_token_id(choice: Choice, prefix: str = " ") -> int:
-            return tokenizer.encode(
-                f"{prefix}{self.choice_to_key[choice]}",
-                return_tensors="pt",
-                add_special_tokens=False,       # don't add BOS or EOS tokens
-            ).flatten()[-1]
+            choice_answer_text = f"{prefix}{self.choice_to_key[choice]}"
+            if choice_answer_text in tokenizer_vocab:
+                return tokenizer_vocab[choice_answer_text]
+            else:
+                return None
 
-        prefixes = ["", " "]  # check both "A" and " A" templates
+        prefixes = ["", " ", "_", "▁"]  # check a variety of "A" answer encodings
+        # ^ "A", " A", "_A", "▁A"
 
         # Map probabilities to choice values
         answers_per_prefix = {
             prf: {
-                choice: last_token_probs[_get_choice_token_id(choice, prefix=prf)].item()
+                choice: last_token_probs[choice_token_id].item()
                 for choice in self.choices
+                if (choice_token_id := _get_choice_token_id(choice, prefix=prf)) is not None
             }
             for prf in prefixes
         }
@@ -355,7 +366,7 @@ Answer:""")
     def get_answer_from_model_output(
         self,
         last_token_probs: np.ndarray,
-        tokenizer: AutoTokenizer,
+        tokenizer_vocab: dict[str, int],
     ) -> float:
         """Decodes the model's output into an answer for the given question.
 
@@ -365,8 +376,8 @@ Answer:""")
             The model's last token probabilities for the question. The first
             dimension corresponds to the number of forward passes as specified
             by `self.num_forward_passes`.
-        tokenizer : AutoTokenizer
-            The tokenizer used to encode the question.
+        tokenizer_vocab: dict[str, int],
+            The tokenizer's vocabulary.
 
         Returns
         -------
@@ -374,12 +385,17 @@ Answer:""")
             The answer to the question.
         """
         if last_token_probs.ndim > 1:
-            # Using only first forward pass, since only one pass is expected
+            if last_token_probs.shape[0] > 1:
+                logging.warning(
+                    f"Multiple ({last_token_probs.shape[0]}) forward passes "
+                    f"detected: using only the first pass.")
+
+            # Using only 1st forward pass results
             last_token_probs = last_token_probs[0]
 
         answers = self._decode_model_output_to_choice_distribution(
             last_token_probs=last_token_probs,
-            tokenizer=tokenizer,
+            tokenizer_vocab=tokenizer_vocab,
         )
 
         sorted_choices_by_value = sorted(
