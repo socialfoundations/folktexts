@@ -123,8 +123,16 @@ def main():
         population_filter_dict = cmd_line_args_to_kwargs(args.use_population_filter)
 
     # Load model and tokenizer
-    from folktexts.llm_utils import load_model_tokenizer
-    model, tokenizer = load_model_tokenizer(args.model)
+    # > Web-hosted LLM
+    if args.use_web_api_model:
+        from folktexts.classifier import WebAPILLMClassifier
+        model = WebAPILLMClassifier(model_name=args.model)
+        tokenizer = None
+
+    # > Local LLM
+    else:
+        from folktexts.llm_utils import load_model_tokenizer
+        model, tokenizer = load_model_tokenizer(args.model)
 
     # Fill ACS Benchmark config
     from folktexts.benchmark import BenchmarkConfig
