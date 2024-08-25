@@ -41,6 +41,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         self,
         model_name: str,
         task: TaskMetadata | str,
+        custom_prompt_prefix: str = None,
         encode_row: Callable[[pd.Series], str] = None,
         threshold: float = 0.5,
         correct_order_bias: bool = True,
@@ -55,6 +56,9 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
             The model name or ID.
         task : TaskMetadata | str
             The task metadata object or name of an already created task.
+        custom_prompt_prefix : str, optional
+            A custom prompt prefix to supply to the model before the encoded
+            row data, by default None.
         encode_row : Callable[[pd.Series], str], optional
             The function used to encode tabular rows into natural text. If not
             provided, will use the default encoding function for the task.
@@ -76,6 +80,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         self._model_name = model_name
 
         self._task = TaskMetadata.get_task(task) if isinstance(task, str) else task
+        self._custom_prompt_prefix = custom_prompt_prefix
         self._encode_row = encode_row or partial(
             default_encode_row_prompt,
             task=self.task,
@@ -100,6 +105,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         hash_params = dict(
             model_name=self.model_name,
             task_hash=hash(self.task),
+            custom_prompt_prefix=self.custom_prompt_prefix,
             correct_order_bias=self.correct_order_bias,
             threshold=self.threshold,
             encode_row_hash=hash_function(self.encode_row),
@@ -114,6 +120,10 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
     @property
     def task(self) -> TaskMetadata:
         return self._task
+
+    @property
+    def custom_prompt_prefix(self) -> str:
+        return self._custom_prompt_prefix
 
     @property
     def encode_row(self) -> Callable[[pd.Series], str]:
@@ -323,7 +333,11 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
 
                 # Encode batch data into natural text prompts
                 data_texts_batch = [
-                    self.encode_row(row, question=q)
+                    self.encode_row(
+                        row,
+                        question=q,
+                        custom_prompt_prefix=self.custom_prompt_prefix,
+                    )
                     for _, row in batch_data.iterrows()
                 ]
 

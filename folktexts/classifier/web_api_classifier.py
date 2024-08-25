@@ -24,6 +24,7 @@ class WebAPILLMClassifier(LLMClassifier):
         self,
         model_name: str,
         task: TaskMetadata | str,
+        custom_prompt_prefix: str = None,
         encode_row: Callable[[pd.Series], str] = None,
         threshold: float = 0.5,
         correct_order_bias: bool = True,
@@ -39,16 +40,29 @@ class WebAPILLMClassifier(LLMClassifier):
             The model ID to be resolved by `litellm`.
         task : TaskMetadata | str
             The task metadata object or name of an already created task.
-        correct_order_bias : bool, optional
-            Whether to correct ordering bias in multiple-choice Q&A, by default
-            True.
+        custom_prompt_prefix : str, optional
+            A custom prompt prefix to supply to the model before the encoded
+            row data, by default None.
+        encode_row : Callable[[pd.Series], str], optional
+            The function used to encode tabular rows into natural text. If not
+            provided, will use the default encoding function for the task.
         threshold : float, optional
-            The threshold used to binarize risk scores produced by the model, by
-            default 0.5.
+            The classification threshold to use when outputting binary
+            predictions, by default 0.5. Must be between 0 and 1. Will be
+            re-calibrated if `fit` is called.
+        correct_order_bias : bool, optional
+            Whether to correct ordering bias in multiple-choice Q&A questions,
+            by default True.
+        seed : int, optional
+            The random seed - used for reproducibility.
+        **inference_kwargs
+            Additional keyword arguments to be used at inference time. Options
+            include `context_size` and `batch_size`.
         """
         super().__init__(
             model_name=model_name,
             task=task,
+            custom_prompt_prefix=custom_prompt_prefix,
             encode_row=encode_row,
             threshold=threshold,
             correct_order_bias=correct_order_bias,
