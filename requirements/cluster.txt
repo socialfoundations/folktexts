@@ -1,2 +1,3 @@
+# Requirements for running folktexts tasks and experiments in an htcondor cluster
 htcondor
 xgboost

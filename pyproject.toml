@@ -32,7 +32,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 
-version = "0.0.19"
+version = "0.0.20"
 requires-python = ">=3.8"
 dynamic = [
     "readme",
@@ -55,6 +55,7 @@ dependencies = {file = "requirements/main.txt"}
 optional-dependencies.tests = {file = "requirements/tests.txt"}
 optional-dependencies.docs = {file = "requirements/docs.txt"}
 optional-dependencies.cluster = {file = "requirements/cluster.txt"}
+optional-dependencies.apis = {file = "requirements/apis.txt"}
 
 [project.urls]
 homepage = "https://github.com/socialfoundations/folktexts"

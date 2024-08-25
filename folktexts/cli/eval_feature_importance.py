@@ -7,7 +7,7 @@ from pathlib import Path
 from sklearn.inspection import permutation_importance
 
 from folktexts._io import save_json, save_pickle
-from folktexts.classifier import LLMClassifier
+from folktexts.classifier import LLMClassifier, TransformersLLMClassifier
 from folktexts.dataset import Dataset
 from folktexts.llm_utils import get_model_folder_path, load_model_tokenizer
 
@@ -156,8 +156,8 @@ def main():
         logging.info(f"{dataset.subsampling=}")
 
     # Construct LLM Classifier
-    from folktexts.classifier import LLMClassifier
-    llm_clf = LLMClassifier(
+    from folktexts.classifier import TransformersLLMClassifier
+    llm_clf = TransformersLLMClassifier(
         model=model,
         tokenizer=tokenizer,
         task=task,

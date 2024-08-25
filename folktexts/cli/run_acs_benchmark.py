@@ -48,17 +48,17 @@ def setup_arg_parser() -> ArgumentParser:
 
     # Add special arguments (e.g., boolean flags or multiple-choice args)
     parser.add_argument(
+        "--use-web-api-model",
+        help="[bool] Whether use a model hosted on a web API (instead of a local model)",
+        action="store_true",
+        default=False,
+    )
+
+    parser.add_argument(
         "--dont-correct-order-bias",
         help="[bool] Whether to avoid correcting ordering bias, by default will correct it",
         action="store_false",
         default=True,
-    )
-
-    parser.add_argument(
-        "--chat-prompt",
-        help="[bool] Whether to use chat-based prompting (for instruct models)",
-        action="store_true",
-        default=False,
     )
 
     parser.add_argument(
@@ -123,14 +123,20 @@ def main():
         population_filter_dict = cmd_line_args_to_kwargs(args.use_population_filter)
 
     # Load model and tokenizer
-    from folktexts.llm_utils import load_model_tokenizer
-    model, tokenizer = load_model_tokenizer(args.model)
+    # > Web-hosted LLM
+    if args.use_web_api_model:
+        model = args.model
+        tokenizer = None
+
+    # > Local LLM
+    else:
+        from folktexts.llm_utils import load_model_tokenizer
+        model, tokenizer = load_model_tokenizer(args.model)
 
     # Fill ACS Benchmark config
     from folktexts.benchmark import BenchmarkConfig
     config = BenchmarkConfig(
         few_shot=args.few_shot,
-        chat_prompt=args.chat_prompt,
         numeric_risk_prompting=args.numeric_risk_prompting,
         reuse_few_shot_examples=args.reuse_few_shot_examples,
         batch_size=args.batch_size,
@@ -144,9 +150,9 @@ def main():
     # Create ACS Benchmark object
     from folktexts.benchmark import Benchmark
     bench = Benchmark.make_acs_benchmark(
+        task_name=args.task,
         model=model,
         tokenizer=tokenizer,
-        task_name=args.task,
         data_dir=args.data_dir,
         config=config,
         subsampling=args.subsampling,

@@ -161,7 +161,6 @@ options:
   --seed SEED           [int] Random seed -- to set for reproducibility
   --dont-correct-order-bias
                         [bool] Whether to avoid correcting ordering bias, by default will correct it
-  --chat-prompt         [bool] Whether to use chat-based prompting (for instruct models)
   --numeric-risk-prompting
                         [bool] Whether to prompt for numeric risk-estimates instead of multiple-choice Q&A
   --reuse-few-shot-examples
@@ -180,7 +179,7 @@ options:
 1.
     **Q:** Can I use `folktexts` with a different dataset?
 
-    **A:** Yes! Folktexts provides the whole ML pipeline needed to produce risk scores using LLMs, together with a few example ACS datasets. You can easily apply these same utilities to a different dataset following the [example jupyter notebook](notebooks/custom-dataset-example.ipynb).
+    **A:** **Yes!** Folktexts provides the whole ML pipeline needed to produce risk scores using LLMs, together with a few example ACS datasets. You can easily apply these same utilities to a different dataset following the [example jupyter notebook](notebooks/custom-dataset-example.ipynb).
 
 
 2.
@@ -192,7 +191,7 @@ options:
 3.
     **Q:** Can I use `folktexts` with closed-source models?
 
-    **A:** Currently we only provide compatibility with open-source models provided via [🤗 transformers](https://github.com/huggingface/transformers). Most closed-source models do not allow access to log-probabilities of vocabulary tokens, making it impossible to extract risk scores.
+    **A:** **Yes!** We provide compatibility with local LLMs via [🤗 transformers](https://github.com/huggingface/transformers) and compatibility with web-hosted LLMs via [litellm](https://github.com/BerriAI/litellm). For example, you can use `--model=gpt-4o-mini` to use GPT4o. [Here's a complete list](https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models) of compatible OpenAI models. Note that some models are not compatible as they don't enable access to log-probabilities.
 
 
 4.
