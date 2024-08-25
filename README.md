@@ -136,9 +136,8 @@ This script uses sklearn's [`permutation_importance`](https://scikit-learn.org/s
 ## Benchmark options
 
 ```
-usage: run_acs_benchmark [-h] --model MODEL --results-dir RESULTS_DIR --data-dir DATA_DIR [--task TASK] [--few-shot FEW_SHOT] [--batch-size BATCH_SIZE] [--context-size CONTEXT_SIZE] [--fit-threshold FIT_THRESHOLD] [--subsampling SUBSAMPLING]
-                         [--seed SEED] [--dont-correct-order-bias] [--chat-prompt] [--numeric-risk-prompting] [--reuse-few-shot-examples] [--use-feature-subset USE_FEATURE_SUBSET] [--use-population-filter USE_POPULATION_FILTER]
-                         [--logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
+usage: run_acs_benchmark [-h] --model MODEL --results-dir RESULTS_DIR --data-dir DATA_DIR [--task TASK] [--few-shot FEW_SHOT] [--batch-size BATCH_SIZE] [--context-size CONTEXT_SIZE] [--fit-threshold FIT_THRESHOLD] [--subsampling SUBSAMPLING] [--seed SEED] [--use-web-api-model] [--dont-correct-order-bias] [--numeric-risk-prompting] [--reuse-few-shot-examples] [--use-feature-subset USE_FEATURE_SUBSET]
+                         [--use-population-filter USE_POPULATION_FILTER] [--logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
 
 Benchmark risk scores produced by a language model on ACS data.
 
@@ -159,6 +158,7 @@ options:
   --subsampling SUBSAMPLING
                         [float] Which fraction of the dataset to use (if omitted will use all data)
   --seed SEED           [int] Random seed -- to set for reproducibility
+  --use-web-api-model   [bool] Whether use a model hosted on a web API (instead of a local model)
   --dont-correct-order-bias
                         [bool] Whether to avoid correcting ordering bias, by default will correct it
   --numeric-risk-prompting
@@ -168,7 +168,7 @@ options:
   --use-feature-subset USE_FEATURE_SUBSET
                         [str] Optional subset of features to use for prediction, comma separated
   --use-population-filter USE_POPULATION_FILTER
-                        [str] Optional population filter for this benchmark; must follow the format 'column_name=value' to filter the dataset by a specific value
+                        [str] Optional population filter for this benchmark; must follow the format 'column_name=value' to filter the dataset by a specific value.
   --logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                         [str] The logging level to use for the experiment
 ```
@@ -191,7 +191,7 @@ options:
 3.
     **Q:** Can I use `folktexts` with closed-source models?
 
-    **A:** **Yes!** We provide compatibility with local LLMs via [🤗 transformers](https://github.com/huggingface/transformers) and compatibility with web-hosted LLMs via [litellm](https://github.com/BerriAI/litellm). For example, you can use `--model=gpt-4o-mini` to use GPT4o. [Here's a complete list](https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models) of compatible OpenAI models. Note that some models are not compatible as they don't enable access to log-probabilities.
+    **A:** **Yes!** We provide compatibility with local LLMs via [🤗 transformers](https://github.com/huggingface/transformers) and compatibility with web-hosted LLMs via [litellm](https://github.com/BerriAI/litellm). For example, you can use `--model='gpt-4o' --use-web-api-model` to use GPT-4o when calling the `run_acs_benchmark` script. [Here's a complete list](https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models) of compatible OpenAI models. Note that some models are not compatible as they don't enable access to log-probabilities.
 
 
 4.
