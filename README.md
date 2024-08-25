@@ -192,6 +192,7 @@ options:
     **Q:** Can I use `folktexts` with closed-source models?
 
     **A:** **Yes!** We provide compatibility with local LLMs via [🤗 transformers](https://github.com/huggingface/transformers) and compatibility with web-hosted LLMs via [litellm](https://github.com/BerriAI/litellm). For example, you can use `--model='gpt-4o' --use-web-api-model` to use GPT-4o when calling the `run_acs_benchmark` script. [Here's a complete list](https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models) of compatible OpenAI models. Note that some models are not compatible as they don't enable access to log-probabilities.
+    Using models through a web API requires installing extra optional dependencies with `pip install 'folktexts[apis]'`.
 
 
 4.
