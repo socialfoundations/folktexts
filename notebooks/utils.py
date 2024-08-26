@@ -72,7 +72,7 @@ def prettify_model_name(name: str) -> str:
         "Mixtral-8x7B-Instruct-v0.1": "Mixtral 8x7B (it)",
         "Mixtral-8x7B-v0.1": "Mixtral 8x7B",
         "Yi-34B": "Yi 34B",
-        "Yi-34B-Chat": "Yi 34B (chat)",
+        "Yi-34B-Chat": "Yi 34B (it)",
         "gemma-1.1-2b-it": "Gemma 2B (it)",
         "gemma-1.1-7b-it": "Gemma 7B (it)",
         "gemma-2b": "Gemma 2B",
@@ -81,6 +81,8 @@ def prettify_model_name(name: str) -> str:
         "gemma-2-9b-it": "Gemma 2 9B (it)",
         "gemma-2-27b": "Gemma 2 27B",
         "gemma-2-27b-it": "Gemma 2 27B (it)",
+        "openai/gpt-4o-mini": "GPT 4o mini (it)",
+        "penai/gpt-4o-mini": "GPT 4o mini (it)",
     }
 
     if name in dct:
