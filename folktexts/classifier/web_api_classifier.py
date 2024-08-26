@@ -3,9 +3,9 @@
 
 from __future__ import annotations
 
+import logging
 import re
 import time
-import logging
 from typing import Callable
 
 import numpy as np
@@ -94,7 +94,7 @@ class WebAPILLMClassifier(LLMClassifier):
     def check_webAPI_deps() -> bool:
         """Check if litellm dependencies are available."""
         try:
-            import litellm      # noqa: F401
+            import litellm  # noqa: F401
         except ImportError:
             logging.critical(
                 "Please install extra API dependencies with "
@@ -225,7 +225,7 @@ class WebAPILLMClassifier(LLMClassifier):
         token_to_id = {tok: i for i, tok in enumerate(vocab_tokens)}
         id_to_token = {i: tok for i, tok in enumerate(vocab_tokens)}
 
-        # 2. Parse `token_probs_all_passes` into an array of shape (num_passes, vocab_size) 
+        # 2. Parse `token_probs_all_passes` into an array of shape (num_passes, vocab_size)
         token_probs_array = np.array([
             [
                 forward_pass.get(id_to_token[i], 0)

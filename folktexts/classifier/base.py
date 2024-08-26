@@ -3,12 +3,12 @@
 
 from __future__ import annotations
 
-import math
 import logging
+import math
+from abc import ABC, abstractmethod
 from functools import partial
 from pathlib import Path
 from typing import Callable
-from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd

@@ -9,8 +9,7 @@ from __future__ import annotations
 
 import logging
 import statistics
-from functools import partial
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 import numpy as np
 from netcal.metrics import ECE

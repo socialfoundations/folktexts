@@ -5,10 +5,9 @@ import logging
 import re
 from pathlib import Path
 
-import torch
 import numpy as np
+import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
-
 
 # Will warn if the sum of digit probabilities is below this threshold
 PROB_WARN_THR = 0.5

@@ -2,7 +2,6 @@
 """Launch htcondor jobs for all ACS benchmark experiments.
 """
 import argparse
-import logging
 import math
 from pathlib import Path
 from pprint import pprint

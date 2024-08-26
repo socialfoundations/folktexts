@@ -15,8 +15,8 @@ from folktexts.llm_utils import query_model_batch_multiple_passes
 from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA
 from folktexts.task import TaskMetadata
 
-from .base import LLMClassifier
 from .._utils import hash_dict
+from .base import LLMClassifier
 
 
 class TransformersLLMClassifier(LLMClassifier):
