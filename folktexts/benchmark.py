@@ -126,6 +126,21 @@ class Benchmark:
         dataset: Dataset,
         config: BenchmarkConfig = BenchmarkConfig.default_config(),
     ):
+        """A benchmark object to measure and evaluate risk scores produced by an LLM.
+
+        Parameters
+        ----------
+        llm_clf : LLMClassifier
+            A language model classifier object (can be local or web-hosted).
+        dataset : Dataset
+            The dataset object to use for the benchmark.÷
+        config : BenchmarkConfig, optional
+            The configuration object used to create the benchmark parameters.
+            **NOTE**: This is used to uniquely identify the benchmark object for
+            reproducibility; it **will not be used to change the benchmark
+            behavior**. To configure the benchmark, pass a configuration object
+            to the Benchmark.make_benchmark method.
+        """
         self.llm_clf = llm_clf
         self.dataset = dataset
         self.config = config
@@ -491,7 +506,6 @@ class Benchmark:
 
         # Load the QA interface to be used for risk-score prompting
         if config.numeric_risk_prompting:
-            logging.warning(f"Untested feature: numeric_risk_prompting={config.numeric_risk_prompting}")
             question = acs_numeric_qa_map[task_obj.get_target()]
         else:
             question = acs_multiple_choice_qa_map[task_obj.get_target()]
