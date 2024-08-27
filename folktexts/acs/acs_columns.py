@@ -200,8 +200,6 @@ acs_income_numeric_qa = DirectNumericQA(
         "What is the probability that this person's estimated yearly income is "
         "above $50,000 ?"
     ),
-    answer_probability=True,
-    num_forward_passes=2,
 )
 
 acs_income_target_col = ColumnToText(
@@ -221,7 +219,7 @@ acs_pubcov_og_qa = MultipleChoiceQA(
     ),
 )
 
-acs_pubcov_og_target_col = ColumnToText(
+acs_pubcov = ColumnToText(
     "PUBCOV",
     short_description="public health coverage status",
     value_map={
@@ -239,6 +237,13 @@ acs_pubcov_qa = MultipleChoiceQA(
         Choice("Yes, person is covered by public health insurance", 1),
         Choice("No, person is not covered by public health insurance", 0),  # NOTE: value=0 for no public coverage!
     ),
+)
+
+acs_pubcov_numeric_qa = DirectNumericQA(
+    column=acs_public_coverage_threshold.apply_to_column_name("PUBCOV"),
+    text=(
+        "What is the probability that this person is covered by public health insurance?"
+    ),  # NOTE: value=1 for yes, 0 for no
 )
 
 acs_pubcov_target_col = ColumnToText(
@@ -301,12 +306,19 @@ acs_mobility = ColumnToText(
 
 # MIG: Mobility Status (Thresholded)
 acs_mobility_qa = MultipleChoiceQA(
-    column=acs_mobility_threshold.apply_to_column_name("MIG"),
+    column=acs_mobility_threshold.apply_to_column_name("MIG"),      # NOTE: Thresholded by MIG!=1
     text="Has this person moved in the last year?",
     choices=(
-        Choice("No, person has lived in the same house for the last year", 1),
-        Choice("Yes, person has moved in the last year", 0),
+        Choice("No, person has lived in the same house for the last year", 0),
+        Choice("Yes, person has moved in the last year", 1),
     ),
+)
+
+acs_mobility_numeric_qa = DirectNumericQA(
+    column=acs_mobility_threshold.apply_to_column_name("MIG"),      # NOTE: Thresholded by MIG!=1
+    text=(
+        "What is the probability that this person has moved in the last year?"
+    ),  # NOTE: Question should relate to probability of MIG!=1
 )
 
 acs_mobility_target_col = ColumnToText(
@@ -408,6 +420,14 @@ acs_employment_qa = MultipleChoiceQA(
     ),
 )
 
+acs_employment_numeric_qa = DirectNumericQA(
+    column=acs_employment_threshold.apply_to_column_name("ESR"),
+    text=(
+        "What is the probability that this person is an employed civilian?"
+        # "What is the probability that this person is currently employed?"
+    ),  # NOTE: Question should relate to probability of ESR==1
+)
+
 acs_employment_target_col = ColumnToText(
     name=acs_employment_threshold.apply_to_column_name("ESR"),
     short_description="employment status",
@@ -454,6 +474,13 @@ acs_commute_time_qa = MultipleChoiceQA(
         Choice("Longer than 20 minutes", 1),
         Choice("Less than 20 minutes", 0),
     ),
+)
+
+acs_commute_time_numeric_qa = DirectNumericQA(
+    column=acs_travel_time_threshold.apply_to_column_name("JWMNP"),
+    text=(
+        "What is the probability that this person's commute time is longer than 20 minutes?"
+    ),  # NOTE: Question should relate to probability of JWMNP>20
 )
 
 acs_travel_time_target_col = ColumnToText(
@@ -543,6 +570,14 @@ acs_health_ins_2_qa = MultipleChoiceQA(
         Choice("Yes, this person has health insurance through a private company", 1),
         Choice("No, this person either has insurance through other means or is uninsured", 0),
     ),
+)
+
+acs_health_ins_2_numeric_qa = DirectNumericQA(
+    column=acs_health_insurance_threshold.apply_to_column_name("HINS2"),
+    text=(
+        "What is the probability that this person has purchased health "
+        "insurance directly through a private company?"
+    ),  # NOTE: Question should relate to probability of HINS2==1
 )
 
 acs_health_ins_2_target_col = ColumnToText(
