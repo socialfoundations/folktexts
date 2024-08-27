@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import logging
 import re
+import os
 import time
 from typing import Callable
 
@@ -70,12 +71,18 @@ class WebAPILLMClassifier(LLMClassifier):
             **inference_kwargs,
         )
 
-        self.max_requests_per_minute = max_requests_per_minute
+        # Set maximum requests per minute
+        env_max_requests_per_minute = os.getenv("MAX_REQUESTS_PER_MINUTE", max_requests_per_minute)
+        self.max_requests_per_minute = env_max_requests_per_minute
         if self.max_requests_per_minute > 5000:
             raise ValueError(f"Maximum RPM must be less than 5K, got {self.max_requests_per_minute}")
 
         # Check extra dependencies
         assert self.check_webAPI_deps(), "Web API dependencies are not installed."
+
+        # Check OpenAI API key was passed
+        if "OPENAI_API_KEY" not in os.environ:
+            raise ValueError("OpenAI API key not found in environment variables")
 
         # Set-up litellm API client
         self._total_cost = 0
@@ -321,3 +328,9 @@ class WebAPILLMClassifier(LLMClassifier):
 
         except Exception as e:
             logging.error(f"Failed to track cost of API calls: {e}")
+
+    def __del__(self):
+        """Destructor to report total cost of API calls."""
+        msg = f"Total cost of API calls: ${self._total_cost:.2f}"
+        print(msg)
+        logging.info(msg)
