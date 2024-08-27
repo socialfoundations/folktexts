@@ -18,7 +18,7 @@ acs_employment_threshold = Threshold(1, "==")
 acs_travel_time_threshold = Threshold(20, ">")
 
 # ACSIncomePovertyRatio task
-acs_income_poverty_ratio_threshold = Threshold(250, "<")
+acs_poverty_ratio_threshold = Threshold(250, "<")
 
 # ACSHealthInsurance task
 acs_health_insurance_threshold = Threshold(1, "==")

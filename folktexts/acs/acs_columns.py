@@ -13,6 +13,7 @@ from .acs_thresholds import (
     acs_mobility_threshold,
     acs_public_coverage_threshold,
     acs_travel_time_threshold,
+    acs_poverty_ratio_threshold,
 )
 
 # Path to ACS codebook files
@@ -515,6 +516,26 @@ acs_poverty_ratio = ColumnToText(
     "POVPIP",
     short_description="income-to-poverty ratio",
     value_map=lambda x: f"{x / 100:.1%}",
+)
+
+# POVPIP: Income-to-Poverty Ratio (Thresholded)
+acs_poverty_ratio_qa = MultipleChoiceQA(
+    column=acs_poverty_ratio_threshold.apply_to_column_name("POVPIP"),
+    text=(
+        "Is this person's income-to-poverty ratio below 2.5 ? "
+        "That is, is this person's annual income below 2.5 times the poverty line income?",
+    ),
+    choices=(
+        Choice("Yes, this person earns below 2.5 times the poverty line income", 1),
+        Choice("No, this person earns above 2.5 times the poverty line income.", 0),
+    ),
+)
+
+acs_poverty_ratio_target_col = ColumnToText(
+    name=acs_poverty_ratio_threshold.apply_to_column_name("POVPIP"),
+    short_description="income-to-poverty ratio is below 2.5",
+    question=acs_poverty_ratio_qa,
+    use_value_map_only=True,
 )
 
 # GCL: Grandparent Living with Grandchildren

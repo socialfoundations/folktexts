@@ -14,7 +14,6 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from ._io import load_json, save_json
 from ._utils import hash_dict, is_valid_number
 from .acs.acs_dataset import ACSDataset
-from .acs.acs_questions import acs_multiple_choice_qa_map, acs_numeric_qa_map
 from .acs.acs_tasks import ACSTaskMetadata
 from .classifier import LLMClassifier, TransformersLLMClassifier, WebAPILLMClassifier
 from .dataset import Dataset
@@ -429,7 +428,10 @@ class Benchmark:
             logging.warning(f"Unused key-word arguments: {kwargs}")
 
         # Fetch ACS task and dataset
-        acs_task = ACSTaskMetadata.get_task(task_name)
+        acs_task = ACSTaskMetadata.get_task(
+            name=task_name,
+            use_numeric_qa=config.numeric_risk_prompting)
+
         acs_dataset = ACSDataset.make_from_task(
             task=acs_task,
             cache_dir=data_dir,
@@ -477,41 +479,34 @@ class Benchmark:
             The calibration benchmark object.
         """
         # Handle TaskMetadata object
-        task_obj = TaskMetadata.get_task(task) if isinstance(task, str) else task
+        task = TaskMetadata.get_task(task) if isinstance(task, str) else task
+        if config.numeric_risk_prompting:
+            task.use_numeric_qa = True
 
         if config.feature_subset is not None and len(config.feature_subset) > 0:
-            task_obj = task_obj.create_task_with_feature_subset(config.feature_subset)
-            dataset.task = task_obj
+            task = task.create_task_with_feature_subset(config.feature_subset)
+            dataset.task = task
 
         # Check dataset is compatible with task
-        if dataset.task is not task_obj and dataset.task.name != task_obj.name:
+        if dataset.task is not task and dataset.task.name != task.name:
             raise ValueError(
                 f"Dataset task '{dataset.task.name}' does not match the "
-                f"provided task '{task_obj.name}'.")
+                f"provided task '{task.name}'.")
 
         if config.population_filter is not None:
             dataset = dataset.filter(config.population_filter)
 
         # Get prompting function
-        encode_row_function = partial(encode_row_prompt, task=task_obj)
+        encode_row_function = partial(encode_row_prompt, task=task)
 
         if config.few_shot:
             encode_row_function = partial(
                 encode_row_prompt_few_shot,
-                task=task_obj,
+                task=task,
                 n_shots=config.few_shot,
                 dataset=dataset,
                 reuse_examples=config.reuse_few_shot_examples,
             )
-
-        # Load the QA interface to be used for risk-score prompting
-        if config.numeric_risk_prompting:
-            question = acs_numeric_qa_map[task_obj.get_target()]
-        else:
-            question = acs_multiple_choice_qa_map[task_obj.get_target()]
-
-        # Set the task's target question
-        task_obj.question = question
 
         # Construct the LLMClassifier object
         llm_inference_kwargs = {"correct_order_bias": config.correct_order_bias}
@@ -526,7 +521,7 @@ class Benchmark:
 
             llm_clf = WebAPILLMClassifier(
                 model_name=model,
-                task=task_obj,
+                task=task,
                 encode_row=encode_row_function,
                 **llm_inference_kwargs,
             )
@@ -535,7 +530,7 @@ class Benchmark:
             llm_clf = TransformersLLMClassifier(
                 model=model,
                 tokenizer=tokenizer,
-                task=task_obj,
+                task=task,
                 encode_row=encode_row_function,
                 **llm_inference_kwargs,
             )

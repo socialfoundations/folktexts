@@ -6,7 +6,13 @@ from folktexts.qa_interface import DirectNumericQA as _DirectNumericQA
 from folktexts.qa_interface import MultipleChoiceQA as _MultipleChoiceQA
 
 from . import acs_columns
-from .acs_tasks import acs_columns_map
+
+# Map of ACS column names to ColumnToText objects
+acs_columns_map: dict[str, object] = {
+    col_mapper.name: col_mapper
+    for col_mapper in acs_columns.__dict__.values()
+    if isinstance(col_mapper, ColumnToText)
+}
 
 # Map of numeric ACS questions
 acs_numeric_qa_map: dict[str, object] = {

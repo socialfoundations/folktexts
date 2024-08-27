@@ -12,10 +12,11 @@ from ..col_to_text import ColumnToText as _ColumnToText
 from ..task import TaskMetadata
 from ..threshold import Threshold
 from . import acs_columns
+from . import acs_questions
 from .acs_thresholds import (
     acs_employment_threshold,
     acs_health_insurance_threshold,
-    acs_income_poverty_ratio_threshold,
+    acs_poverty_ratio_threshold,
     acs_income_threshold,
     acs_mobility_threshold,
     acs_public_coverage_threshold,
@@ -44,13 +45,24 @@ class ACSTaskMetadata(TaskMetadata):
         description: str,
         features: list[str],
         target: str,
-        target_threshold: Threshold = None,
         sensitive_attribute: str = None,
-        **kwargs,
+        target_threshold: Threshold = None,
+        population_description: str = None,
+        folktables_obj: BasicProblem = None,
     ) -> ACSTaskMetadata:
         # Validate columns mappings exist
         if not all(col in acs_columns_map for col in (features + [target])):
             raise ValueError("Not all columns have mappings to text descriptions.")
+
+        # Resolve target column name
+        if target_threshold is not None:
+            target_col = target_threshold.apply_to_column_name(target)
+        else:
+            target_col = target
+
+        # Get Q&A interfaces for this task's target column
+        multiple_choice_qa = acs_questions.acs_multiple_choice_qa_map.get(target_col)
+        direct_numeric_qa = acs_questions.acs_numeric_qa_map.get(target_col)
 
         return cls(
             name=name,
@@ -58,10 +70,12 @@ class ACSTaskMetadata(TaskMetadata):
             features=features,
             target=target,
             cols_to_text=acs_columns_map,
-            target_threshold=target_threshold,
             sensitive_attribute=sensitive_attribute,
-            folktables_obj=None,
-            **kwargs,
+            target_threshold=target_threshold,
+            population_description=population_description,
+            multiple_choice_qa=multiple_choice_qa,
+            direct_numeric_qa=direct_numeric_qa,
+            folktables_obj=folktables_obj,
         )
 
     @classmethod
@@ -70,6 +84,7 @@ class ACSTaskMetadata(TaskMetadata):
         name: str,
         description: str,
         target_threshold: Threshold = None,
+        population_description: str = None,
     ) -> ACSTaskMetadata:
 
         # Get the task object from the folktables package
@@ -78,14 +93,14 @@ class ACSTaskMetadata(TaskMetadata):
         except AttributeError:
             raise ValueError(f"Could not find task '{name}' in folktables package.")
 
-        acs_task = ACSTaskMetadata(
+        acs_task = cls.make_task(
             name=name,
             description=description,
             features=folktables_task.features,
             target=folktables_task.target,
-            cols_to_text=acs_columns_map,
             sensitive_attribute=folktables_task.group,
             target_threshold=target_threshold,
+            population_description=population_description,
             folktables_obj=folktables_task,
         )
 
@@ -132,7 +147,7 @@ acs_travel_time_task = ACSTaskMetadata.make_folktables_task(
 acs_income_poverty_ratio_task = ACSTaskMetadata.make_folktables_task(
     name="ACSIncomePovertyRatio",
     description="predict whether an individual's income-to-poverty ratio is below 2.5",
-    target_threshold=acs_income_poverty_ratio_threshold,
+    target_threshold=acs_poverty_ratio_threshold,
 )
 
 
