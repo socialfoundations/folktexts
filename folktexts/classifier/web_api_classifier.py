@@ -104,7 +104,7 @@ class WebAPILLMClassifier(LLMClassifier):
         supported_params = get_supported_openai_params(model=self.model_name)
         if supported_params is None:
             raise RuntimeError(f"Failed to get supported parameters for model '{self.model_name}'.")
-        self.supported_params = set()
+        self.supported_params = set(supported_params)
 
         # Set litellm logger level to INFO
         logging.getLogger("litellm").setLevel(logging.INFO)
