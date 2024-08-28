@@ -132,6 +132,8 @@ class WebAPILLMClassifier(LLMClassifier):
     ) -> list[dict]:
         """Query the web API with a batch of prompts and returns the json response.
 
+        TODO! Retry on non-successful API calls (e.g., RPM exceeded).
+
         Parameters
         ----------
         prompts_batch : list[str]
@@ -191,6 +193,7 @@ class WebAPILLMClassifier(LLMClassifier):
             ]
 
             # Query the model API
+            # TODO: Retry on non-successful API calls (e.g., RPM exceeded).
             response = self.text_completion_api(
                 model=self.model_name,
                 messages=messages,
@@ -265,20 +268,20 @@ class WebAPILLMClassifier(LLMClassifier):
             try:
                 numeric_response = re.match(r"[-+]?\d*\.\d+|\d+", response_message).group()
                 risk_estimate_full_text = float(numeric_response)
-            except Exception as e:
+
+                if not np.isclose(risk_estimate, risk_estimate_full_text, atol=1e-2):
+                    logging.info(
+                        f"Numeric answer mismatch: {risk_estimate} != {risk_estimate_full_text} "
+                        f"from response '{response_message}'."
+                    )
+
+                    # Using full text answer as it more tightly relates to the ChatGPT web answer
+                    risk_estimate = risk_estimate_full_text
+
+            except Exception:
                 logging.error(
-                    f"Failed to extract numeric response from '{response_message}': {e}; "
-                    f"Falling back on standard risk estimate of {risk_estimate}."
-                )
-
-            if not np.isclose(risk_estimate, risk_estimate_full_text, atol=1e-2):
-                logging.info(
-                    f"Numeric answer mismatch: {risk_estimate} != {risk_estimate_full_text} "
-                    f"from response '{response_message}'."
-                )
-
-            # Using full text answer as it more tightly relates to the ChatGPT web answer
-            risk_estimate = risk_estimate_full_text
+                    f"Failed to extract numeric response from message='{response_message}';\n"
+                    f"Falling back on standard risk estimate of {risk_estimate}.")
 
         return risk_estimate
 
