@@ -126,7 +126,7 @@ def make_llm_clf_experiment(
         executable_path=executable_path,
         env_vars=env_vars_str,
         kwargs=dict(
-            model=model_path,
+            model=model_path if "use_web_api_model" not in kwargs else model_name,
             task=task,
             results_dir=results_dir,
             **experiment_kwargs,
