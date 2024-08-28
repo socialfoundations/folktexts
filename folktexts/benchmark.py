@@ -78,8 +78,15 @@ class BenchmarkConfig:
         """Update the configuration with new values."""
         possible_keys = dataclasses.asdict(self).keys()
         valid_changes = {k: v for k, v in changes.items() if k in possible_keys}
+
+        # Log config changes
         if valid_changes:
             logging.info(f"Updating benchmark configuration with: {valid_changes}")
+
+        # Log unused kwargs
+        if len(valid_changes) < len(changes):
+            unused_kwargs = {k: v for k, v in changes.items() if k not in possible_keys}
+            logging.warning(f"Unused config arguments: {unused_kwargs}")
 
         return dataclasses.replace(self, **valid_changes)
 
@@ -425,9 +432,6 @@ class Benchmark:
         bench : Benchmark
             The ACS calibration benchmark object.
         """
-        # Update config with any additional kwargs
-        config = config.update(**kwargs)
-
         # Handle non-standard ACS arguments
         acs_dataset_configs = cls.ACS_DATASET_CONFIGS.copy()
         for arg in acs_dataset_configs:
@@ -438,9 +442,8 @@ class Benchmark:
                     f"This may affect reproducibility.")
                 acs_dataset_configs[arg] = kwargs.pop(arg)
 
-        # Log unused kwargs
-        if kwargs:
-            logging.warning(f"Unused key-word arguments: {kwargs}")
+        # Update config with any additional kwargs
+        config = config.update(**kwargs)
 
         # Fetch ACS task and dataset
         acs_task = ACSTaskMetadata.get_task(
