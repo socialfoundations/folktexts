@@ -23,8 +23,8 @@ Package documentation can be found [here](https://socialfoundations.github.io/fo
 - [Installing](#installing)
 - [Basic setup](#basic-setup)
 - [Example usage](#example-usage)
+- [Benchmark features and options](#benchmark-features-and-options)
 - [Evaluating feature importance](#evaluating-feature-importance)
-- [Benchmark options](#benchmark-options)
 - [FAQ](#faq)
 - [Citation](#citation)
 - [License and terms of use](#license-and-terms-of-use)
@@ -79,6 +79,7 @@ Run `run_acs_benchmark --help` to get a list of all available benchmark flags.
 ## Example usage
 
 ```py
+# Load transformers model
 from folktexts.llm_utils import load_model_tokenizer
 model, tokenizer = load_model_tokenizer("gpt2")   # using tiny model as an example
 
@@ -86,19 +87,16 @@ from folktexts.acs import ACSDataset
 acs_task_name = "ACSIncome"     # Name of the benchmark ACS task to use
 
 # Create an object that classifies data using an LLM
-from folktexts import LLMClassifier
-clf = LLMClassifier(
+from folktexts import TransformersLLMClassifier
+clf = TransformersLLMClassifier(
     model=model,
     tokenizer=tokenizer,
     task=acs_task_name,
 )
+# NOTE: You can also use a web-hosted model like GPT4 using the `WebAPILLMClassifier` class
 
 # Use a dataset or feed in your own data
 dataset = ACSDataset.make_from_task(acs_task_name)   # use `.subsample(0.01)` to get faster approximate results
-
-# And simply run the benchmark to get a variety of metrics and plots
-from folktexts.benchmark import Benchmark
-benchmark_results = Benchmark(clf, dataset).run(results_root_dir="results")
 
 # You can compute risk score predictions using an sklearn-style interface
 X_test, y_test = dataset.get_test()
@@ -109,31 +107,39 @@ clf.fit(*dataset[0:100])    # (`dataset[...]` will access training data)
 
 # ...in order to get more accurate binary predictions with `.predict`
 test_preds = clf.predict(X_test)
+
+# If you only care about the overall metrics and not individual predictions,
+# you can simply run the following code:
+from folktexts.benchmark import Benchmark, BenchmarkConfig
+bench = Benchmark.make_benchmark(
+    task=acs_task_name, dataset=dataset,
+    model=model, tokenizer=tokenizer,
+    config=BenchmarkConfig(numeric_risk_prompting=True),    # Add other configs here
+)
+bench_results = bench.run(results_root_dir="results")
 ```
 
-<!-- TODO: add code to show-case example functionalities, including the
-LLMClassifier (maybe the above code is fine for this), the benchmark, and
-creating a custom ACS prediction task -->
+
+## Benchmark features and options
+
+Here's a summary list of the most important benchmark options/flags used in
+conjunction with the `run_acs_benchmark` command line script, or with the
+`Benchmark` class.
+
+| Option | Description | Examples |
+|:---|:---|:---:|
+| `--model` | Name of the model on huggingface transformers, or local path to folder with pretrained model and tokenizer. Can also use web-hosted models with `"[provider]/[model-name]"`. | `meta-llama/Meta-Llama-3-8B`, `openai/gpt-4o-mini` |
+| `--task` | Name of the ACS task to run benchmark on. | `ACSIncome`, `ACSEmployment`  |
+| `--results-dir` | Path to directory under which benchmark results will be saved. | `results` |
+| `--data-dir` | Root folder to find datasets in (or download ACS data to). | `~/data` |
+| `--numeric-risk-prompting` | Whether to use verbalized numeric risk prompting, i.e., directly query model for a probability estimate. **By default** will use standard multiple-choice Q&A, and extract risk scores from internal token probabilities. | Boolean flag (`True` if present, `False` otherwise) |
+| `--use-web-api-model` | Whether the given `--model` name corresponds to a web-hosted model or not. **By default** this is False (assumes a huggingface transformers model). If this flag is provided, `--model` must contain a [litellm](https://docs.litellm.ai) model identifier ([examples here](https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models)). | Boolean flag (`True` if present, `False` otherwise) |
+| `--subsampling` | Which fraction of the dataset to use for the benchmark. **By default** will use the whole test set. | `0.01` |
+| `--fit-threshold` | Whether to use the given number of samples to fit the binarization threshold. **By default** will use a fixed $t=0.5$ threshold instead of fitting on data. | `100` |
+| `--batch-size` | The number of samples to process in each inference batch. Choose according to your available VRAM. | `10`, `32` |
 
 
-## Evaluating feature importance
-
-By evaluating LLMs on tabular classification tasks, we can use standard feature importance methods to assess which features the model uses to compute risk scores.
-
-You can do so yourself by calling `folktexts.cli.eval_feature_importance` (add `--help` for a full list of options).
-
-Here's an example for the Llama3-70B-Instruct model on the ACSIncome task (*warning: takes 24h on an Nvidia H100*):
-```
-python -m folktexts.cli.eval_feature_importance --model 'meta-llama/Meta-Llama-3-70B-Instruct' --task ACSIncome --subsampling 0.1
-```
-<div style="text-align: center;">
-<img src="docs/_static/feat-imp_meta-llama--Meta-Llama-3-70B-Instruct.png" alt="feature importance on llama3 70b it" width="50%">
-</div>
-
-This script uses sklearn's [`permutation_importance`](https://scikit-learn.org/stable/modules/generated/sklearn.inspection.permutation_importance.html#sklearn.inspection.permutation_importance) to assess which features contribute the most for the ROC AUC metric (other metrics can be assessed using the `--scorer [scorer]` parameter).
-
-
-## Benchmark options
+Full list of options:
 
 ```
 usage: run_acs_benchmark [-h] --model MODEL --results-dir RESULTS_DIR --data-dir DATA_DIR [--task TASK] [--few-shot FEW_SHOT] [--batch-size BATCH_SIZE] [--context-size CONTEXT_SIZE] [--fit-threshold FIT_THRESHOLD] [--subsampling SUBSAMPLING] [--seed SEED] [--use-web-api-model] [--dont-correct-order-bias] [--numeric-risk-prompting] [--reuse-few-shot-examples] [--use-feature-subset USE_FEATURE_SUBSET]
@@ -174,6 +180,24 @@ options:
 ```
 
 
+
+## Evaluating feature importance
+
+By evaluating LLMs on tabular classification tasks, we can use standard feature importance methods to assess which features the model uses to compute risk scores.
+
+You can do so yourself by calling `folktexts.cli.eval_feature_importance` (add `--help` for a full list of options).
+
+Here's an example for the Llama3-70B-Instruct model on the ACSIncome task (*warning: takes 24h on an Nvidia H100*):
+```
+python -m folktexts.cli.eval_feature_importance --model 'meta-llama/Meta-Llama-3-70B-Instruct' --task ACSIncome --subsampling 0.1
+```
+<div style="text-align: center;">
+<img src="docs/_static/feat-imp_meta-llama--Meta-Llama-3-70B-Instruct.png" alt="feature importance on llama3 70b it" width="50%">
+</div>
+
+This script uses sklearn's [`permutation_importance`](https://scikit-learn.org/stable/modules/generated/sklearn.inspection.permutation_importance.html#sklearn.inspection.permutation_importance) to assess which features contribute the most for the ROC AUC metric (other metrics can be assessed using the `--scorer [scorer]` parameter).
+
+
 ## FAQ
 
 1.
@@ -192,6 +216,7 @@ options:
     **Q:** Can I use `folktexts` with closed-source models?
 
     **A:** **Yes!** We provide compatibility with local LLMs via [🤗 transformers](https://github.com/huggingface/transformers) and compatibility with web-hosted LLMs via [litellm](https://github.com/BerriAI/litellm). For example, you can use `--model='gpt-4o' --use-web-api-model` to use GPT-4o when calling the `run_acs_benchmark` script. [Here's a complete list](https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models) of compatible OpenAI models. Note that some models are not compatible as they don't enable access to log-probabilities.
+    Using models through a web API requires installing extra optional dependencies with `pip install 'folktexts[apis]'`.
 
 
 4.

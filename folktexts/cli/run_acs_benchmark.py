@@ -10,7 +10,7 @@ from pathlib import Path
 DEFAULT_ACS_TASK = "ACSIncome"
 
 DEFAULT_BATCH_SIZE = 30
-DEFAULT_CONTEXT_SIZE = 500
+DEFAULT_CONTEXT_SIZE = 600
 DEFAULT_SEED = 42
 
 
@@ -94,11 +94,19 @@ def setup_arg_parser() -> ArgumentParser:
     )
 
     parser.add_argument(
+        "--max-api-rpm",
+        type=int,
+        help="[int] Maximum number of API requests per minute (if using a web-hosted model)",
+        required=False,
+    )
+
+    parser.add_argument(
         "--logger-level",
         type=str,
         help="[str] The logging level to use for the experiment",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         required=False,
+        default="WARNING",
     )
 
     return parser
@@ -111,7 +119,7 @@ def main():
     parser = setup_arg_parser()
     args = parser.parse_args()
 
-    logging.getLogger().setLevel(level=args.logger_level or "INFO")
+    logging.getLogger().setLevel(level=args.logger_level)
     pretty_args_str = json.dumps(vars(args), indent=4, sort_keys=True)
     logging.info(f"Current python executable: '{sys.executable}'")
     logging.info(f"Received the following cmd-line args: {pretty_args_str}")
@@ -156,6 +164,7 @@ def main():
         data_dir=args.data_dir,
         config=config,
         subsampling=args.subsampling,
+        max_api_rpm=args.max_api_rpm,
     )
 
     # Set-up results directory

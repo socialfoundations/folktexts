@@ -9,8 +9,7 @@ from __future__ import annotations
 
 import logging
 import statistics
-from functools import partial
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 import numpy as np
 from netcal.metrics import ECE
@@ -36,6 +35,7 @@ def evaluate_binary_predictions(y_true: np.ndarray, y_pred: np.ndarray) -> dict:
     """
     # Compute confusion matrix
     tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=(0, 1)).ravel()
+    tn, fp, fn, tp = map(int, (tn, fp, fn, tp))
 
     total = tn + fp + fn + tp
     pred_pos = tp + fp

@@ -14,7 +14,6 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from ._io import load_json, save_json
 from ._utils import hash_dict, is_valid_number
 from .acs.acs_dataset import ACSDataset
-from .acs.acs_questions import acs_multiple_choice_qa_map, acs_numeric_qa_map
 from .acs.acs_tasks import ACSTaskMetadata
 from .classifier import LLMClassifier, TransformersLLMClassifier, WebAPILLMClassifier
 from .dataset import Dataset
@@ -75,6 +74,22 @@ class BenchmarkConfig:
         """Returns the default configuration with optional changes."""
         return cls(**changes)
 
+    def update(self, **changes) -> BenchmarkConfig:
+        """Update the configuration with new values."""
+        possible_keys = dataclasses.asdict(self).keys()
+        valid_changes = {k: v for k, v in changes.items() if k in possible_keys}
+
+        # Log config changes
+        if valid_changes:
+            logging.info(f"Updating benchmark configuration with: {valid_changes}")
+
+        # Log unused kwargs
+        if len(valid_changes) < len(changes):
+            unused_kwargs = {k: v for k, v in changes.items() if k not in possible_keys}
+            logging.warning(f"Unused config arguments: {unused_kwargs}")
+
+        return dataclasses.replace(self, **valid_changes)
+
     @classmethod
     def load_from_disk(cls, path: str | Path):
         """Load the configuration from disk."""
@@ -126,6 +141,21 @@ class Benchmark:
         dataset: Dataset,
         config: BenchmarkConfig = BenchmarkConfig.default_config(),
     ):
+        """A benchmark object to measure and evaluate risk scores produced by an LLM.
+
+        Parameters
+        ----------
+        llm_clf : LLMClassifier
+            A language model classifier object (can be local or web-hosted).
+        dataset : Dataset
+            The dataset object to use for the benchmark.÷
+        config : BenchmarkConfig, optional
+            The configuration object used to create the benchmark parameters.
+            **NOTE**: This is used to uniquely identify the benchmark object for
+            reproducibility; it **will not be used to change the benchmark
+            behavior**. To configure the benchmark, pass a configuration object
+            to the Benchmark.make_benchmark method.
+        """
         self.llm_clf = llm_clf
         self.dataset = dataset
         self.config = config
@@ -369,6 +399,7 @@ class Benchmark:
         model: AutoModelForCausalLM | str,
         tokenizer: AutoTokenizer = None,
         data_dir: str | Path = None,
+        max_api_rpm: int = None,
         config: BenchmarkConfig = BenchmarkConfig.default_config(),
         **kwargs,
     ) -> Benchmark:
@@ -386,19 +417,21 @@ class Benchmark:
             model). Not required for webAPI models.
         data_dir : str | Path, optional
             Path to the directory to load data from and save data in.
+        max_api_rpm : int, optional
+            The maximum number of API requests per minute for webAPI models.
         config : BenchmarkConfig, optional
             Extra benchmark configurations, by default will use
             `BenchmarkConfig.default_config()`.
         **kwargs
-            Additional arguments passed to `ACSDataset`. By default will use a
-            set of standardized dataset configurations for reproducibility.
+            Additional arguments passed to `ACSDataset` and `BenchmarkConfig`.
+            By default will use a set of standardized configurations for
+            reproducibility.
 
         Returns
         -------
         bench : Benchmark
             The ACS calibration benchmark object.
         """
-
         # Handle non-standard ACS arguments
         acs_dataset_configs = cls.ACS_DATASET_CONFIGS.copy()
         for arg in acs_dataset_configs:
@@ -409,12 +442,14 @@ class Benchmark:
                     f"This may affect reproducibility.")
                 acs_dataset_configs[arg] = kwargs.pop(arg)
 
-        # Log unused kwargs
-        if kwargs:
-            logging.warning(f"Unused key-word arguments: {kwargs}")
+        # Update config with any additional kwargs
+        config = config.update(**kwargs)
 
         # Fetch ACS task and dataset
-        acs_task = ACSTaskMetadata.get_task(task_name)
+        acs_task = ACSTaskMetadata.get_task(
+            name=task_name,
+            use_numeric_qa=config.numeric_risk_prompting)
+
         acs_dataset = ACSDataset.make_from_task(
             task=acs_task,
             cache_dir=data_dir,
@@ -425,6 +460,7 @@ class Benchmark:
             dataset=acs_dataset,
             model=model,
             tokenizer=tokenizer,
+            max_api_rpm=max_api_rpm,
             config=config,
         )
 
@@ -436,7 +472,9 @@ class Benchmark:
         dataset: Dataset,
         model: AutoModelForCausalLM | str,
         tokenizer: AutoTokenizer = None,    # WebAPI models have no local tokenizer
+        max_api_rpm: int = None,
         config: BenchmarkConfig = BenchmarkConfig.default_config(),
+        **kwargs,
     ) -> Benchmark:
         """Create a calibration benchmark from a given configuration.
 
@@ -452,80 +490,83 @@ class Benchmark:
         tokenizer : AutoTokenizer, optional
             The tokenizer used to train the model (if using a transformers
             model). Not required for webAPI models.
+        max_api_rpm : int, optional
+            The maximum number of API requests per minute for webAPI models.
         config : BenchmarkConfig, optional
             Extra benchmark configurations, by default will use
             `BenchmarkConfig.default_config()`.
+        **kwargs
+            Additional arguments for easier configuration of the benchmark.
+            Will simply use these values to update the `config` object.
 
         Returns
         -------
         bench : Benchmark
             The calibration benchmark object.
         """
+        # Update config with any additional kwargs
+        config = config.update(**kwargs)
+
         # Handle TaskMetadata object
-        task_obj = TaskMetadata.get_task(task) if isinstance(task, str) else task
+        task = TaskMetadata.get_task(task) if isinstance(task, str) else task
+        if config.numeric_risk_prompting:
+            task.use_numeric_qa = True
 
         if config.feature_subset is not None and len(config.feature_subset) > 0:
-            task_obj = task_obj.create_task_with_feature_subset(config.feature_subset)
-            dataset.task = task_obj
+            task = task.create_task_with_feature_subset(config.feature_subset)
+            dataset.task = task
 
         # Check dataset is compatible with task
-        if dataset.task is not task_obj and dataset.task.name != task_obj.name:
+        if dataset.task is not task and dataset.task.name != task.name:
             raise ValueError(
                 f"Dataset task '{dataset.task.name}' does not match the "
-                f"provided task '{task_obj.name}'.")
+                f"provided task '{task.name}'.")
 
         if config.population_filter is not None:
             dataset = dataset.filter(config.population_filter)
 
         # Get prompting function
-        encode_row_function = partial(encode_row_prompt, task=task_obj)
-
         if config.few_shot:
+            print(f"Using few-shot prompting (n={config.few_shot})!")
             encode_row_function = partial(
                 encode_row_prompt_few_shot,
-                task=task_obj,
+                task=task,
                 n_shots=config.few_shot,
                 dataset=dataset,
                 reuse_examples=config.reuse_few_shot_examples,
             )
 
-        # Load the QA interface to be used for risk-score prompting
-        if config.numeric_risk_prompting:
-            logging.warning(f"Untested feature: numeric_risk_prompting={config.numeric_risk_prompting}")
-            question = acs_numeric_qa_map[task_obj.get_target()]
         else:
-            question = acs_multiple_choice_qa_map[task_obj.get_target()]
+            print("Using zero-shot prompting.")
+            encode_row_function = partial(encode_row_prompt, task=task)
 
-        # Set the task's target question
-        task_obj.question = question
-
-        # Construct the LLMClassifier object
+        # Parse LLMClassifier parameters
         llm_inference_kwargs = {"correct_order_bias": config.correct_order_bias}
         if config.batch_size is not None:
             llm_inference_kwargs["batch_size"] = config.batch_size
         if config.context_size is not None:
             llm_inference_kwargs["context_size"] = config.context_size
+        if max_api_rpm is not None and isinstance(model, str):
+            llm_inference_kwargs["max_api_rpm"] = max_api_rpm
 
         # Create LLMClassifier object
         if isinstance(model, str):
-            logging.info(f"Using webAPI model: {model}")
-
             llm_clf = WebAPILLMClassifier(
                 model_name=model,
-                task=task_obj,
+                task=task,
                 encode_row=encode_row_function,
                 **llm_inference_kwargs,
             )
+            logging.info(f"Using webAPI model: {model}")
 
         else:
             llm_clf = TransformersLLMClassifier(
                 model=model,
                 tokenizer=tokenizer,
-                task=task_obj,
+                task=task,
                 encode_row=encode_row_function,
                 **llm_inference_kwargs,
             )
-
             logging.info(f"Using local transformers model: {llm_clf.model_name}")
 
         return cls(

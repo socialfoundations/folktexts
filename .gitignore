@@ -165,6 +165,9 @@ cython_debug/
 ._.DS_Store
 ._*
 
+# VSCode
+.vscode/
+
 # HTCondor submission files
 *.sub
 

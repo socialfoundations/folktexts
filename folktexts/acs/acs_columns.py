@@ -13,6 +13,7 @@ from .acs_thresholds import (
     acs_mobility_threshold,
     acs_public_coverage_threshold,
     acs_travel_time_threshold,
+    acs_poverty_ratio_threshold,
 )
 
 # Path to ACS codebook files
@@ -200,8 +201,6 @@ acs_income_numeric_qa = DirectNumericQA(
         "What is the probability that this person's estimated yearly income is "
         "above $50,000 ?"
     ),
-    answer_probability=True,
-    num_forward_passes=2,
 )
 
 acs_income_target_col = ColumnToText(
@@ -221,7 +220,7 @@ acs_pubcov_og_qa = MultipleChoiceQA(
     ),
 )
 
-acs_pubcov_og_target_col = ColumnToText(
+acs_pubcov = ColumnToText(
     "PUBCOV",
     short_description="public health coverage status",
     value_map={
@@ -239,6 +238,13 @@ acs_pubcov_qa = MultipleChoiceQA(
         Choice("Yes, person is covered by public health insurance", 1),
         Choice("No, person is not covered by public health insurance", 0),  # NOTE: value=0 for no public coverage!
     ),
+)
+
+acs_pubcov_numeric_qa = DirectNumericQA(
+    column=acs_public_coverage_threshold.apply_to_column_name("PUBCOV"),
+    text=(
+        "What is the probability that this person is covered by public health insurance?"
+    ),  # NOTE: value=1 for yes, 0 for no
 )
 
 acs_pubcov_target_col = ColumnToText(
@@ -301,12 +307,19 @@ acs_mobility = ColumnToText(
 
 # MIG: Mobility Status (Thresholded)
 acs_mobility_qa = MultipleChoiceQA(
-    column=acs_mobility_threshold.apply_to_column_name("MIG"),
+    column=acs_mobility_threshold.apply_to_column_name("MIG"),      # NOTE: Thresholded by MIG!=1
     text="Has this person moved in the last year?",
     choices=(
-        Choice("No, person has lived in the same house for the last year", 1),
-        Choice("Yes, person has moved in the last year", 0),
+        Choice("No, person has lived in the same house for the last year", 0),
+        Choice("Yes, person has moved in the last year", 1),
     ),
+)
+
+acs_mobility_numeric_qa = DirectNumericQA(
+    column=acs_mobility_threshold.apply_to_column_name("MIG"),      # NOTE: Thresholded by MIG!=1
+    text=(
+        "What is the probability that this person has moved in the last year?"
+    ),  # NOTE: Question should relate to probability of MIG!=1
 )
 
 acs_mobility_target_col = ColumnToText(
@@ -408,6 +421,14 @@ acs_employment_qa = MultipleChoiceQA(
     ),
 )
 
+acs_employment_numeric_qa = DirectNumericQA(
+    column=acs_employment_threshold.apply_to_column_name("ESR"),
+    text=(
+        "What is the probability that this person is an employed civilian?"
+        # "What is the probability that this person is currently employed?"
+    ),  # NOTE: Question should relate to probability of ESR==1
+)
+
 acs_employment_target_col = ColumnToText(
     name=acs_employment_threshold.apply_to_column_name("ESR"),
     short_description="employment status",
@@ -456,6 +477,13 @@ acs_commute_time_qa = MultipleChoiceQA(
     ),
 )
 
+acs_commute_time_numeric_qa = DirectNumericQA(
+    column=acs_travel_time_threshold.apply_to_column_name("JWMNP"),
+    text=(
+        "What is the probability that this person's commute time is longer than 20 minutes?"
+    ),  # NOTE: Question should relate to probability of JWMNP>20
+)
+
 acs_travel_time_target_col = ColumnToText(
     name=acs_travel_time_threshold.apply_to_column_name("JWMNP"),
     short_description="commute time",
@@ -488,6 +516,26 @@ acs_poverty_ratio = ColumnToText(
     "POVPIP",
     short_description="income-to-poverty ratio",
     value_map=lambda x: f"{x / 100:.1%}",
+)
+
+# POVPIP: Income-to-Poverty Ratio (Thresholded)
+acs_poverty_ratio_qa = MultipleChoiceQA(
+    column=acs_poverty_ratio_threshold.apply_to_column_name("POVPIP"),
+    text=(
+        "Is this person's income-to-poverty ratio below 2.5 ? "
+        "That is, is this person's annual income below 2.5 times the poverty line income?",
+    ),
+    choices=(
+        Choice("Yes, this person earns below 2.5 times the poverty line income", 1),
+        Choice("No, this person earns above 2.5 times the poverty line income.", 0),
+    ),
+)
+
+acs_poverty_ratio_target_col = ColumnToText(
+    name=acs_poverty_ratio_threshold.apply_to_column_name("POVPIP"),
+    short_description="income-to-poverty ratio is below 2.5",
+    question=acs_poverty_ratio_qa,
+    use_value_map_only=True,
 )
 
 # GCL: Grandparent Living with Grandchildren
@@ -543,6 +591,14 @@ acs_health_ins_2_qa = MultipleChoiceQA(
         Choice("Yes, this person has health insurance through a private company", 1),
         Choice("No, this person either has insurance through other means or is uninsured", 0),
     ),
+)
+
+acs_health_ins_2_numeric_qa = DirectNumericQA(
+    column=acs_health_insurance_threshold.apply_to_column_name("HINS2"),
+    text=(
+        "What is the probability that this person has purchased health "
+        "insurance directly through a private company?"
+    ),  # NOTE: Question should relate to probability of HINS2==1
 )
 
 acs_health_ins_2_target_col = ColumnToText(

@@ -3,9 +3,10 @@
 
 from __future__ import annotations
 
-import re
-import time
 import logging
+import re
+import os
+import time
 from typing import Callable
 
 import numpy as np
@@ -24,10 +25,11 @@ class WebAPILLMClassifier(LLMClassifier):
         self,
         model_name: str,
         task: TaskMetadata | str,
+        custom_prompt_prefix: str = None,
         encode_row: Callable[[pd.Series], str] = None,
         threshold: float = 0.5,
         correct_order_bias: bool = True,
-        max_requests_per_minute: int = 5000,    # NOTE: OpenAI Tier 1 limit is only 500 RPM !
+        max_api_rpm: int = 5000,    # NOTE: OpenAI Tier 1 limit is only 500 RPM !
         seed: int = 42,
         **inference_kwargs,
     ):
@@ -39,16 +41,31 @@ class WebAPILLMClassifier(LLMClassifier):
             The model ID to be resolved by `litellm`.
         task : TaskMetadata | str
             The task metadata object or name of an already created task.
-        correct_order_bias : bool, optional
-            Whether to correct ordering bias in multiple-choice Q&A, by default
-            True.
+        custom_prompt_prefix : str, optional
+            A custom prompt prefix to supply to the model before the encoded
+            row data, by default None.
+        encode_row : Callable[[pd.Series], str], optional
+            The function used to encode tabular rows into natural text. If not
+            provided, will use the default encoding function for the task.
         threshold : float, optional
-            The threshold used to binarize risk scores produced by the model, by
-            default 0.5.
+            The classification threshold to use when outputting binary
+            predictions, by default 0.5. Must be between 0 and 1. Will be
+            re-calibrated if `fit` is called.
+        correct_order_bias : bool, optional
+            Whether to correct ordering bias in multiple-choice Q&A questions,
+            by default True.
+        max_api_rpm : int, optional
+            The maximum number of requests per minute allowed for the API.
+        seed : int, optional
+            The random seed - used for reproducibility.
+        **inference_kwargs
+            Additional keyword arguments to be used at inference time. Options
+            include `context_size` and `batch_size`.
         """
         super().__init__(
             model_name=model_name,
             task=task,
+            custom_prompt_prefix=custom_prompt_prefix,
             encode_row=encode_row,
             threshold=threshold,
             correct_order_bias=correct_order_bias,
@@ -56,16 +73,26 @@ class WebAPILLMClassifier(LLMClassifier):
             **inference_kwargs,
         )
 
-        self.max_requests_per_minute = max_requests_per_minute
-        if self.max_requests_per_minute > 5000:
-            raise ValueError(f"Maximum RPM must be less than 5K, got {self.max_requests_per_minute}")
+        # Initialize total cost of API calls
+        self._total_cost = 0
+
+        # Set maximum requests per minute
+        self.max_api_rpm = max_api_rpm
+        if "MAX_API_RPM" in os.environ:
+            self.max_api_rpm = int(os.getenv("MAX_API_RPM"))
+            logging.warning(
+                f"MAX_API_RPM environment variable is set. "
+                f"Overriding previous value of {max_api_rpm} with {self.max_api_rpm}."
+            )
 
         # Check extra dependencies
         assert self.check_webAPI_deps(), "Web API dependencies are not installed."
 
-        # Set-up litellm API client
-        self._total_cost = 0
+        # Check OpenAI API key was passed
+        if "OPENAI_API_KEY" not in os.environ:
+            raise ValueError("OpenAI API key not found in environment variables")
 
+        # Set-up litellm API client
         import litellm
         litellm.success_callback = [self.track_cost_callback]
 
@@ -74,13 +101,19 @@ class WebAPILLMClassifier(LLMClassifier):
 
         # Get supported parameters
         from litellm import get_supported_openai_params
-        self.supported_params = set(get_supported_openai_params(model=self.model_name))
+        supported_params = get_supported_openai_params(model=self.model_name)
+        if supported_params is None:
+            raise RuntimeError(f"Failed to get supported parameters for model '{self.model_name}'.")
+        self.supported_params = set(supported_params)
+
+        # Set litellm logger level to WARNING
+        logging.getLogger("LiteLLM").setLevel(logging.WARNING)
 
     @staticmethod
     def check_webAPI_deps() -> bool:
         """Check if litellm dependencies are available."""
         try:
-            import litellm      # noqa: F401
+            import litellm  # noqa: F401
         except ImportError:
             logging.critical(
                 "Please install extra API dependencies with "
@@ -98,6 +131,8 @@ class WebAPILLMClassifier(LLMClassifier):
         context_size: int = None,
     ) -> list[dict]:
         """Query the web API with a batch of prompts and returns the json response.
+
+        TODO! Retry on non-successful API calls (e.g., RPM exceeded).
 
         Parameters
         ----------
@@ -158,6 +193,7 @@ class WebAPILLMClassifier(LLMClassifier):
             ]
 
             # Query the model API
+            # TODO: Retry on non-successful API calls (e.g., RPM exceeded).
             response = self.text_completion_api(
                 model=self.model_name,
                 messages=messages,
@@ -166,7 +202,7 @@ class WebAPILLMClassifier(LLMClassifier):
             responses_batch.append(response)
 
             # Sleep for short period to avoid rate-limiting (max 5K RPM for OpenAI API)
-            time.sleep(60 / self.max_requests_per_minute)
+            time.sleep(60 / self.max_api_rpm)
 
         return responses_batch
 
@@ -211,7 +247,7 @@ class WebAPILLMClassifier(LLMClassifier):
         token_to_id = {tok: i for i, tok in enumerate(vocab_tokens)}
         id_to_token = {i: tok for i, tok in enumerate(vocab_tokens)}
 
-        # 2. Parse `token_probs_all_passes` into an array of shape (num_passes, vocab_size) 
+        # 2. Parse `token_probs_all_passes` into an array of shape (num_passes, vocab_size)
         token_probs_array = np.array([
             [
                 forward_pass.get(id_to_token[i], 0)
@@ -232,20 +268,20 @@ class WebAPILLMClassifier(LLMClassifier):
             try:
                 numeric_response = re.match(r"[-+]?\d*\.\d+|\d+", response_message).group()
                 risk_estimate_full_text = float(numeric_response)
-            except Exception as e:
+
+                if not np.isclose(risk_estimate, risk_estimate_full_text, atol=1e-2):
+                    logging.info(
+                        f"Numeric answer mismatch: {risk_estimate} != {risk_estimate_full_text} "
+                        f"from response '{response_message}'."
+                    )
+
+                    # Using full text answer as it more tightly relates to the ChatGPT web answer
+                    risk_estimate = risk_estimate_full_text
+
+            except Exception:
                 logging.error(
-                    f"Failed to extract numeric response from '{response_message}': {e}; "
-                    f"Falling back on standard risk estimate of {risk_estimate}."
-                )
-
-            if not np.isclose(risk_estimate, risk_estimate_full_text, atol=1e-2):
-                logging.info(
-                    f"Numeric answer mismatch: {risk_estimate} != {risk_estimate_full_text} "
-                    f"from response '{response_message}'."
-                )
-
-            # Using full text answer as it more tightly relates to the ChatGPT web answer
-            risk_estimate = risk_estimate_full_text
+                    f"Failed to extract numeric response from message='{response_message}';\n"
+                    f"Falling back on standard risk estimate of {risk_estimate}.")
 
         return risk_estimate
 
@@ -307,3 +343,9 @@ class WebAPILLMClassifier(LLMClassifier):
 
         except Exception as e:
             logging.error(f"Failed to track cost of API calls: {e}")
+
+    def __del__(self):
+        """Destructor to report total cost of API calls."""
+        msg = f"Total cost of API calls: ${self._total_cost:.2f}"
+        print(msg)
+        logging.info(msg)

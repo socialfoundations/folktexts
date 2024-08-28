@@ -2,7 +2,6 @@
 """Launch htcondor jobs for all ACS benchmark experiments.
 """
 import argparse
-import logging
 import math
 from pathlib import Path
 from pprint import pprint
@@ -91,6 +90,7 @@ def make_llm_clf_experiment(
     model_name: str,
     task: str,
     results_dir: str,
+    env_vars_str: str = "",
     **kwargs,
 ) -> Experiment:
     """Create an experiment object to run.
@@ -100,7 +100,8 @@ def make_llm_clf_experiment(
 
     # Get model path
     model_path = get_model_folder_path(model_name, root_dir=MODELS_DIR)
-    assert Path(model_path).exists(), f"Model path '{model_path}' does not exist."
+    if not Path(model_path).exists() and "use_web_api_model" not in kwargs:
+        raise FileNotFoundError(f"Model folder not found at '{model_path}'.")
 
     # Split experiment and job kwargs
     job_kwargs = {key: val for key, val in kwargs.items() if key.startswith("job_")}
@@ -123,8 +124,9 @@ def make_llm_clf_experiment(
     # Define experiment
     exp = Experiment(
         executable_path=executable_path,
+        env_vars=env_vars_str,
         kwargs=dict(
-            model=model_path,
+            model=model_path if "use_web_api_model" not in kwargs else model_name,
             task=task,
             results_dir=results_dir,
             **experiment_kwargs,
@@ -190,6 +192,16 @@ def setup_arg_parser() -> argparse.ArgumentParser:
         required=False,
     )
 
+    parser.add_argument(
+        "--environment",
+        type=str,
+        help=(
+            "[string] String defining environment variables to be passed to "
+            "launched jobs, in the form 'VAR1=val1;VAR2=val2;...'."
+        ),
+        required=False,
+    )
+
     return parser
 
 
@@ -226,6 +238,7 @@ def main():
                 model_name=model,
                 task=task,
                 results_dir=args.results_dir,
+                env_vars_str=args.environment,
                 **extra_kwargs,
             )
             for model in models

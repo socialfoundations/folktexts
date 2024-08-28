@@ -6,10 +6,10 @@
 """
 from __future__ import annotations
 
-import re
-import logging
-import itertools
 import dataclasses
+import itertools
+import logging
+import re
 from abc import ABC
 from dataclasses import dataclass
 from typing import Iterator
@@ -146,9 +146,9 @@ class DirectNumericQA(QAInterface):
         numeric_tokens_vocab = self._get_numeric_tokens(tokenizer_vocab)
 
         if len(last_token_probs) < self.num_forward_passes:
-            logging.warning(
-                f"Expected {self.num_forward_passes} forward passes, got {len(last_token_probs)}."
-            )
+            logging.info(
+                f"Expected {self.num_forward_passes} forward passes, got "
+                f"{len(last_token_probs)}.")
 
         answer_text = ""
         for ltp in last_token_probs:
@@ -165,8 +165,9 @@ class DirectNumericQA(QAInterface):
             logging.debug(f"Total prob. assigned to numeric tokens: {sum(num_tokens_probs.values()):.2%}")
 
         # Filter out any non-numeric characters
-        numeric_answer_text = re.match(r"[-+]?\d*\.\d+|\d+", answer_text).group()
-        assert numeric_answer_text, f"Could not find numeric answer in '{answer_text}'."
+        match_ = re.match(r"[-+]?\d*\.\d+|\d+", answer_text)
+        assert match_, f"Could not find numeric answer in '{answer_text}'."
+        numeric_answer_text = match_.group()
 
         if self.answer_probability and "." not in numeric_answer_text:
             return float(f"0.{numeric_answer_text}")
@@ -254,7 +255,7 @@ class MultipleChoiceQA(QAInterface):
             yield dataclasses.replace(question, choices=perm)
 
     @property
-    def answer_keys(self) -> tuple[str]:
+    def answer_keys(self) -> tuple[str, ...]:
         return self._answer_keys_source[:len(self.choices)]
 
     @property

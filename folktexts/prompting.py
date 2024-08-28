@@ -4,6 +4,10 @@ e.g.,
 - multiple-choice Q&A vs direct numeric Q&A;
 - zero-shot vs few-shot vs CoT;
 """
+from __future__ import annotations
+
+import logging
+
 import pandas as pd
 from transformers import AutoTokenizer
 
@@ -36,14 +40,16 @@ GEMMA_CHAT_PROMPT = """The provided information suggests that the answer is"""
 def encode_row_prompt(
     row: pd.Series,
     task: TaskMetadata,
-    add_task_description: bool = True,
     question: QAInterface = None,
+    custom_prompt_prefix: str = None,
+    add_task_description: bool = True,
 ) -> str:
     """Encode a question regarding a given row."""
     # Get the question to ask
     question = question or task.question
     return (
         (ACS_TASK_DESCRIPTION + "\n" if add_task_description else "")
+        + (f"\n{custom_prompt_prefix}\n" if custom_prompt_prefix else "")
         + f"""\
 Information:
 {task.get_row_description(row)}
@@ -55,9 +61,10 @@ def encode_row_prompt_few_shot(
     row: pd.Series,
     task: TaskMetadata,
     dataset: Dataset,
-    n_shots: int = 10,
-    reuse_examples: bool = False,
+    n_shots: int,
     question: QAInterface = None,
+    reuse_examples: bool = False,
+    custom_prompt_prefix: str = None,
 ) -> str:
     """Encode a question regarding a given row using few-shot prompting.
 
@@ -91,7 +98,12 @@ def encode_row_prompt_few_shot(
     # Add `n` example rows with respective labels
     for i in range(n_shots):
         prompt += (
-            encode_row_prompt(X_examples.iloc[i], task=task, add_task_description=False)
+            encode_row_prompt(
+                X_examples.iloc[i],
+                task=task,
+                add_task_description=False,
+                custom_prompt_prefix=custom_prompt_prefix,
+            )
             + f" {question.get_answer_key_from_value(y_examples.iloc[i])}"
             + "\n\n"
         )
@@ -101,6 +113,7 @@ def encode_row_prompt_few_shot(
         row,
         task=task,
         add_task_description=False,
+        custom_prompt_prefix=custom_prompt_prefix,
         question=question,
     )
     return prompt
@@ -116,6 +129,8 @@ def encode_row_prompt_chat(
     # TODO: implement two functions
     # - one for gemma-like models that are not compatible with system prompts
     # - and another for regular models compatible with system prompts
+    logging.warning("NOTE :: Untested feature!!")
+
     return apply_chat_template(
         tokenizer,
         (

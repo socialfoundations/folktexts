@@ -7,7 +7,7 @@ from pathlib import Path
 from sklearn.inspection import permutation_importance
 
 from folktexts._io import save_json, save_pickle
-from folktexts.classifier import LLMClassifier, TransformersLLMClassifier
+from folktexts.classifier import LLMClassifier
 from folktexts.dataset import Dataset
 from folktexts.llm_utils import get_model_folder_path, load_model_tokenizer
 
@@ -21,7 +21,7 @@ DEFAULT_RESULTS_DIR = Path(".")
 
 DEFAULT_TASK_NAME = "ACSIncome"
 
-DEFAULT_CONTEXT_SIZE = 500
+DEFAULT_CONTEXT_SIZE = 600
 DEFAULT_BATCH_SIZE = 30
 DEFAULT_SEED = 42
 
@@ -36,17 +36,68 @@ def setup_arg_parser() -> ArgumentParser:
 
     # List of command-line arguments, with type and helper string
     cli_args = [
-        ("--model",         str, "[str] Model name or path to model saved on disk"),
-        ("--task",          str, "[str] Name of the ACS task to run the experiment on", False, DEFAULT_TASK_NAME),
-        ("--results-dir",   str, "[str] Directory under which this experiment's results will be saved", False, DEFAULT_RESULTS_DIR),
-        ("--data-dir",      str, "[str] Root folder to find datasets on", False, DEFAULT_DATA_DIR),
-        ("--models-dir",    str, "[str] Root folder to find huggingface models on", False, DEFAULT_MODELS_DIR),
-        ("--scorer",        str, "[str] Name of the scorer to use for evaluation", False, "roc_auc"),
-        ("--batch-size",    int, "[int] The batch size to use for inference", False, DEFAULT_BATCH_SIZE),
-        ("--context-size",  int, "[int] The maximum context size when prompting the LLM", False, DEFAULT_CONTEXT_SIZE),
-        ("--subsampling",   float, "[float] Which fraction of the dataset to use (if omitted will use all data)", DEFAULT_SUBSAMPLING),
-        ("--fit-threshold", int, "[int] Whether to fit the prediction threshold, and on how many samples", False),
-        ("--seed",          int, "[int] Random seed -- to set for reproducibility", False, DEFAULT_SEED),
+        ("--model",
+         str,
+         "[str] Model name or path to model saved on disk"),
+        ("--task",
+         str,
+         "[str] Name of the ACS task to run the experiment on",
+         False,
+         DEFAULT_TASK_NAME,
+         ),
+        ("--results-dir",
+         str,
+         "[str] Directory under which this experiment's results will be saved",
+         False,
+         DEFAULT_RESULTS_DIR,
+         ),
+        ("--data-dir",
+         str,
+         "[str] Root folder to find datasets on",
+         False,
+         DEFAULT_DATA_DIR,
+         ),
+        ("--models-dir",
+         str,
+         "[str] Root folder to find huggingface models on",
+         False,
+         DEFAULT_MODELS_DIR,
+         ),
+        ("--scorer",
+         str,
+         "[str] Name of the scorer to use for evaluation",
+         False,
+         "roc_auc",
+         ),
+        ("--batch-size",
+         int,
+         "[int] The batch size to use for inference",
+         False,
+         DEFAULT_BATCH_SIZE,
+         ),
+        ("--context-size",
+         int,
+         "[int] The maximum context size when prompting the LLM",
+         False,
+         DEFAULT_CONTEXT_SIZE,
+         ),
+        ("--subsampling",
+         float,
+         "[float] Which fraction of the dataset to use (if omitted will use all data)",
+         False,
+         DEFAULT_SUBSAMPLING,
+         ),
+        ("--fit-threshold",
+         int,
+         "[int] Whether to fit the prediction threshold, and on how many samples",
+         False,
+         ),
+        ("--seed",
+         int,
+         "[int] Random seed -- to set for reproducibility",
+         False,
+         DEFAULT_SEED,
+         ),
     ]
 
     for arg in cli_args:
