@@ -226,6 +226,8 @@ def get_model_size_B(model_name: str, default: int = 2) -> int:
     regex = re.search(r"((?P<times>\d+)[xX])?(?P<size>\d+)[bB]", model_name)
     if regex:
         return int(regex.group("size")) * int(regex.group("times") or 1)
-    else:
-        logging.error(f"Could not infer model size from name '{model_name}'")
+
+    logging.warning(
+        f"Could not infer model size from name '{model_name}'; "
+        f"Using default size of {default}B.")
     return default

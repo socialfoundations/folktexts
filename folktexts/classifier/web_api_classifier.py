@@ -79,7 +79,7 @@ class WebAPILLMClassifier(LLMClassifier):
         # Set maximum requests per minute
         self.max_api_rpm = max_api_rpm
         if "MAX_API_RPM" in os.environ:
-            self.max_api_rpm = os.getenv("MAX_API_RPM")
+            self.max_api_rpm = int(os.getenv("MAX_API_RPM"))
             logging.warning(
                 f"MAX_API_RPM environment variable is set. "
                 f"Overriding previous value of {max_api_rpm} with {self.max_api_rpm}."
@@ -106,8 +106,8 @@ class WebAPILLMClassifier(LLMClassifier):
             raise RuntimeError(f"Failed to get supported parameters for model '{self.model_name}'.")
         self.supported_params = set(supported_params)
 
-        # Set litellm logger level to INFO
-        logging.getLogger("litellm").setLevel(logging.INFO)
+        # Set litellm logger level to WARNING
+        logging.getLogger("litellm").setLevel(logging.WARNING)
 
     @staticmethod
     def check_webAPI_deps() -> bool:
