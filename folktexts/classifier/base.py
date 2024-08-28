@@ -22,7 +22,7 @@ from folktexts.task import TaskMetadata
 
 from .._utils import hash_dict, hash_function
 
-DEFAULT_CONTEXT_SIZE = 500
+DEFAULT_CONTEXT_SIZE = 600
 DEFAULT_BATCH_SIZE = 16
 
 SCORE_COL_NAME = "risk_score"

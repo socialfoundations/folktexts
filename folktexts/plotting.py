@@ -238,7 +238,7 @@ def render_fairness_plots(  # noqa: C901
 
         # If the group is too small of a fraction, skip (curve will be too erratic)
         if len(group_indices) / len(sensitive_attribute) < group_size_threshold:
-            logging.warning(f"Skipping group {group_value_map(s_value)} plot as it's too small.")
+            logging.info(f"Skipping group {group_value_map(s_value)} plot as it's too small.")
             continue
 
         # Plot global calibration curve
@@ -256,30 +256,5 @@ def render_fairness_plots(  # noqa: C901
     plt.legend()
     plt.title("Calibration curve per sub-group" + model_str)
     show_or_save(fig, "calibration_curve_per_subgroup")
-
-    # ###
-    # Plot scores distribution per group
-    # ###
-    # TODO: make a decent score-distribution plot... # TODO: try score CDFs!
-    # hist_bin_edges = np.histogram_bin_edges(y_pred_scores, bins=10)
-    # for idx, s_value in enumerate(np.unique(sensitive_attribute)):
-    #     group_indices = np.argwhere(sensitive_attribute == s_value).flatten()
-    #     group_y_pred_scores = y_pred_scores[group_indices]
-    #     is_first_group = (idx == 0)
-    #     if is_first_group:
-    #         fig, ax = plt.subplots()
-    #     sns.histplot(
-    #         group_y_pred_scores,
-    #         bins=hist_bin_edges,
-    #         stat="density",
-    #         kde=False,
-    #         color=group_colors[idx],
-    #         label=group_value_map(s_value),
-    #         ax=ax,
-    #     )
-
-    # plt.legend()
-    # plt.title("Score distribution per sub-group" + model_str)
-    # results["score_distribution_per_subgroup_path"] = save_fig(fig, "score_distribution_per_subgroup", imgs_dir)
 
     return results
