@@ -504,9 +504,8 @@ class Benchmark:
             dataset = dataset.filter(config.population_filter)
 
         # Get prompting function
-        encode_row_function = partial(encode_row_prompt, task=task)
-
         if config.few_shot:
+            print(f"Using few-shot prompting (n={config.few_shot})!")
             encode_row_function = partial(
                 encode_row_prompt_few_shot,
                 task=task,
@@ -514,6 +513,10 @@ class Benchmark:
                 dataset=dataset,
                 reuse_examples=config.reuse_few_shot_examples,
             )
+
+        else:
+            print("Using zero-shot prompting.")
+            encode_row_function = partial(encode_row_prompt, task=task)
 
         # Parse LLMClassifier parameters
         llm_inference_kwargs = {"correct_order_bias": config.correct_order_bias}

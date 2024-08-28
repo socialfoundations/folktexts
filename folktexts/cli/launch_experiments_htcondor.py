@@ -99,7 +99,8 @@ def make_llm_clf_experiment(
 
     # Get model path
     model_path = get_model_folder_path(model_name, root_dir=MODELS_DIR)
-    assert Path(model_path).exists(), f"Model path '{model_path}' does not exist."
+    if not Path(model_path).exists() and "use_web_api_model" not in kwargs:
+        raise FileNotFoundError(f"Model folder not found at '{model_path}'.")
 
     # Split experiment and job kwargs
     job_kwargs = {key: val for key, val in kwargs.items() if key.startswith("job_")}
