@@ -35,6 +35,7 @@ def evaluate_binary_predictions(y_true: np.ndarray, y_pred: np.ndarray) -> dict:
     """
     # Compute confusion matrix
     tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=(0, 1)).ravel()
+    tn, fp, fn, tp = map(int, (tn, fp, fn, tp))
 
     total = tn + fp + fn + tp
     pred_pos = tp + fp
