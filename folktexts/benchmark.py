@@ -74,6 +74,15 @@ class BenchmarkConfig:
         """Returns the default configuration with optional changes."""
         return cls(**changes)
 
+    def update(self, **changes) -> BenchmarkConfig:
+        """Update the configuration with new values."""
+        possible_keys = dataclasses.asdict(self).keys()
+        valid_changes = {k: v for k, v in changes.items() if k in possible_keys}
+        if valid_changes:
+            logging.info(f"Updating benchmark configuration with: {valid_changes}")
+
+        return dataclasses.replace(self, **valid_changes)
+
     @classmethod
     def load_from_disk(cls, path: str | Path):
         """Load the configuration from disk."""
@@ -407,14 +416,17 @@ class Benchmark:
             Extra benchmark configurations, by default will use
             `BenchmarkConfig.default_config()`.
         **kwargs
-            Additional arguments passed to `ACSDataset`. By default will use a
-            set of standardized dataset configurations for reproducibility.
+            Additional arguments passed to `ACSDataset` and `BenchmarkConfig`.
+            By default will use a set of standardized configurations for
+            reproducibility.
 
         Returns
         -------
         bench : Benchmark
             The ACS calibration benchmark object.
         """
+        # Update config with any additional kwargs
+        config = config.update(**kwargs)
 
         # Handle non-standard ACS arguments
         acs_dataset_configs = cls.ACS_DATASET_CONFIGS.copy()
@@ -459,6 +471,7 @@ class Benchmark:
         tokenizer: AutoTokenizer = None,    # WebAPI models have no local tokenizer
         max_api_rpm: int = None,
         config: BenchmarkConfig = BenchmarkConfig.default_config(),
+        **kwargs,
     ) -> Benchmark:
         """Create a calibration benchmark from a given configuration.
 
@@ -479,12 +492,18 @@ class Benchmark:
         config : BenchmarkConfig, optional
             Extra benchmark configurations, by default will use
             `BenchmarkConfig.default_config()`.
+        **kwargs
+            Additional arguments for easier configuration of the benchmark.
+            Will simply use these values to update the `config` object.
 
         Returns
         -------
         bench : Benchmark
             The calibration benchmark object.
         """
+        # Update config with any additional kwargs
+        config = config.update(**kwargs)
+
         # Handle TaskMetadata object
         task = TaskMetadata.get_task(task) if isinstance(task, str) else task
         if config.numeric_risk_prompting:
