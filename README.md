@@ -114,7 +114,7 @@ from folktexts.benchmark import Benchmark, BenchmarkConfig
 bench = Benchmark.make_benchmark(
     task=acs_task_name, dataset=dataset,
     model=model, tokenizer=tokenizer,
-    config=BenchmarkConfig(numeric_risk_prompting=True),    # Add other configs here
+    numeric_risk_prompting=True,    # See the full list of configs below in the README
 )
 bench_results = bench.run(results_root_dir="results")
 ```
