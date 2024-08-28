@@ -29,7 +29,7 @@ class WebAPILLMClassifier(LLMClassifier):
         encode_row: Callable[[pd.Series], str] = None,
         threshold: float = 0.5,
         correct_order_bias: bool = True,
-        max_requests_per_minute: int = 5000,    # NOTE: OpenAI Tier 1 limit is only 500 RPM !
+        max_api_rpm: int = 5000,    # NOTE: OpenAI Tier 1 limit is only 500 RPM !
         seed: int = 42,
         **inference_kwargs,
     ):
@@ -54,6 +54,8 @@ class WebAPILLMClassifier(LLMClassifier):
         correct_order_bias : bool, optional
             Whether to correct ordering bias in multiple-choice Q&A questions,
             by default True.
+        max_api_rpm : int, optional
+            The maximum number of requests per minute allowed for the API.
         seed : int, optional
             The random seed - used for reproducibility.
         **inference_kwargs
@@ -72,10 +74,13 @@ class WebAPILLMClassifier(LLMClassifier):
         )
 
         # Set maximum requests per minute
-        env_max_requests_per_minute = os.getenv("MAX_REQUESTS_PER_MINUTE", max_requests_per_minute)
-        self.max_requests_per_minute = env_max_requests_per_minute
-        if self.max_requests_per_minute > 5000:
-            raise ValueError(f"Maximum RPM must be less than 5K, got {self.max_requests_per_minute}")
+        self.max_api_rpm = max_api_rpm
+        if "MAX_API_RPM" in os.environ:
+            logging.warning(
+                "MAX_API_RPM environment variable is set. "
+                "This will override the default value.")
+
+            self.max_api_rpm = os.getenv("MAX_API_RPM")
 
         # Check extra dependencies
         assert self.check_webAPI_deps(), "Web API dependencies are not installed."
@@ -187,7 +192,7 @@ class WebAPILLMClassifier(LLMClassifier):
             responses_batch.append(response)
 
             # Sleep for short period to avoid rate-limiting (max 5K RPM for OpenAI API)
-            time.sleep(60 / self.max_requests_per_minute)
+            time.sleep(60 / self.max_api_rpm)
 
         return responses_batch
 

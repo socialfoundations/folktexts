@@ -383,6 +383,7 @@ class Benchmark:
         model: AutoModelForCausalLM | str,
         tokenizer: AutoTokenizer = None,
         data_dir: str | Path = None,
+        max_api_rpm: int = None,
         config: BenchmarkConfig = BenchmarkConfig.default_config(),
         **kwargs,
     ) -> Benchmark:
@@ -400,6 +401,8 @@ class Benchmark:
             model). Not required for webAPI models.
         data_dir : str | Path, optional
             Path to the directory to load data from and save data in.
+        max_api_rpm : int, optional
+            The maximum number of API requests per minute for webAPI models.
         config : BenchmarkConfig, optional
             Extra benchmark configurations, by default will use
             `BenchmarkConfig.default_config()`.
@@ -442,6 +445,7 @@ class Benchmark:
             dataset=acs_dataset,
             model=model,
             tokenizer=tokenizer,
+            max_api_rpm=max_api_rpm,
             config=config,
         )
 
@@ -453,6 +457,7 @@ class Benchmark:
         dataset: Dataset,
         model: AutoModelForCausalLM | str,
         tokenizer: AutoTokenizer = None,    # WebAPI models have no local tokenizer
+        max_api_rpm: int = None,
         config: BenchmarkConfig = BenchmarkConfig.default_config(),
     ) -> Benchmark:
         """Create a calibration benchmark from a given configuration.
@@ -469,6 +474,8 @@ class Benchmark:
         tokenizer : AutoTokenizer, optional
             The tokenizer used to train the model (if using a transformers
             model). Not required for webAPI models.
+        max_api_rpm : int, optional
+            The maximum number of API requests per minute for webAPI models.
         config : BenchmarkConfig, optional
             Extra benchmark configurations, by default will use
             `BenchmarkConfig.default_config()`.
@@ -508,23 +515,24 @@ class Benchmark:
                 reuse_examples=config.reuse_few_shot_examples,
             )
 
-        # Construct the LLMClassifier object
+        # Parse LLMClassifier parameters
         llm_inference_kwargs = {"correct_order_bias": config.correct_order_bias}
         if config.batch_size is not None:
             llm_inference_kwargs["batch_size"] = config.batch_size
         if config.context_size is not None:
             llm_inference_kwargs["context_size"] = config.context_size
+        if max_api_rpm is not None and isinstance(model, str):
+            llm_inference_kwargs["max_api_rpm"] = max_api_rpm
 
         # Create LLMClassifier object
         if isinstance(model, str):
-            logging.info(f"Using webAPI model: {model}")
-
             llm_clf = WebAPILLMClassifier(
                 model_name=model,
                 task=task,
                 encode_row=encode_row_function,
                 **llm_inference_kwargs,
             )
+            logging.info(f"Using webAPI model: {model}")
 
         else:
             llm_clf = TransformersLLMClassifier(
@@ -534,7 +542,6 @@ class Benchmark:
                 encode_row=encode_row_function,
                 **llm_inference_kwargs,
             )
-
             logging.info(f"Using local transformers model: {llm_clf.model_name}")
 
         return cls(

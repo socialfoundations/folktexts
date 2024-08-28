@@ -94,6 +94,13 @@ def setup_arg_parser() -> ArgumentParser:
     )
 
     parser.add_argument(
+        "--max-api-rpm",
+        type=int,
+        help="[int] Maximum number of API requests per minute (if using a web-hosted model)",
+        required=False,
+    )
+
+    parser.add_argument(
         "--logger-level",
         type=str,
         help="[str] The logging level to use for the experiment",
@@ -156,6 +163,7 @@ def main():
         data_dir=args.data_dir,
         config=config,
         subsampling=args.subsampling,
+        max_api_rpm=args.max_api_rpm,
     )
 
     # Set-up results directory
