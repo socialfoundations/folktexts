@@ -9,6 +9,7 @@ from folktables import BasicProblem
 
 from .._utils import hash_dict
 from ..col_to_text import ColumnToText as _ColumnToText
+from ..qa_interface import DirectNumericQA, MultipleChoiceQA
 from ..task import TaskMetadata
 from ..threshold import Threshold
 from . import acs_columns
@@ -49,20 +50,23 @@ class ACSTaskMetadata(TaskMetadata):
         target_threshold: Threshold = None,
         population_description: str = None,
         folktables_obj: BasicProblem = None,
+        multiple_choice_qa: MultipleChoiceQA = None,
+        direct_numeric_qa: DirectNumericQA = None,
     ) -> ACSTaskMetadata:
         # Validate columns mappings exist
         if not all(col in acs_columns_map for col in (features + [target])):
             raise ValueError("Not all columns have mappings to text descriptions.")
 
         # Resolve target column name
-        if target_threshold is not None:
-            target_col = target_threshold.apply_to_column_name(target)
-        else:
-            target_col = target
+        target_col_name = (
+            target_threshold.apply_to_column_name(target)
+            if target_threshold is not None else target)
 
-        # Get Q&A interfaces for this task's target column
-        multiple_choice_qa = acs_questions.acs_multiple_choice_qa_map.get(target_col)
-        direct_numeric_qa = acs_questions.acs_numeric_qa_map.get(target_col)
+        # Get default Q&A interfaces for this task's target column
+        if multiple_choice_qa is None:
+            multiple_choice_qa = acs_questions.acs_multiple_choice_qa_map.get(target_col_name)
+        if direct_numeric_qa is None:
+            direct_numeric_qa = acs_questions.acs_numeric_qa_map.get(target_col_name)
 
         return cls(
             name=name,

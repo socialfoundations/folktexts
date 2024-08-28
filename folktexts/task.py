@@ -94,8 +94,8 @@ class TaskMetadata:
             return self.target_threshold.apply_to_column_name(self.target)
 
     def set_question(self, question: QAInterface):
-        """Sets the Q&Ar interface for this task."""
-        logging.info(f"Setting question for task '{self.name}' to '{question.prompt}'.")
+        """Sets the Q&A interface for this task."""
+        logging.info(f"Setting question for task '{self.name}' to '{question.text}'.")
 
         if isinstance(question, MultipleChoiceQA):
             self.multiple_choice_qa = question
