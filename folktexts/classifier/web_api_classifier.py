@@ -73,6 +73,9 @@ class WebAPILLMClassifier(LLMClassifier):
             **inference_kwargs,
         )
 
+        # Initialize total cost of API calls
+        self._total_cost = 0
+
         # Set maximum requests per minute
         self.max_api_rpm = max_api_rpm
         if "MAX_API_RPM" in os.environ:
@@ -90,8 +93,6 @@ class WebAPILLMClassifier(LLMClassifier):
             raise ValueError("OpenAI API key not found in environment variables")
 
         # Set-up litellm API client
-        self._total_cost = 0
-
         import litellm
         litellm.success_callback = [self.track_cost_callback]
 
@@ -101,6 +102,9 @@ class WebAPILLMClassifier(LLMClassifier):
         # Get supported parameters
         from litellm import get_supported_openai_params
         self.supported_params = set(get_supported_openai_params(model=self.model_name))
+
+        # Set litellm logger level to INFO
+        logging.getLogger("litellm").setLevel(logging.INFO)
 
     @staticmethod
     def check_webAPI_deps() -> bool:

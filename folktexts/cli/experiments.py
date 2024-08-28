@@ -24,6 +24,7 @@ MAX_RUNNING_PRICE = 1500        # Max price for running a job
 class Experiment:
     """A generic experiment to run on the cluster."""
     executable_path: str
+    env_vars: str = ""
     kwargs: dict = field(default_factory=dict)
 
     job_cpus: int = DEFAULT_JOB_CPUS
@@ -96,6 +97,9 @@ def launch_experiment_job(exp: Experiment):
         "jobprio": f"{exp.job_bid - 1000}",
         "notify_user": "andre.cruz@tuebingen.mpg.de",
         "notification": "error",
+
+        # Environment variables
+        "environment": exp.env_vars or "",
 
         # GPU requirements
         "requirements": (

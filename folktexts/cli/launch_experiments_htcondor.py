@@ -90,6 +90,7 @@ def make_llm_clf_experiment(
     model_name: str,
     task: str,
     results_dir: str,
+    env_vars_str: str = "",
     **kwargs,
 ) -> Experiment:
     """Create an experiment object to run.
@@ -123,6 +124,7 @@ def make_llm_clf_experiment(
     # Define experiment
     exp = Experiment(
         executable_path=executable_path,
+        env_vars=env_vars_str,
         kwargs=dict(
             model=model_path,
             task=task,
@@ -190,6 +192,16 @@ def setup_arg_parser() -> argparse.ArgumentParser:
         required=False,
     )
 
+    parser.add_argument(
+        "--environment",
+        type=str,
+        help=(
+            "[string] String defining environment variables to be passed to "
+            "launched jobs, in the form 'VAR1=val1;VAR2=val2;...'."
+        ),
+        required=False,
+    )
+
     return parser
 
 
@@ -226,6 +238,7 @@ def main():
                 model_name=model,
                 task=task,
                 results_dir=args.results_dir,
+                env_vars_str=args.environment,
                 **extra_kwargs,
             )
             for model in models
