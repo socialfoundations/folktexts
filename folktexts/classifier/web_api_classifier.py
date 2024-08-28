@@ -107,7 +107,7 @@ class WebAPILLMClassifier(LLMClassifier):
         self.supported_params = set(supported_params)
 
         # Set litellm logger level to WARNING
-        logging.getLogger("litellm").setLevel(logging.WARNING)
+        logging.getLogger("LiteLLM").setLevel(logging.WARNING)
 
     @staticmethod
     def check_webAPI_deps() -> bool:
