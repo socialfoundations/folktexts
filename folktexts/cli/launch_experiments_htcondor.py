@@ -36,7 +36,7 @@ MODELS_DIR = ROOT_DIR / "huggingface-models"
 ##################
 # Global configs #
 ##################
-BATCH_SIZE = 20
+BATCH_SIZE = 16
 CONTEXT_SIZE = 600
 
 JOB_CPUS = 4

@@ -330,8 +330,8 @@ Answer:""")
             else:
                 return None
 
-        prefixes = ["", " ", "_", "▁"]  # check a variety of "A" answer encodings
-        # ^ "A", " A", "_A", "▁A"
+        prefixes = ["", " ", "_", "▁", "Ġ"]  # check a variety of "A" answer encodings
+        # ^ "A", " A", "_A", "▁A", "ĠA"
 
         # Map probabilities to choice values
         answers_per_prefix = {
@@ -355,9 +355,13 @@ Answer:""")
         answers_sum_prob = sum(answers.values())
 
         # Log total probability density assigned to answers
-        (logging.warning if answers_sum_prob < ANSWER_PROB_THRESHOLD else logging.debug)(
-            f"Answers have {answers_sum_prob:.2%} probability assigned."
-        )
+        msg = f"Answers have {answers_sum_prob:.2%} probability assigned."
+        if answers_sum_prob < ANSWER_PROB_THRESHOLD:
+            id_to_tok = {v: k for k, v in tokenizer_vocab.items()}
+            argmax_token = id_to_tok[np.argmax(last_token_probs)]
+            logging.warning(msg + f" Argmax token: '{argmax_token}'.")
+        else:
+            logging.debug(msg)
 
         return {
             choice: prob / answers_sum_prob
