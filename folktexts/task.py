@@ -11,7 +11,7 @@ import pandas as pd
 
 from ._utils import hash_dict
 from .col_to_text import ColumnToText
-from .qa_interface import QAInterface, MultipleChoiceQA, DirectNumericQA
+from .qa_interface import DirectNumericQA, MultipleChoiceQA, QAInterface
 from .threshold import Threshold
 
 

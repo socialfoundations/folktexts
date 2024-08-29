@@ -16,6 +16,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 from tqdm.auto import tqdm
 
 from folktexts.dataset import Dataset
+from folktexts.evaluation import compute_best_threshold
 from folktexts.prompting import encode_row_prompt as default_encode_row_prompt
 from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA
 from folktexts.task import TaskMetadata
@@ -181,6 +182,25 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
     def _make_predictions_multiclass(pos_class_scores: np.ndarray) -> np.ndarray:
         """Converts positive class scores to multiclass scores."""
         return np.column_stack([1 - pos_class_scores, pos_class_scores])
+
+    def fit(self, X, y, *, false_pos_cost=1.0, false_neg_cost=1.0, **kwargs):
+        """Uses the provided data sample to fit the prediction threshold."""
+
+        # Compute risk estimates for the data
+        y_pred_scores = self._get_positive_class_scores(
+            self.predict_proba(X, **kwargs)
+        )
+
+        # Compute the best threshold for the given data
+        self.threshold = compute_best_threshold(
+            y, y_pred_scores,
+            false_pos_cost=false_pos_cost,
+            false_neg_cost=false_neg_cost,
+        )
+
+        # Update sklearn is_fitted status
+        self._is_fitted = True
+        return self
 
     def _load_predictions_from_disk(
         self,
