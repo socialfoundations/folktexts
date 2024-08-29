@@ -184,6 +184,7 @@ class Benchmark:
         cnf["task_name"] = self.task.name
         cnf["task_hash"] = hash(self.task)
         cnf["dataset_name"] = self.dataset.name
+        cnf["dataset_subsampling"] = self.dataset.subsampling
         cnf["dataset_hash"] = hash(self.dataset)
 
         return cnf
