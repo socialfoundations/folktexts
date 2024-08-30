@@ -12,7 +12,7 @@ import numpy as np
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from ._io import load_json, save_json
-from ._utils import hash_dict, is_valid_number
+from ._utils import hash_dict, is_valid_number, get_current_timestamp
 from .acs.acs_dataset import ACSDataset
 from .acs.acs_tasks import ACSTaskMetadata
 from .classifier import LLMClassifier, TransformersLLMClassifier, WebAPILLMClassifier
@@ -193,8 +193,11 @@ class Benchmark:
     def results(self):
         # Add benchmark configs to the results
         self._results["config"] = self.configs_dict
+        self._results["benchmark_hash"] = hash(self)
         self._results["results_dir"] = self.results_dir.as_posix()
         self._results["results_root_dir"] = self.results_root_dir.as_posix()
+        self._results["current_time"] = get_current_timestamp()
+
         return self._results
 
     @property
