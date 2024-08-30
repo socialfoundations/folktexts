@@ -193,6 +193,8 @@ class Benchmark:
     def results(self):
         # Add benchmark configs to the results
         self._results["config"] = self.configs_dict
+        self._results["results_dir"] = self.results_dir.as_posix()
+        self._results["results_root_dir"] = self.results_root_dir.as_posix()
         return self._results
 
     @property
