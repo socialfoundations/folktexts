@@ -220,14 +220,15 @@ def get_model_folder_path(model_name: str, root_dir="/tmp") -> str:
     return (Path(root_dir) / folder_name).resolve().as_posix()
 
 
-def get_model_size_B(model_name: str, default: int = 2) -> int:
+def get_model_size_B(model_name: str, default: int = None) -> int:
     """Get the model size from the model name, in Billions of parameters.
     """
     regex = re.search(r"((?P<times>\d+)[xX])?(?P<size>\d+)[bB]", model_name)
     if regex:
         return int(regex.group("size")) * int(regex.group("times") or 1)
 
-    logging.warning(
-        f"Could not infer model size from name '{model_name}'; "
-        f"Using default size of {default}B.")
+    if default is not None:
+        return default
+
+    logging.warning(f"Could not infer model size from name '{model_name}'.")
     return default

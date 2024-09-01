@@ -10,7 +10,6 @@ import numpy as np
 import pandas as pd
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from folktexts.evaluation import compute_best_threshold
 from folktexts.llm_utils import query_model_batch_multiple_passes
 from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA
 from folktexts.task import TaskMetadata
@@ -101,25 +100,6 @@ class TransformersLLMClassifier(LLMClassifier):
     def tokenizer(self) -> AutoTokenizer:
         return self._tokenizer
 
-    def fit(self, X, y, *, false_pos_cost=1.0, false_neg_cost=1.0, **kwargs):
-        """Uses the provided data sample to fit the prediction threshold."""
-
-        # Compute risk estimates for the data
-        y_pred_scores = self._get_positive_class_scores(
-            self.predict_proba(X, **kwargs)
-        )
-
-        # Compute the best threshold for the given data
-        self.threshold = compute_best_threshold(
-            y, y_pred_scores,
-            false_pos_cost=false_pos_cost,
-            false_neg_cost=false_neg_cost,
-        )
-
-        # Update sklearn is_fitted status
-        self._is_fitted = True
-        return self
-
     def _query_prompt_risk_estimates_batch(
         self,
         prompts_batch: list[str],
@@ -143,6 +123,7 @@ class TransformersLLMClassifier(LLMClassifier):
         risk_estimates : np.ndarray
             The risk estimates for each prompt in the batch.
         """
+        # TODO: Add support for any unicode character used as a prefix to " A".
 
         # Query model
         last_token_probs_batch = query_model_batch_multiple_passes(

@@ -215,7 +215,7 @@ def compute_best_threshold(
 
     # Get the threshold that minimizes the cost
     best_threshold = thresholds[np.argmin(costs)]
-    return best_threshold
+    return float(best_threshold)
 
 
 def evaluate_predictions(
@@ -270,14 +270,14 @@ def evaluate_predictions(
 
     # Add loss functions as proxies for calibration
     results["log_loss"] = log_loss(y_true, y_pred_scores, labels=[0, 1])
-    results["brier_score_loss"] = brier_score_loss(y_true, y_pred_scores)
+    results["brier_score_loss"] = float(brier_score_loss(y_true, y_pred_scores))
 
     # Evaluate fairness metrics
     if sensitive_attribute is not None:
         results.update(evaluate_binary_predictions_fairness(y_true, y_pred_binary, sensitive_attribute))
 
     # Compute additional metrics
-    results["roc_auc"] = roc_auc_score(y_true, y_pred_scores)
+    results["roc_auc"] = float(roc_auc_score(y_true, y_pred_scores))
 
     # Compute Expected Calibration Error
     # TODO: re-implement ECE scorer to avoid including 10 other dependencies for this one metric...

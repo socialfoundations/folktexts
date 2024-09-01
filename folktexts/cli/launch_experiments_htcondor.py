@@ -36,8 +36,8 @@ MODELS_DIR = ROOT_DIR / "huggingface-models"
 ##################
 # Global configs #
 ##################
-BATCH_SIZE = 20
-CONTEXT_SIZE = 600
+BATCH_SIZE = 10
+CONTEXT_SIZE = 750
 
 JOB_CPUS = 4
 JOB_MEMORY_GB = 60
@@ -96,7 +96,7 @@ def make_llm_clf_experiment(
     """Create an experiment object to run.
     """
     # Get model size
-    model_size_B = get_model_size_B(model_name)
+    model_size_B = get_model_size_B(model_name, default=8)
 
     # Get model path
     model_path = get_model_folder_path(model_name, root_dir=MODELS_DIR)

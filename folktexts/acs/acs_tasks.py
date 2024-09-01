@@ -12,14 +12,13 @@ from ..col_to_text import ColumnToText as _ColumnToText
 from ..qa_interface import DirectNumericQA, MultipleChoiceQA
 from ..task import TaskMetadata
 from ..threshold import Threshold
-from . import acs_columns
-from . import acs_questions
+from . import acs_columns, acs_questions
 from .acs_thresholds import (
     acs_employment_threshold,
     acs_health_insurance_threshold,
-    acs_poverty_ratio_threshold,
     acs_income_threshold,
     acs_mobility_threshold,
+    acs_poverty_ratio_threshold,
     acs_public_coverage_threshold,
     acs_travel_time_threshold,
 )
