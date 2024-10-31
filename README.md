@@ -230,14 +230,13 @@ This script uses sklearn's [`permutation_importance`](https://scikit-learn.org/s
 
 ## Citation
 
-```
-@misc{cruz2024evaluating,
+```bib
+@inproceedings{cruz2024evaluating,
     title={Evaluating language models as risk scores},
     author={Andr\'{e} F. Cruz and Moritz Hardt and Celestine Mendler-D\"{u}nner},
+    booktitle={The Thirty-eight Conference on Neural Information Processing Systems Datasets and Benchmarks Track},
     year={2024},
-    eprint={2407.14614},
-    archivePrefix={arXiv},
-    primaryClass={cs.LG}
+    url={https://openreview.net/forum?id=qrZxL3Bto9}
 }
 ```
 
