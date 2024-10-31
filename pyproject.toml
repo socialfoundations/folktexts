@@ -32,7 +32,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 
-version = "0.0.22"
+version = "0.0.23"
 requires-python = ">=3.8"
 dynamic = [
     "readme",
@@ -42,7 +42,7 @@ dynamic = [
 
 [tool.setuptools]
 # NOTE! If you have multiple source directories, you can specify them here:
-packages = ["folktexts", "folktexts.acs", "folktexts.cli"]
+packages = ["folktexts", "folktexts.acs", "folktexts.cli", "folktexts.classifier"]
 include-package-data = true
 
 [tool.setuptools.dynamic]

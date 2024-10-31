@@ -24,7 +24,7 @@ jobs:
 
       - name: Install Sphinx and dependencies
         run: |
-          pip install -e ".[docs]"
+          pip install -e ".[docs,tests,cluster,apis]"
 
       - name: Install pandoc (external dependency)
         run: |
