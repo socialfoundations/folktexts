@@ -43,6 +43,24 @@ Check out the following sub-pages:
    Example notebooks <notebooks>
 
 
+Citing
+======
+
+The :code:`folktexts` package is the basis for the following `publication`_:
+
+.. code-block:: bib
+
+   @inproceedings{cruz2024evaluating,
+      title={Evaluating language models as risk scores},
+      author={Andr\'{e} F. Cruz and Moritz Hardt and Celestine Mendler-D\"{u}nner},
+      booktitle={The Thirty-eight Conference on Neural Information Processing Systems Datasets and Benchmarks Track},
+      year={2024},
+      url={https://openreview.net/forum?id=qrZxL3Bto9}
+   }
+
+All additional supplementary materials are available in the `GitHub repository`_.
+
+
 Indices
 =======
 
@@ -50,6 +68,7 @@ Indices
 * :ref:`modindex`
 
 
+.. _publication: https://arxiv.org/abs/2407.14614
 .. _folktables: https://github.com/socialfoundations/folktables
 .. _Ding et al. (2021): https://arxiv.org/abs/2108.04884
 .. _GitHub repository: https://github.com/socialfoundations/folktexts
