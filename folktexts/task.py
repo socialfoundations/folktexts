@@ -60,6 +60,9 @@ class TaskMetadata:
         # Add this task to the class-level dictionary
         TaskMetadata._tasks[self.name] = self
 
+        # Check all required columns are provided by the `cols_to_text` map
+        self.check_task_columns_are_available(self.cols_to_text.keys())
+
         # Check target is provided
         if self.target is None:
             logging.warning(
@@ -91,6 +94,37 @@ class TaskMetadata:
         hashable_params.pop("cols_to_text")
         hashable_params["question_hash"] = hash(self.question)
         return int(hash_dict(hashable_params), 16)
+
+    def check_task_columns_are_available(
+        self,
+        available_cols: list[str],
+        raise_: bool = True,
+    ) -> bool:
+        """Checks if all columns required by this task are available.
+
+        Parameters
+        ----------
+        available_cols : list[str]
+            The list of column names available in the dataset.
+        raise_ : bool, optional
+            Whether to raise an error if some columns are missing, by default True.
+
+        Returns
+        -------
+        all_available : bool
+            True if all required columns are present in the given list of
+            available columns, False otherwise.
+        """
+        required_cols = self.features + ([self.get_target()] if self.target else [])
+        missing_cols = set(required_cols) - set(available_cols)
+
+        if raise_ and len(missing_cols) > 0:
+            raise ValueError(
+                f"The following required task columns were not found in the dataset: "
+                f"{list(missing_cols)};"
+            )
+
+        return len(missing_cols) == 0   # Return True if all columns are present
 
     def get_target(self) -> str:
         """Resolves the name of the target column depending on `self.target_threshold`."""

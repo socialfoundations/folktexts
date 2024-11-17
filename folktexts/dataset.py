@@ -62,7 +62,9 @@ class Dataset:
                 f"Expected `TaskMetadata`.")
 
         # Validate data for this task
-        self._check_task_columns_are_in_df(task, data)
+        task.check_task_columns_are_available(
+            available_cols=data.columns.to_list()
+        )
 
         self._test_size = test_size
         self._val_size = val_size or 0
@@ -83,27 +85,16 @@ class Dataset:
         if subsampling is not None:
             self.subsample(subsampling)
 
-    @staticmethod
-    def _check_task_columns_are_in_df(task: TaskMetadata, df: pd.DataFrame, raise_: bool = True) -> bool:
-        available_cols = df.columns
-        required_cols = task.features + ([task.get_target()] if task.target else [])
-
-        if raise_ and not all(col in available_cols for col in required_cols):
-            raise ValueError(
-                f"The following required task columns were not found in the dataset: "
-                f"{list(set(required_cols) - set(available_cols))};"
-            )
-
-        return all(col in available_cols for col in required_cols)
-
     @property
     def data(self) -> pd.DataFrame:
         return self._data
 
     @data.setter
-    def data(self, new_data) -> pd.DataFrame:
+    def data(self, new_data: pd.DataFrame) -> pd.DataFrame:
         # Check if task columns are in the data
-        self._check_task_columns_are_in_df(self.task, new_data)
+        self.task.check_task_columns_are_available(
+            new_data.columns.to_list()
+        )
 
         # Update data
         self._data = new_data
@@ -127,8 +118,9 @@ class Dataset:
     @task.setter
     def task(self, new_task: TaskMetadata):
         # Check if task columns are in the data
-        self._check_task_columns_are_in_df(new_task, self.data)
-
+        new_task.check_task_columns_are_available(
+            self.data.columns.to_list()
+        )
         self._task = new_task
 
     @property

@@ -51,14 +51,7 @@ class ACSTaskMetadata(TaskMetadata):
         description: str = None,
         folktables_obj: BasicProblem = None,
     ) -> ACSTaskMetadata:
-        # Validate columns mappings exist
-        if not all(col in acs_columns_map for col in (features + [target])):
-            missing_cols = {col for col in (features + [target]) if col not in acs_columns_map}
-            raise ValueError(
-                f"Not all columns have mappings to textual descriptions. "
-                f"Missing columns: {missing_cols}."
-            )
-
+        """Create an ACS task object from the given parameters."""
         # Resolve target column name
         target_col_name = (
             target_threshold.apply_to_column_name(target)
