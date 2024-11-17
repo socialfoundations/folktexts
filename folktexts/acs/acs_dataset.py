@@ -154,7 +154,7 @@ class ACSDataset(Dataset):
             parsed_df = full_df
 
         # Threshold the target column if necessary
-        if task.target_threshold is not None and task.get_target() not in parsed_df.columns:
+        if task.target is not None and task.target_threshold is not None and task.get_target() not in parsed_df.columns:
             parsed_df[task.get_target()] = task.target_threshold.apply_to_column_data(parsed_df[task.target])
 
         return parsed_df

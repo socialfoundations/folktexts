@@ -43,7 +43,7 @@ class ACSTaskMetadata(TaskMetadata):
         cls,
         name: str,
         features: list[str],
-        target: str,
+        target: str = None,
         sensitive_attribute: str = None,
         target_threshold: Threshold = None,
         multiple_choice_qa: MultipleChoiceQA = None,
@@ -53,7 +53,11 @@ class ACSTaskMetadata(TaskMetadata):
     ) -> ACSTaskMetadata:
         # Validate columns mappings exist
         if not all(col in acs_columns_map for col in (features + [target])):
-            raise ValueError("Not all columns have mappings to text descriptions.")
+            missing_cols = {col for col in (features + [target]) if col not in acs_columns_map}
+            raise ValueError(
+                f"Not all columns have mappings to textual descriptions. "
+                f"Missing columns: {missing_cols}."
+            )
 
         # Resolve target column name
         target_col_name = (

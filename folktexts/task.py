@@ -60,8 +60,17 @@ class TaskMetadata:
         # Add this task to the class-level dictionary
         TaskMetadata._tasks[self.name] = self
 
+        # Check target is provided
+        if self.target is None:
+            logging.warning(
+                f"No target column provided for task '{self.name}'. "
+                f"Will not be able to generate predictions or use task Q&A prompts. "
+                f"Will still be able to generate row descriptions."
+            )
+            return
+
         # If no question is explicitly provided, use the question from the target column
-        if self.multiple_choice_qa is None and self.direct_numeric_qa is None:
+        if self.multiple_choice_qa is None and self.direct_numeric_qa is None and self.target is not None:
             logging.warning(
                 f"No question was explicitly provided for task '{self.name}'. "
                 f"Inferring from target column's default question ({self.get_target()}).")
@@ -85,6 +94,10 @@ class TaskMetadata:
 
     def get_target(self) -> str:
         """Resolves the name of the target column depending on `self.target_threshold`."""
+        if self.target is None:
+            logging.critical(f"No target column provided for task {self.name}.")
+            return None
+
         if self.target_threshold is None:
             return self.target
         else:
@@ -160,7 +173,7 @@ class TaskMetadata:
             q = self.multiple_choice_qa
 
         if q is None:
-            raise ValueError(f"Invalid Q&A interface configured for task {self.name}.")
+            logging.critical(f"No Q&A interface provided for task {self.name}.")
         return q
 
     def get_row_description(self, row: pd.Series) -> str:
