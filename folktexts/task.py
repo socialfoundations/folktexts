@@ -22,9 +22,6 @@ class TaskMetadata:
     name: str
     """The name of the task."""
 
-    description: str
-    """A description of the task, including the population to which the task pertains to."""
-
     features: list[str]
     """The names of the features used in the task."""
 
@@ -40,14 +37,14 @@ class TaskMetadata:
     target_threshold: Threshold = None
     """The threshold used to binarize the target column (if provided)."""
 
-    population_description: str = None
-    """A description of the population to which the task pertains to."""
-
     multiple_choice_qa: MultipleChoiceQA = None
     """The multiple-choice question and answer interface for this task."""
 
     direct_numeric_qa: DirectNumericQA = None
     """The direct numeric question and answer interface for this task."""
+
+    description: str = None
+    """A description of the task, including the population to which the task pertains to."""
 
     _use_numeric_qa: bool = False
     """Whether to use numeric Q&A instead of multiple-choice Q&A prompts. Default is False."""
