@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Callable
 
+import pandas as pd
 from .qa_interface import MultipleChoiceQA, QAInterface
 
 
@@ -127,6 +128,9 @@ class ColumnToText:
 
     def __getitem__(self, value: object) -> str:
         """Returns the textual representation of the given data value."""
+        if isinstance(value, (pd.Series, pd.DataFrame)):
+            value = value.item()
+
         # NOTE: `value != value` is a check for NaN values
         return self._missing_value_fill if value != value else self.value_map(value)
 
