@@ -32,7 +32,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 
-version = "0.0.24"
+version = "0.0.25"
 requires-python = ">=3.8"
 dynamic = [
     "readme",

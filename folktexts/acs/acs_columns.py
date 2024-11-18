@@ -515,7 +515,7 @@ acs_state = ColumnToText(
 # HISP: Hispanic Origin (Detailed)
 acs_hispanic = ColumnToText(
     "HISP",
-    short_description="detailed Hispanic origin",
+    short_description="Hispanic origin",
     value_map=partial(
         parse_pums_code,
         file=ACS_CODEBOOK_DIR / "HISP.txt",
@@ -590,7 +590,6 @@ acs_commute_method = ColumnToText(
 
 def describe_income_to_poverty_ratio_pct(ratio_pct: float) -> str:
     """Describe the income-to-poverty ratio in natural language."""
-    ratio_pct_str: str = f"{ratio_pct / 100:.1%}"
     context_msg: str
 
     if ratio_pct < 90:
@@ -600,7 +599,7 @@ def describe_income_to_poverty_ratio_pct(ratio_pct: float) -> str:
     else:
         context_msg = "above the poverty line"
 
-    return f"{ratio_pct_str} of the poverty line income, which is {context_msg}"
+    return f"{int(ratio_pct)}% of the poverty line income, which is {context_msg}"
 
 
 # POVPIP: Income-to-Poverty Ratio
