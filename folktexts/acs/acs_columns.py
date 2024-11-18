@@ -394,6 +394,7 @@ acs_lanp = ColumnToText(
         file=ACS_CODEBOOK_DIR / "LANP.txt",
         postprocess=lambda x: x.strip(),
     ),
+    missing_value_fill="N/A (speaks only English at home)",
 )
 
 # ENG: Ability to Speak English
@@ -406,6 +407,7 @@ acs_eng = ColumnToText(
         3: "Not well",
         4: "Not at all",
     },
+    missing_value_fill="Native (speaks only English)",
 )
 
 # NOP: Nativity of Parents
@@ -423,8 +425,8 @@ acs_nop = ColumnToText(
         8: "Living with Mother only, who is foreign born",
     },
     missing_value_fill=(
-        "N/A (not own child of householder and not child in subfamily / "
-        "greater than 17 years old)"
+        "N/A (not own child of householder and not child in subfamily)"
+        # OR greater than 17 years old
     ),
 )
 
@@ -598,7 +600,7 @@ def describe_income_to_poverty_ratio_pct(ratio_pct: float) -> str:
     else:
         context_msg = "above the poverty line"
 
-    return f"{ratio_pct_str} of the poverty line income, which is {context_msg}."
+    return f"{ratio_pct_str} of the poverty line income, which is {context_msg}"
 
 
 # POVPIP: Income-to-Poverty Ratio
