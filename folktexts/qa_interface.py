@@ -330,8 +330,9 @@ Answer:""")
             else:
                 return None
 
-        prefixes = ["", " ", "_", "▁", "Ġ"]  # check a variety of "A" answer encodings
-        # ^ "A", " A", "_A", "▁A", "ĠA"
+        # Different models may use different prefixes to represent white space
+        # or word boundaries; here we try a few common ones
+        prefixes = ["", " ", "_", "\u2581", "\u0120", "\u010A"]
 
         # Map probabilities to choice values
         answers_per_prefix = {
