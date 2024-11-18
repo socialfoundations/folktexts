@@ -1,0 +1,240 @@
+000 .Suppressed for data year 2018 for select PUMAs
+001 .Alsatian
+003 .Austrian
+005 .Basque
+008 .Belgian
+009 .Flemish
+011 .British
+012 .British Isles
+020 .Danish
+021 .Dutch
+022 .English
+024 .Finnish
+026 .French
+032 .German
+040 .Prussian
+046 .Greek
+049 .Icelander
+050 .Irish
+051 .Italian
+068 .Sicilian
+077 .Luxembourger
+078 .Maltese
+082 .Norwegian
+084 .Portuguese
+087 .Scotch Irish
+088 .Scottish
+089 .Swedish
+091 .Swiss
+094 .Irish Scotch
+097 .Welsh
+098 .Scandinavian
+099 .Celtic
+100 .Albanian
+102 .Belorussian
+103 .Bulgarian
+109 .Croatian
+111 .Czech
+112 .Bohemian
+114 .Czechoslovakian
+115 .Estonian
+122 .German Russian
+124 .Rom
+125 .Hungarian
+128 .Latvian
+129 .Lithuanian
+130 .Macedonian
+131 .Montenegrin
+142 .Polish
+144 .Romanian
+146 .Moldavian
+148 .Russian
+152 .Serbian
+153 .Slovak
+154 .Slovene
+168 .Turkestani
+169 .Uzbeg
+170 .Georgia CIS
+171 .Ukrainian
+176 .Yugoslavian
+177 .Bosnian and Herzegovinian
+178 .Slavic
+179 .Slavonian
+181 .Central European
+183 .Northern European
+185 .Southern European
+187 .Western European
+190 .Eastern European
+194 .Germanic
+195 .European
+200 .Spaniard
+210 .Mexican
+211 .Mexican American
+212 .Mexicano
+213 .Chicano
+215 .Mexican American Indian
+218 .Mexican State
+219 .Mexican Indian
+221 .Costa Rican
+222 .Guatemalan
+223 .Honduran
+224 .Nicaraguan
+225 .Panamanian
+226 .Salvadoran
+227 .Central American
+231 .Argentinean
+232 .Bolivian
+233 .Chilean
+234 .Colombian
+235 .Ecuadorian
+236 .Paraguayan
+237 .Peruvian
+238 .Uruguayan
+239 .Venezuelan
+249 .South American
+250 .Latin American
+251 .Latin
+252 .Latino
+261 .Puerto Rican
+271 .Cuban
+275 .Dominican
+290 .Hispanic
+291 .Spanish
+295 .Spanish American
+300 .Bahamian
+301 .Barbadian
+302 .Belizean
+308 .Jamaican
+310 .Dutch West Indian
+314 .Trinidadian Tobagonian
+322 .British West Indian
+325 .Antigua and Barbuda
+329 .Grenadian
+330 .Vincent-Grenadine Islander
+331 .St Lucia Islander
+335 .West Indian
+336 .Haitian
+359 .Other West Indian
+360 .Brazilian
+370 .Guyanese
+400 .Algerian
+402 .Egyptian
+404 .Libyan
+406 .Moroccan
+411 .North African
+416 .Iranian
+417 .Iraqi
+419 .Israeli
+421 .Jordanian
+423 .Kuwaiti
+425 .Lebanese
+427 .Saudi Arabian
+429 .Syrian
+431 .Armenian
+434 .Turkish
+435 .Yemeni
+442 .Kurdish
+465 .Palestinian
+483 .Assyrian
+484 .Chaldean
+490 .Mideast
+495 .Arab
+496 .Arabic
+499 .Other Arab
+508 .Cameroonian
+510 .Cape Verdean
+515 .Congolese
+522 .Ethiopian
+523 .Eritrean
+527 .Gambian
+529 .Ghanaian
+530 .Guinean
+534 .Kenyan
+541 .Liberian
+553 .Nigerian
+564 .Senegalese
+566 .Sierra Leonean
+568 .Somali
+570 .South African
+576 .Sudanese
+586 .Togo
+587 .Other Subsaharan African
+588 .Ugandan
+593 .Zimbabwean
+598 .Western African
+599 .African
+600 .Afghan
+603 .Bangladeshi
+607 .Bhutanese
+609 .Nepali
+615 .Asian Indian
+618 .Bengali
+620 .East Indian
+650 .Punjabi
+680 .Pakistani
+690 .Sri Lankan
+700 .Burmese
+703 .Cambodian
+706 .Chinese
+707 .Cantonese
+712 .Mongolian
+714 .Tibetan
+716 .Hong Kong
+720 .Filipino
+730 .Indonesian
+740 .Japanese
+748 .Okinawan
+750 .Korean
+765 .Laotian
+768 .Hmong
+770 .Malaysian
+776 .Thai
+782 .Taiwanese
+785 .Vietnamese
+795 .Asian
+799 .Other Asian
+800 .Australian
+803 .New Zealander
+808 .Polynesian
+811 .Hawaiian
+814 .Samoan
+815 .Tongan
+820 .Micronesian
+821 .Guamanian
+822 .Chamorro
+824 .Palauan
+825 .Marshallese
+841 .Fijian
+850 .Pacific Islander
+899 .Other Pacific
+900 .Afro American
+901 .Afro
+902 .African American
+903 .Black
+904 .Negro
+907 .Creole
+913 .Central American Indian
+914 .South American Indian
+917 .Native American
+918 .Indian
+919 .Cherokee
+920 .American Indian
+922 .Eskimo
+924 .White
+925 .Anglo
+927 .Appalachian
+929 .Pennsylvania German
+931 .Canadian
+935 .French Canadian
+936 .Acadian
+937 .Cajun
+939 .American
+940 .United States
+970 .New Mexico
+983 .Texas
+994 .North American
+995 .Mixture
+996 .Uncodable entries
+997 .Other groups
+998 .Other responses
+999 .Not reported
