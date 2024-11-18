@@ -7,7 +7,7 @@
 ![PyPI - License](https://img.shields.io/pypi/l/folktexts)
 ![Python compatibility](https://badgen.net/pypi/python/folktexts)
 
-> This package is accompanied by a paper titled ["Evaluating language models as risk scores"](https://arxiv.org/abs/2407.14614)
+> This package is the basis for our NeurIPS'24 paper titled ["Evaluating language models as risk scores"](https://arxiv.org/abs/2407.14614)
 
 Folktexts is a python package to evaluate statistical properties of LLMs as classifiers.
 It enables computing and evaluating classification _risk scores_ for tabular prediction tasks using LLMs.

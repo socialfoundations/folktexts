@@ -1,0 +1,24 @@
+01 .Not Spanish/Hispanic/Latino
+02 .Mexican
+03 .Puerto Rican
+04 .Cuban
+05 .Dominican
+06 .Costa Rican
+07 .Guatemalan
+08 .Honduran
+09 .Nicaraguan
+10 .Panamanian
+11 .Salvadoran
+12 .Other Central American
+13 .Argentinean
+14 .Bolivian
+15 .Chilean
+16 .Colombian
+17 .Ecuadorian
+18 .Paraguayan
+19 .Peruvian
+20 .Uruguayan
+21 .Venezuelan
+22 .Other South American
+23 .Spaniard
+24 .All Other Spanish/Hispanic/Latino

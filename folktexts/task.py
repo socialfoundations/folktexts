@@ -22,9 +22,6 @@ class TaskMetadata:
     name: str
     """The name of the task."""
 
-    description: str
-    """A description of the task, including the population to which the task pertains to."""
-
     features: list[str]
     """The names of the features used in the task."""
 
@@ -40,14 +37,14 @@ class TaskMetadata:
     target_threshold: Threshold = None
     """The threshold used to binarize the target column (if provided)."""
 
-    population_description: str = None
-    """A description of the population to which the task pertains to."""
-
     multiple_choice_qa: MultipleChoiceQA = None
     """The multiple-choice question and answer interface for this task."""
 
     direct_numeric_qa: DirectNumericQA = None
     """The direct numeric question and answer interface for this task."""
+
+    description: str = None
+    """A description of the task, including the population to which the task pertains to."""
 
     _use_numeric_qa: bool = False
     """Whether to use numeric Q&A instead of multiple-choice Q&A prompts. Default is False."""
@@ -63,8 +60,20 @@ class TaskMetadata:
         # Add this task to the class-level dictionary
         TaskMetadata._tasks[self.name] = self
 
+        # Check all required columns are provided by the `cols_to_text` map
+        self.check_task_columns_are_available(self.cols_to_text.keys())
+
+        # Check target is provided
+        if self.target is None:
+            logging.warning(
+                f"No target column provided for task '{self.name}'. "
+                f"Will not be able to generate predictions or use task Q&A prompts. "
+                f"Will still be able to generate row descriptions."
+            )
+            return
+
         # If no question is explicitly provided, use the question from the target column
-        if self.multiple_choice_qa is None and self.direct_numeric_qa is None:
+        if self.multiple_choice_qa is None and self.direct_numeric_qa is None and self.target is not None:
             logging.warning(
                 f"No question was explicitly provided for task '{self.name}'. "
                 f"Inferring from target column's default question ({self.get_target()}).")
@@ -86,8 +95,43 @@ class TaskMetadata:
         hashable_params["question_hash"] = hash(self.question)
         return int(hash_dict(hashable_params), 16)
 
+    def check_task_columns_are_available(
+        self,
+        available_cols: list[str],
+        raise_: bool = True,
+    ) -> bool:
+        """Checks if all columns required by this task are available.
+
+        Parameters
+        ----------
+        available_cols : list[str]
+            The list of column names available in the dataset.
+        raise_ : bool, optional
+            Whether to raise an error if some columns are missing, by default True.
+
+        Returns
+        -------
+        all_available : bool
+            True if all required columns are present in the given list of
+            available columns, False otherwise.
+        """
+        required_cols = self.features + ([self.get_target()] if self.target else [])
+        missing_cols = set(required_cols) - set(available_cols)
+
+        if raise_ and len(missing_cols) > 0:
+            raise ValueError(
+                f"The following required task columns were not found in the dataset: "
+                f"{list(missing_cols)};"
+            )
+
+        return len(missing_cols) == 0   # Return True if all columns are present
+
     def get_target(self) -> str:
         """Resolves the name of the target column depending on `self.target_threshold`."""
+        if self.target is None:
+            logging.critical(f"No target column provided for task {self.name}.")
+            return None
+
         if self.target_threshold is None:
             return self.target
         else:
@@ -163,7 +207,7 @@ class TaskMetadata:
             q = self.multiple_choice_qa
 
         if q is None:
-            raise ValueError(f"Invalid Q&A interface configured for task {self.name}.")
+            logging.critical(f"No Q&A interface provided for task {self.name}.")
         return q
 
     def get_row_description(self, row: pd.Series) -> str:

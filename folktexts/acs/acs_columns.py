@@ -17,10 +17,7 @@ from .acs_thresholds import (
 )
 
 # Path to ACS codebook files
-ACS_OCCP_FILE = Path(__file__).parent / "data" / "OCCP-codes-acs.txt"
-ACS_POBP_FILE = Path(__file__).parent / "data" / "POBP-codes-acs.txt"
-ACS_ST_FILE = Path(__file__).parent / "data" / "ST-codes-acs.txt"
-
+ACS_CODEBOOK_DIR = Path(__file__).parent / "data"
 
 # AGEP: Age
 acs_age = ColumnToText(
@@ -97,7 +94,7 @@ acs_occupation = ColumnToText(
     short_description="occupation",
     value_map=partial(
         parse_pums_code,
-        file=ACS_OCCP_FILE,
+        file=ACS_CODEBOOK_DIR / "OCCP.txt",
         postprocess=lambda x: x[4:].lower().capitalize().strip(),
     ),
 )
@@ -108,7 +105,7 @@ acs_place_of_birth = ColumnToText(
     short_description="place of birth",
     value_map=partial(
         parse_pums_code,
-        file=ACS_POBP_FILE,
+        file=ACS_CODEBOOK_DIR / "POBP.txt",
         postprocess=lambda x: (x[: x.find("/")] if "/" in x else x).strip(),
     ),
 )
@@ -355,6 +352,17 @@ acs_ancestry = ColumnToText(
     },
 )
 
+# ANC1P: Detailed Ancestry
+acs_detailed_ancestry = ColumnToText(
+    "ANC1P",
+    short_description="detailed ancestry",
+    value_map=partial(
+        parse_pums_code,
+        file=ACS_CODEBOOK_DIR / "ANC1P.txt",
+        postprocess=lambda x: x.strip(),
+    ),
+)
+
 # NATIVITY: Nativity
 acs_nativity = ColumnToText(
     "NATIVITY",
@@ -363,6 +371,63 @@ acs_nativity = ColumnToText(
         1: "Native",
         2: "Foreign born",
     },
+)
+
+# LANX: Language other than English spoken at home
+acs_lanx = ColumnToText(
+    "LANX",
+    short_description="language other than English spoken at home",
+    value_map={
+        1: "Speaks a language other than English at home.",
+        2: "Speaks only English at home.",
+    },
+    use_value_map_only=True,
+    missing_value_fill="N/A (less than 5 years old)",
+)
+
+# LANP: Language spoken at home
+acs_lanp = ColumnToText(
+    "LANP",
+    short_description="language spoken at home (other than English)",
+    value_map=partial(
+        parse_pums_code,
+        file=ACS_CODEBOOK_DIR / "LANP.txt",
+        postprocess=lambda x: x.strip(),
+    ),
+    missing_value_fill="N/A (speaks only English at home)",
+)
+
+# ENG: Ability to Speak English
+acs_eng = ColumnToText(
+    "ENG",
+    short_description="ability to speak English",
+    value_map={
+        1: "Very well",
+        2: "Well",
+        3: "Not well",
+        4: "Not at all",
+    },
+    missing_value_fill="Native (speaks only English)",
+)
+
+# NOP: Nativity of Parents
+acs_nop = ColumnToText(
+    "NOP",
+    short_description="nativity of parents",
+    value_map={
+        1: "Living with both parents, both of whom are native",
+        2: "Living with both parents, Father only is foreign born",
+        3: "Living with both parents, Mother only is foreign born",
+        4: "Living with both parents, both of whom are foreign born",
+        5: "Living with Father only, who is native",
+        6: "Living with Father only, who is foreign born",
+        7: "Living with Mother only, who is native",
+        8: "Living with Mother only, who is foreign born",
+    },
+    missing_value_fill=(
+        "N/A (not own child of householder and not child in subfamily)"
+        # OR greater than 17 years old
+    ),
 )
 
 # DEAR: Hearing Status
@@ -442,8 +507,19 @@ acs_state = ColumnToText(
     short_description="resident state",
     value_map=partial(
         parse_pums_code,
-        file=ACS_ST_FILE,
+        file=ACS_CODEBOOK_DIR / "ST.txt",
         postprocess=lambda x: x[:x.find("/")].strip(),
+    ),
+)
+
+# HISP: Hispanic Origin (Detailed)
+acs_hispanic = ColumnToText(
+    "HISP",
+    short_description="detailed Hispanic origin",
+    value_map=partial(
+        parse_pums_code,
+        file=ACS_CODEBOOK_DIR / "HISP.txt",
+        postprocess=lambda x: x.strip(),
     ),
 )
 
@@ -511,11 +587,27 @@ acs_commute_method = ColumnToText(
     },
 )
 
+
+def describe_income_to_poverty_ratio_pct(ratio_pct: float) -> str:
+    """Describe the income-to-poverty ratio in natural language."""
+    ratio_pct_str: str = f"{ratio_pct / 100:.1%}"
+    context_msg: str
+
+    if ratio_pct < 90:
+        context_msg = "below the poverty line"
+    elif 90 <= ratio_pct < 110:
+        context_msg = "at or near the poverty line"
+    else:
+        context_msg = "above the poverty line"
+
+    return f"{ratio_pct_str} of the poverty line income, which is {context_msg}"
+
+
 # POVPIP: Income-to-Poverty Ratio
 acs_poverty_ratio = ColumnToText(
     "POVPIP",
     short_description="income-to-poverty ratio",
-    value_map=lambda x: f"{x / 100:.1%}",
+    value_map=describe_income_to_poverty_ratio_pct,
 )
 
 # POVPIP: Income-to-Poverty Ratio (Thresholded)
@@ -552,6 +644,7 @@ acs_gcl_col = ColumnToText(
 
 # PUMA: Public Use Microdata Area Code
 # TODO: assign meaningful natural-text values to PUMA codes
+# > Consult: https://www2.census.gov/geo/pdfs/reference/puma/2010_PUMA_Names.pdf
 acs_puma_col = ColumnToText(
     "PUMA",
     short_description="Public Use Microdata Area (PUMA) code",
