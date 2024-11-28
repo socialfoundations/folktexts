@@ -6,6 +6,8 @@
 ![PyPI version](https://badgen.net/pypi/v/folktexts)
 ![PyPI - License](https://img.shields.io/pypi/l/folktexts)
 ![Python compatibility](https://badgen.net/pypi/python/folktexts)
+[![Huggingface dataset](https://img.shields.io/badge/HuggingFace-FDEE21?style=flat&logo=huggingface&logoColor=black&color=%23FFD21E)](https://huggingface.co/datasets/acruz/folktexts)
+
 
 > This package is the basis for our NeurIPS'24 paper titled ["Evaluating language models as risk scores"](https://arxiv.org/abs/2407.14614)
 
@@ -18,6 +20,14 @@ Namely, each prediction task from the popular
 as a natural-language prompting task.
 
 Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
+
+Parsed and ready-to-use versions of the *folktexts* datasets can be found on 
+<a href="https://huggingface.co/datasets/acruz/folktexts">
+<span style="display: inline-block; vertical-align: middle;">
+    <img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" alt="Logo" style="height: 1em; vertical-align: text-bottom;">
+</span>
+Huggingface</a>.
+
 
 **Table of contents:**
 - [Installing](#installing)
