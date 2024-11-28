@@ -11,13 +11,16 @@
 
 > This package is the basis for our NeurIPS'24 paper titled ["Evaluating language models as risk scores"](https://arxiv.org/abs/2407.14614)
 
-Folktexts is a python package to evaluate statistical properties of LLMs as classifiers.
-It enables computing and evaluating classification _risk scores_ for tabular prediction tasks using LLMs.
+Folktexts is a suite of Q&A
+datasets with natural outcome uncertainty, aimed at evaluating LLMs' calibration
+on unrealizable tasks.
+
+The `folktexts` python package enables computing and evaluating classification _risk scores_ for tabular prediction tasks using LLMs.
 
 Several benchmark tasks are provided based on data from the American Community Survey.
-Namely, each prediction task from the popular 
+Namely, each tabular prediction task from the popular 
 [folktables](https://github.com/socialfoundations/folktables) package is made available 
-as a natural-language prompting task.
+as a natural-language Q&A task.
 
 Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
 
