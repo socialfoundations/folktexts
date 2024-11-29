@@ -39,6 +39,7 @@ Package documentation can be found [here](https://socialfoundations.github.io/fo
 **Table of contents:**
 - [Installing](#installing)
 - [Basic setup](#basic-setup)
+- [Ready-to-use Datasets](#ready-to-use-datasets)
 - [Example usage](#example-usage)
 - [Benchmark features and options](#benchmark-features-and-options)
 - [Evaluating feature importance](#evaluating-feature-importance)
@@ -56,7 +57,8 @@ pip install folktexts
 ```
 
 ## Basic setup
-> You'll need to go through these steps to run the benchmark tasks.
+> Go through the following steps to run the benchmark tasks.
+> Alternatively, if you only want ready-to-use datasets, see [this section](#ready-to-use-datasets).
 
 1. Create conda environment
 
@@ -91,6 +93,23 @@ run_acs_benchmark --results-dir results --data-dir data --task 'ACSIncome' --mod
 ```
 
 Run `run_acs_benchmark --help` to get a list of all available benchmark flags.
+
+## Ready-to-use Datasets
+
+Ready-to-use Q&A datasets generated from the 2018 American Community Survey are available via
+<a href="https://huggingface.co/datasets/acruz/folktexts">
+<span style="display: inline-block; vertical-align: middle;">
+    <img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" alt="Logo" style="height: 1em; vertical-align: text-bottom;">
+</span>
+datasets</a>.
+
+```py
+import datasets
+acs_task_qa = datasets.load_dataset(
+    path="acruz/folktexts",
+    name="ACSIncome",   # Choose which task you want to load
+    split="test")       # Choose split according to your intended use case
+```
 
 
 ## Example usage
