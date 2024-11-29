@@ -150,7 +150,7 @@ you can simply run the following code instead of using `.predict_proba()` direct
 ```py
 from folktexts.benchmark import Benchmark, BenchmarkConfig
 bench = Benchmark.make_benchmark(
-    task=acs_task_name, dataset=dataset,
+    task=acs_task_name, dataset=dataset,  # These vars are defined in the snippet above
     model=model, tokenizer=tokenizer,
     numeric_risk_prompting=True,    # See the full list of configs below in the README
 )
