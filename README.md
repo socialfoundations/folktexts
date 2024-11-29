@@ -37,10 +37,11 @@ Huggingface</a>.
 Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
 
 **Table of contents:**
-- [Installing](#installing)
-- [Basic setup](#basic-setup)
-- [Ready-to-use Datasets](#ready-to-use-datasets)
-- [Example usage](#example-usage)
+- [Getting started](#getting-started)
+  - [Installing](#installing)
+  - [Basic setup](#basic-setup)
+  - [Ready-to-use datasets](#ready-to-use-datasets)
+  - [Example usage](#example-usage)
 - [Benchmark features and options](#benchmark-features-and-options)
 - [Evaluating feature importance](#evaluating-feature-importance)
 - [FAQ](#faq)
@@ -48,7 +49,9 @@ Package documentation can be found [here](https://socialfoundations.github.io/fo
 - [License and terms of use](#license-and-terms-of-use)
 
 
-## Installing
+## Getting started
+
+### Installing
 
 Install package from [PyPI](https://pypi.org/project/folktexts/):
 
@@ -56,7 +59,7 @@ Install package from [PyPI](https://pypi.org/project/folktexts/):
 pip install folktexts
 ```
 
-## Basic setup
+### Basic setup
 > Go through the following steps to run the benchmark tasks.
 > Alternatively, if you only want ready-to-use datasets, see [this section](#ready-to-use-datasets).
 
@@ -94,7 +97,7 @@ run_acs_benchmark --results-dir results --data-dir data --task 'ACSIncome' --mod
 
 Run `run_acs_benchmark --help` to get a list of all available benchmark flags.
 
-## Ready-to-use Datasets
+### Ready-to-use datasets
 
 Ready-to-use Q&A datasets generated from the 2018 American Community Survey are available via
 <a href="https://huggingface.co/datasets/acruz/folktexts">
@@ -112,7 +115,10 @@ acs_task_qa = datasets.load_dataset(
 ```
 
 
-## Example usage
+### Example usage
+
+Example code snippet that loads a pre-trained model, collects and parses Q&A data
+for the income-prediction task, and computes risk scores on the test split.
 
 ```py
 # Load transformers model
@@ -137,15 +143,11 @@ dataset = ACSDataset.make_from_task(acs_task_name)   # use `.subsample(0.01)` to
 # You can compute risk score predictions using an sklearn-style interface
 X_test, y_test = dataset.get_test()
 test_scores = clf.predict_proba(X_test)
+```
 
-# Optionally, you can fit the threshold based on a few samples
-clf.fit(*dataset[0:100])    # (`dataset[...]` will access training data)
-
-# ...in order to get more accurate binary predictions with `.predict`
-test_preds = clf.predict(X_test)
-
-# If you only care about the overall metrics and not individual predictions,
-# you can simply run the following code:
+If you only care about the overall benchmark results and not individual predictions,
+you can simply run the following code instead of using `.predict_proba()` directly:
+```py
 from folktexts.benchmark import Benchmark, BenchmarkConfig
 bench = Benchmark.make_benchmark(
     task=acs_task_name, dataset=dataset,
@@ -153,6 +155,16 @@ bench = Benchmark.make_benchmark(
     numeric_risk_prompting=True,    # See the full list of configs below in the README
 )
 bench_results = bench.run(results_root_dir="results")
+```
+
+Example snippet showcasing how to fit the binarization threshold on a few training samples
+(note that this is *not fine-tuning*), and obtaining discretized predictions using `.predict()`.
+```py
+# Optionally, you can fit the threshold based on a few samples
+clf.fit(*dataset[0:100])    # (`dataset[...]` will access training data)
+
+# ...in order to get more accurate binary predictions with `.predict`
+test_preds = clf.predict(X_test)
 ```
 
 
