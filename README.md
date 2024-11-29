@@ -17,20 +17,24 @@ on unrealizable tasks.
 
 The `folktexts` python package enables computing and evaluating classification _risk scores_ for tabular prediction tasks using LLMs.
 
+<!-- ![folktexts-diagram](docs/_static/folktexts-loop-diagram.png) -->
+<p align="center">
+    <img src="docs/_static/folktexts-loop-diagram.png" alt="folktexts-diagram" width="700px">
+</p>
+
 Several benchmark tasks are provided based on data from the American Community Survey.
 Namely, each tabular prediction task from the popular 
 [folktables](https://github.com/socialfoundations/folktables) package is made available 
 as a natural-language Q&A task.
 
-Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
-
-Parsed and ready-to-use versions of the *folktexts* datasets can be found on 
+Parsed and ready-to-use versions of each *folktexts* dataset can be found on 
 <a href="https://huggingface.co/datasets/acruz/folktexts">
 <span style="display: inline-block; vertical-align: middle;">
     <img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" alt="Logo" style="height: 1em; vertical-align: text-bottom;">
 </span>
 Huggingface</a>.
 
+Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
 
 **Table of contents:**
 - [Installing](#installing)
