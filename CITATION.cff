@@ -1,28 +1,23 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
-- family-names: "Cruz"
-  given-names: "André F."
-- family-names: "Hardt"
-  given-names: "Moritz"
-- family-names: "Mendler-Dünner"
-  given-names: "Celestine"
+  - given-names: "André F"
+    family-names: "Cruz"
+  - given-names: "Moritz"
+    family-names: "Hardt"
+  - given-names: "Celestine"
+    family-names: "Mendler-Dünner"
 title: "Evaluating language models as risk scores"
-version: 2.0.4
-doi: 10.48550/arXiv.2407.14614
-date-released: "2024-07-19"
-url: "https://arxiv.org/abs/2407.14614"
 preferred-citation:
   type: article
   authors:
-  - family-names: "Cruz"
-    given-names: "André F."
-  - family-names: "Hardt"
-    given-names: "Moritz"
-  - family-names: "Mendler-Dünner"
-    given-names: "Celestine"
-  journal: "arXiv preprint arXiv:2407.14614"
-  doi: 10.48550/arXiv.2407.14614
+    - given-names: "André F"
+      family-names: "Cruz"
+    - given-names: "Moritz"
+      family-names: "Hardt"
+    - given-names: "Celestine"
+      family-names: "Mendler-Dünner"
   title: "Evaluating language models as risk scores"
-  month: 7
   year: 2024
+  journal: "The Thirty-eighth Conference on Neural Information Processing Systems Datasets and Benchmarks Track"
+  url: "https://openreview.net/forum?id=qrZxL3Bto9"
