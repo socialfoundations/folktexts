@@ -371,7 +371,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
                 )
 
                 # Store risk estimates for current question
-                batch_risk_scores[:, q_idx] = risk_estimates_batch
+                batch_risk_scores[:, q_idx] = np.clip(risk_estimates_batch, 0, 1)
 
             risk_scores[start_idx: end_idx] = batch_risk_scores.mean(axis=1)
 

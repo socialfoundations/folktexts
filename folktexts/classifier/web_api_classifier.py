@@ -156,7 +156,8 @@ class WebAPILLMClassifier(LLMClassifier):
         # NOTE: Models often generate "0." instead of directly outputting the fractional part
         # > Therefore: for multi-token answers, extra forward passes may be required
         else:
-            num_forward_passes = question.num_forward_passes + 2    # +2 tokens for "0."
+            # Add extra tokens for textual prefix, e.g., "The probability is: ..."
+            num_forward_passes = question.num_forward_passes + 8
 
         api_call_params = dict(
             temperature=1,
@@ -277,6 +278,13 @@ class WebAPILLMClassifier(LLMClassifier):
 
                     # Using full text answer as it more tightly relates to the ChatGPT web answer
                     risk_estimate = risk_estimate_full_text
+
+                    if risk_estimate > 1:
+                        logging.info(
+                            f"Got risk estimate > 1: {risk_estimate}. Using "
+                            f"output as a percentage: {risk_estimate / 100.0} instead."
+                        )
+                        risk_estimate = risk_estimate / 100.0
 
             except Exception:
                 logging.error(
