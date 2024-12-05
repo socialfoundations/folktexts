@@ -83,6 +83,8 @@ def prettify_model_name(name: str) -> str:
         "gemma-2-27b-it": "Gemma 2 27B (it)",
         "openai/gpt-4o-mini": "GPT 4o mini (it)",
         "penai/gpt-4o-mini": "GPT 4o mini (it)",
+        "openai/gpt-4o": "GPT 4o (it)",
+        "penai/gpt-4o": "GPT 4o (it)",
     }
 
     if name in dct:
