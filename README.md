@@ -8,35 +8,33 @@
 ![Python compatibility](https://badgen.net/pypi/python/folktexts)
 [![Huggingface dataset](https://img.shields.io/badge/HuggingFace-FDEE21?style=flat&logo=huggingface&logoColor=black&color=%23FFD21E)](https://huggingface.co/datasets/acruz/folktexts)
 
+## A toolbox for evaluating statistical properties of LLMs
 
-> This package is the basis for our NeurIPS'24 paper titled ["Evaluating language models as risk scores"](https://arxiv.org/abs/2407.14614)
+Folktexts provides a suite of Q&A datasets for evaluating calibration and accuracy of LLMs
+on prediction tasks with varying outcome uncertainty.
 
-Folktexts is a suite of Q&A
-datasets with natural outcome uncertainty, aimed at evaluating LLMs' calibration
-on unrealizable tasks.
+The `folktexts` python package provides functinoalities to derive prediction tasks from survey data, translates these tasks into natural text prompts and implements different methods to extract _risk scores_ from LLMs.
 
-The `folktexts` python package enables computing and evaluating classification _risk scores_ for tabular prediction tasks using LLMs.
+With folktexts every LLM can be turned into a score function and the evlaution layer offers tools to compute statistical properties on top of these risk scores by comparing them to the ground truth outcomes. 
+
 
 <!-- ![folktexts-diagram](docs/_static/folktexts-loop-diagram.png) -->
 <p align="center">
     <img src="docs/_static/folktexts-loop-diagram.png" alt="folktexts-diagram" width="700px">
 </p>
 
-Several benchmark tasks are provided based on data from the American Community Survey.
+**Use folktexts to benchmark your LLM:** 
+
+- Pre-defined benchmark tasks are provided based on data from the American Community Survey.
 Namely, each tabular prediction task from the popular 
 [folktables](https://github.com/socialfoundations/folktables) package is made available 
 as a natural-language Q&A task.
+- Parsed and ready-to-use versions of each *folktexts* dataset can be found on 
+<a href="https://huggingface.co/datasets/acruz/folktexts"> Huggingface</a>.
+- Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
 
-Parsed and ready-to-use versions of each *folktexts* dataset can be found on 
-<a href="https://huggingface.co/datasets/acruz/folktexts">
-<span style="display: inline-block; vertical-align: middle;">
-    <img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" alt="Logo" style="height: 1em; vertical-align: text-bottom;">
-</span>
-Huggingface</a>.
 
-Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
-
-**Table of contents:**
+## Table of contents:
 - [Getting started](#getting-started)
   - [Installing](#installing)
   - [Basic setup](#basic-setup)
