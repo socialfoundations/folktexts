@@ -23,11 +23,6 @@ The `folktexts` python package provides functionalities to derive prediction tas
 With folktexts every LLM can be turned into a score function and the evaluation layer offers tools to compute statistical properties on top of these risk scores by comparing them to the ground truth outcomes.
 
 
-<!-- ![folktexts-diagram](docs/_static/folktexts-loop-diagram.png) -->
-<p align="center">
-    <img src="docs/_static/folktexts-loop-diagram.png" alt="folktexts-diagram" width="700px">
-</p>
-
 **Use folktexts to benchmark your LLM:** 
 
 - Pre-defined benchmark tasks are provided based on data from the American Community Survey.
@@ -38,6 +33,10 @@ as a natural-language Q&A task.
 <a href="https://huggingface.co/datasets/acruz/folktexts"> Huggingface</a>.
 - Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
 
+<!-- ![folktexts-diagram](docs/_static/folktexts-loop-diagram.png) -->
+<p align="center">
+    <img src="docs/_static/folktexts-loop-diagram.png" alt="folktexts-diagram" width="700px">
+</p>
 
 ## Table of contents   <!-- omit in toc -->
 - [Getting started](#getting-started)
