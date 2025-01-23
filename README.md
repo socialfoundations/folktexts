@@ -9,13 +9,9 @@
 [![Huggingface dataset](https://img.shields.io/badge/HuggingFace-FDEE21?style=flat&logo=huggingface&logoColor=black&color=%23FFD21E)](https://huggingface.co/datasets/acruz/folktexts)
 
 
-<img src="docs/_static/full-width-logo.png">
+<img src="docs/_static/wide-logo.png">
 
-<!-- <h3 style="display: flex; align-items: center; vertical-align: middle; gap: 10px;">
-  <img src="docs/_static/folktexts-logo.png" alt="Folktexts Logo" style="height: 10em; border-radius: 50%; vertical-align: middle;">
-  A toolbox for evaluating statistical properties of LLMs.
-</h3> -->
-
+<h3>A toolbox for evaluating statistical properties of LLMs.</h3>
 
 Folktexts provides a suite of Q&A datasets for evaluating calibration and accuracy of LLMs
 on prediction tasks with varying outcome uncertainty.
