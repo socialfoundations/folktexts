@@ -8,14 +8,14 @@
 ![Python compatibility](https://badgen.net/pypi/python/folktexts)
 [![Huggingface dataset](https://img.shields.io/badge/HuggingFace-FDEE21?style=flat&logo=huggingface&logoColor=black&color=%23FFD21E)](https://huggingface.co/datasets/acruz/folktexts)
 
-## A toolbox for evaluating statistical properties of LLMs
+## A toolbox for evaluating statistical properties of LLMs   <!-- omit in toc -->
 
 Folktexts provides a suite of Q&A datasets for evaluating calibration and accuracy of LLMs
 on prediction tasks with varying outcome uncertainty.
 
-The `folktexts` python package provides functinoalities to derive prediction tasks from survey data, translates these tasks into natural text prompts and implements different methods to extract _risk scores_ from LLMs.
+The `folktexts` python package provides functionalities to derive prediction tasks from survey data, translates these tasks into natural text prompts and implements different methods to extract _risk scores_ from LLMs.
 
-With folktexts every LLM can be turned into a score function and the evlaution layer offers tools to compute statistical properties on top of these risk scores by comparing them to the ground truth outcomes. 
+With folktexts every LLM can be turned into a score function and the evaluation layer offers tools to compute statistical properties on top of these risk scores by comparing them to the ground truth outcomes.
 
 
 <!-- ![folktexts-diagram](docs/_static/folktexts-loop-diagram.png) -->
@@ -34,7 +34,7 @@ as a natural-language Q&A task.
 - Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
 
 
-## Table of contents:
+## Table of contents   <!-- omit in toc -->
 - [Getting started](#getting-started)
   - [Installing](#installing)
   - [Basic setup](#basic-setup)
