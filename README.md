@@ -1,4 +1,4 @@
-# :book: folktexts   <!-- omit in toc -->
+ <!-- # Folktexts   <!-- omit in toc -->
 
 ![Tests status](https://github.com/socialfoundations/folktexts/actions/workflows/python-tests.yml/badge.svg)
 ![PyPI status](https://github.com/socialfoundations/folktexts/actions/workflows/python-publish.yml/badge.svg)
@@ -8,7 +8,10 @@
 ![Python compatibility](https://badgen.net/pypi/python/folktexts)
 [![Huggingface dataset](https://img.shields.io/badge/HuggingFace-FDEE21?style=flat&logo=huggingface&logoColor=black&color=%23FFD21E)](https://huggingface.co/datasets/acruz/folktexts)
 
-## A toolbox for evaluating statistical properties of LLMs   <!-- omit in toc -->
+
+<img src="docs/_static/logo-wider.png">
+
+<h3>A toolbox for evaluating statistical properties of LLMs.</h3>
 
 Folktexts provides a suite of Q&A datasets for evaluating calibration and accuracy of LLMs
 on prediction tasks with varying outcome uncertainty.
@@ -17,11 +20,6 @@ The `folktexts` python package provides functionalities to derive prediction tas
 
 With folktexts every LLM can be turned into a score function and the evaluation layer offers tools to compute statistical properties on top of these risk scores by comparing them to the ground truth outcomes.
 
-
-<!-- ![folktexts-diagram](docs/_static/folktexts-loop-diagram.png) -->
-<p align="center">
-    <img src="docs/_static/folktexts-loop-diagram.png" alt="folktexts-diagram" width="700px">
-</p>
 
 **Use folktexts to benchmark your LLM:** 
 
@@ -33,6 +31,10 @@ as a natural-language Q&A task.
 <a href="https://huggingface.co/datasets/acruz/folktexts"> Huggingface</a>.
 - Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
 
+<!-- ![folktexts-diagram](docs/_static/folktexts-loop-diagram.png) -->
+<p align="center">
+    <img src="docs/_static/folktexts-loop-diagram.png" alt="folktexts-diagram" width="700px">
+</p>
 
 ## Table of contents   <!-- omit in toc -->
 - [Getting started](#getting-started)
