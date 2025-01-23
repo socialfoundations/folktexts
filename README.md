@@ -9,7 +9,7 @@
 [![Huggingface dataset](https://img.shields.io/badge/HuggingFace-FDEE21?style=flat&logo=huggingface&logoColor=black&color=%23FFD21E)](https://huggingface.co/datasets/acruz/folktexts)
 
 
-<img src="docs/_static/wide-logo.png">
+<img src="docs/_static/logo-wider.png">
 
 <h3>A toolbox for evaluating statistical properties of LLMs.</h3>
 
