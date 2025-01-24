@@ -11,15 +11,9 @@
 
 <img src="docs/_static/logo-wider.png">
 
-<h3>A toolbox for evaluating statistical properties of LLMs.</h3>
+<h2>A toolbox for evaluating statistical properties of LLMs</h2>
 
-Folktexts provides a suite of Q&A datasets for evaluating calibration and accuracy of LLMs
-on prediction tasks with varying outcome uncertainty.
-
-The `folktexts` python package provides functionalities to derive prediction tasks from survey data, translates these tasks into natural text prompts and implements different methods to extract _risk scores_ from LLMs.
-
-With folktexts every LLM can be turned into a score function and the evaluation layer offers tools to compute statistical properties on top of these risk scores by comparing them to the ground truth outcomes.
-
+Folktexts provides a suite of Q&A datasets for evaluating uncertainty, calibration and accuracy of LLMs on individual outcome prediction tasks. It implements flexible functionalities to derive prediction tasks from survey data, translates these tasks into natural text prompts, extracts _risk scores_ from LLMs and compute statistical properties on top of these risk scores by comparing them to the ground truth outcomes.
 
 **Use folktexts to benchmark your LLM:** 
 
@@ -29,12 +23,14 @@ Namely, each tabular prediction task from the popular
 as a natural-language Q&A task.
 - Parsed and ready-to-use versions of each *folktexts* dataset can be found on 
 <a href="https://huggingface.co/datasets/acruz/folktexts"> Huggingface</a>.
-- Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
+- Use the package to costomize your tasks. Specify input features to create tasks with varying outcome uncertainty. Modify prompting templates to evaluate mappings from tabular data to natural text prompts. Compare different methods to extract uncertainty values from LLMs. Extract raw risk scores to perform custom evaluations. Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
 
 <!-- ![folktexts-diagram](docs/_static/folktexts-loop-diagram.png) -->
 <p align="center">
     <img src="docs/_static/folktexts-loop-diagram.png" alt="folktexts-diagram" width="700px">
 </p>
+
+
 
 ## Table of contents   <!-- omit in toc -->
 - [Getting started](#getting-started)
