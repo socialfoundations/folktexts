@@ -23,7 +23,7 @@ Namely, each tabular prediction task from the popular
 as a natural-language Q&A task.
 - Parsed and ready-to-use versions of each *folktexts* dataset can be found on 
 <a href="https://huggingface.co/datasets/acruz/folktexts"> Huggingface</a>.
-- Use the package to costomize your tasks. Specify input features to create tasks with varying outcome uncertainty. Modify prompting templates to evaluate mappings from tabular data to natural text prompts. Compare different methods to extract uncertainty values from LLMs. Extract raw risk scores to perform custom evaluations. Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
+- Use the package to customize your tasks. Specify input features to create tasks with varying outcome uncertainty. Modify prompting templates to evaluate mappings from tabular data to natural text prompts. Compare different methods to extract uncertainty values from LLMs. Extract raw risk scores and outcomes to perform custom statistical evaluations. Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
 
 <!-- ![folktexts-diagram](docs/_static/folktexts-loop-diagram.png) -->
 <p align="center">
