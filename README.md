@@ -13,7 +13,7 @@
 
 <h2>A toolbox for evaluating statistical properties of LLMs</h2>
 
-Folktexts provides a suite of Q&A datasets for evaluating **uncertainty**, **calibration** and **accuracy** of LLMs on individual outcome prediction tasks. It derives customizable prediction **tasks from survey data**, translates them into natural text prompts, extracts LLM-generated _risk scores_, and computes statistical properties of these risk scores by comparing them to the ground truth outcomes.
+Folktexts provides a suite of Q&A datasets for evaluating **uncertainty**, **calibration**, **accuracy** and **fairness** of LLMs on individual outcome prediction tasks. It derives customizable prediction **tasks from survey data**, translates them into natural text prompts, extracts LLM-generated _risk scores_, and computes statistical properties of these risk scores by comparing them to the ground truth outcomes.
 
 **Use folktexts to benchmark your LLM:** 
 
