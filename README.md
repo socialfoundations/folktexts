@@ -13,17 +13,16 @@
 
 <h2>A toolbox for evaluating statistical properties of LLMs</h2>
 
-Folktexts provides a suite of Q&A datasets for evaluating **uncertainty**, **calibration**, **accuracy** and **fairness** of LLMs on individual outcome prediction tasks. It derives customizable prediction **tasks from survey data**, translates them into natural text prompts, extracts LLM-generated _risk scores_, and computes statistical properties of these risk scores by comparing them to the ground truth outcomes.
+Folktexts provides a suite of Q&A datasets for evaluating **uncertainty**, **calibration**, **accuracy** and **fairness** of LLMs on individual outcome prediction tasks. It provides a flexible framework to derive prediction **tasks from survey data**, translates them into natural text prompts, extracts LLM-generated _risk scores_, and computes statistical properties of these risk scores by comparing them to the ground truth outcomes.
 
 **Use folktexts to benchmark your LLM:** 
 
-- Pre-defined benchmark tasks are provided based on data from the American Community Survey.
-Namely, each tabular prediction task from the popular 
+- Pre-defined Q&A benchmark tasks are provided based on data from the American Community Survey (<a href="https://www.census.gov/programs-surveys/acs/microdata/documentation.html">ACS</a>). Each tabular prediction task from the popular 
 [folktables](https://github.com/socialfoundations/folktables) package is made available 
 as a natural-language Q&A task.
 - Parsed and ready-to-use versions of each *folktexts* dataset can be found on 
 <a href="https://huggingface.co/datasets/acruz/folktexts"> Huggingface</a>.
-- Use the package to customize your tasks. Specify input features to create tasks with varying outcome uncertainty. Modify prompting templates to evaluate mappings from tabular data to natural text prompts. Compare different methods to extract uncertainty values from LLMs. Extract raw risk scores and outcomes to perform custom statistical evaluations. Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
+- The package can be used to customize your tasks. Select a feature to define your prediciton target. Specify subsets of input features to vary outcome uncertainty. Modify prompting templates to evaluate mappings from tabular data to natural text prompts. Compare different methods to extract uncertainty values from LLMs responses. Extract raw risk scores and outcomes to perform custom statistical evaluations. Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
 
 <!-- ![folktexts-diagram](docs/_static/folktexts-loop-diagram.png) -->
 <p align="center">
