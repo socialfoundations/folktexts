@@ -22,7 +22,7 @@ Folktexts provides a suite of Q&A datasets for evaluating **uncertainty**, **cal
 as a natural-language Q&A task.
 - Parsed and ready-to-use versions of each *folktexts* dataset can be found on 
 <a href="https://huggingface.co/datasets/acruz/folktexts"> Huggingface</a>.
-- The package can be used to customize your tasks. Select a feature to define your prediciton target. Specify subsets of input features to vary outcome uncertainty. Modify prompting templates to evaluate mappings from tabular data to natural text prompts. Compare different methods to extract uncertainty values from LLMs responses. Extract raw risk scores and outcomes to perform custom statistical evaluations. Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
+- The package can be used to customize your tasks. Select a feature to define your prediciton target. Specify subsets of input features to vary outcome uncertainty. Modify prompting templates to evaluate mappings from tabular data to natural text prompts. Compare different methods to extract uncertainty values from LLM responses. Extract raw risk scores and outcomes to perform custom statistical evaluations. Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
 
 <!-- ![folktexts-diagram](docs/_static/folktexts-loop-diagram.png) -->
 <p align="center">
