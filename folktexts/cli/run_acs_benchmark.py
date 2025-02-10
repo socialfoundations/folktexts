@@ -75,6 +75,13 @@ def setup_arg_parser() -> ArgumentParser:
         default=False,
     )
 
+    parser.add_argument(
+        "--balance-few-shot-examples",
+        help="[bool] Whether to sample evenly from all classes in few-shot prompting",
+        action="store_true",
+        default=False,
+    )
+
     # Optionally, receive a list of features to use (subset of original list)
     parser.add_argument(
         "--use-feature-subset",

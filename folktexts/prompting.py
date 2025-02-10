@@ -64,6 +64,7 @@ def encode_row_prompt_few_shot(
     n_shots: int,
     question: QAInterface = None,
     reuse_examples: bool = False,
+    class_balancing: bool = False,
     custom_prompt_prefix: str = None,
 ) -> str:
     """Encode a question regarding a given row using few-shot prompting.
@@ -87,7 +88,9 @@ def encode_row_prompt_few_shot(
         The encoded few-shot prompt.
     """
     # Take `n_shots` random samples from the train set
-    X_examples, y_examples = dataset.sample_n_train_examples(n_shots, reuse_examples=reuse_examples)
+    X_examples, y_examples = dataset.sample_n_train_examples(n_shots, 
+                                                             reuse_examples=reuse_examples,
+                                                             class_balancing = class_balancing)
 
     # Start with task description
     prompt = ACS_FEW_SHOT_TASK_DESCRIPTION + "\n"

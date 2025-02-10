@@ -315,8 +315,7 @@ class Dataset:
             remaining = n % len(unique_labels) # distribute extra samples
 
             if min(counts) < per_label_n:  
-                logging.error(f'Labels are very imbalanced: Attempting to sample {per_label_n}, 
-                              but minimal group size is {min(counts)}.')
+                logging.error(f"Labels are very imbalanced: Attempting to sample {per_label_n}, but minimal group size is {min(counts)}.")
 
             example_indices = []
             for i, label in enumerate(unique_labels):
