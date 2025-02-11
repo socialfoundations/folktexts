@@ -154,6 +154,7 @@ def main():
         few_shot=args.few_shot,
         numeric_risk_prompting=args.numeric_risk_prompting,
         reuse_few_shot_examples=args.reuse_few_shot_examples,
+        balance_few_shot_examples=args.balance_few_shot_examples,
         batch_size=args.batch_size,
         context_size=args.context_size,
         correct_order_bias=not args.dont_correct_order_bias,
