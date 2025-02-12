@@ -57,8 +57,8 @@ def setup_arg_parser() -> ArgumentParser:
     parser.add_argument(
         "--dont-correct-order-bias",
         help="[bool] Whether to avoid correcting ordering bias, by default will correct it",
-        action="store_false",
-        default=True,
+        action="store_true",
+        default=False,
     )
 
     parser.add_argument(
