@@ -327,8 +327,8 @@ class Dataset:
                     selected = self._rng.choice(class_indices, size=per_label_n + int(i < remaining), replace=False)
                 example_indices.extend(selected)
 
-            # shuffle indices using seed to ensure classes are mixed
-            example_indices = np.random.default_rng(self._seed).permutation(example_indices)
+            # shuffle indices to ensure classes are mixed
+            example_indices = self._rng.permutation(example_indices)
         else: 
             if reuse_examples:
                 example_indices = self._train_indices[:n]
