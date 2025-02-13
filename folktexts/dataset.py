@@ -288,6 +288,7 @@ class Dataset:
         self,
         n: int,
         reuse_examples: bool = False,
+        class_balancing: bool = False,
     ) -> tuple[pd.DataFrame, pd.Series]:
         """Return a set of samples from the training set.
 
@@ -304,11 +305,37 @@ class Dataset:
         X, y : tuple[pd.DataFrame, pd.Series]
             The features and target data for the sampled examples.
         """
-        # TODO: make sure examples are class-balanced?
-        if reuse_examples:
-            example_indices = self._train_indices[:n]
+        if class_balancing:
+
+            train_labels = self.get_target_data().iloc[self._train_indices]
+            unique_labels, counts = np.unique(train_labels, return_counts=True)
+
+            # Calculate number of samples to sample per label
+            per_label_n = n // len(unique_labels)
+            remaining = n % len(unique_labels)  # distribute extra samples
+
+            if min(counts) < per_label_n:
+                logging.error(
+                    f"Labels are very imbalanced: Attempting to sample {per_label_n}, "
+                    f"but minimal group size is {min(counts)}.")
+
+            example_indices = []
+            for i, label in enumerate(unique_labels):
+                class_indices = self._train_indices[train_labels == label]
+
+                if reuse_examples:
+                    selected = class_indices[:per_label_n + int(i < remaining)]
+                else:
+                    selected = self._rng.choice(class_indices, size=per_label_n + int(i < remaining), replace=False)
+                example_indices.extend(selected)
+
+            # shuffle indices to ensure classes are mixed
+            example_indices = self._rng.permutation(example_indices)
         else:
-            example_indices = self._rng.choice(self._train_indices, size=n, replace=False)
+            if reuse_examples:
+                example_indices = self._train_indices[:n]
+            else:
+                example_indices = self._rng.choice(self._train_indices, size=n, replace=False)
 
         return (
             self.data.iloc[example_indices][self.task.features],
