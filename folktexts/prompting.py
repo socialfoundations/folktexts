@@ -88,9 +88,11 @@ def encode_row_prompt_few_shot(
         The encoded few-shot prompt.
     """
     # Take `n_shots` random samples from the train set
-    X_examples, y_examples = dataset.sample_n_train_examples(n_shots, 
-                                                             reuse_examples=reuse_examples,
-                                                             class_balancing = class_balancing)
+    X_examples, y_examples = dataset.sample_n_train_examples(
+        n_shots,
+        reuse_examples=reuse_examples,
+        class_balancing=class_balancing,
+    )
 
     # Start with task description
     prompt = ACS_FEW_SHOT_TASK_DESCRIPTION + "\n"

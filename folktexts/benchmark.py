@@ -43,7 +43,7 @@ class BenchmarkConfig:
         Whether to reuse the same samples for few-shot prompting (or sample new
         ones every time), by default False.
     balance_few_shot_examples : bool, optional
-        Whether to balance the samples for few-shot prompting with respect to 
+        Whether to balance the samples for few-shot prompting with respect to
         their labels, by default False.
     batch_size : int | None, optional
         The batch size to use for inference.

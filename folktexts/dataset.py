@@ -309,13 +309,15 @@ class Dataset:
 
             train_labels = self.get_target_data().iloc[self._train_indices]
             unique_labels, counts = np.unique(train_labels, return_counts=True)
-            
 
+            # Calculate number of samples to sample per label
             per_label_n = n // len(unique_labels)
-            remaining = n % len(unique_labels) # distribute extra samples
+            remaining = n % len(unique_labels)  # distribute extra samples
 
-            if min(counts) < per_label_n:  
-                logging.error(f"Labels are very imbalanced: Attempting to sample {per_label_n}, but minimal group size is {min(counts)}.")
+            if min(counts) < per_label_n:
+                logging.error(
+                    f"Labels are very imbalanced: Attempting to sample {per_label_n}, "
+                    f"but minimal group size is {min(counts)}.")
 
             example_indices = []
             for i, label in enumerate(unique_labels):
@@ -323,13 +325,13 @@ class Dataset:
 
                 if reuse_examples:
                     selected = class_indices[:per_label_n + int(i < remaining)]
-                else: 
+                else:
                     selected = self._rng.choice(class_indices, size=per_label_n + int(i < remaining), replace=False)
                 example_indices.extend(selected)
 
             # shuffle indices to ensure classes are mixed
             example_indices = self._rng.permutation(example_indices)
-        else: 
+        else:
             if reuse_examples:
                 example_indices = self._train_indices[:n]
             else:
