@@ -210,15 +210,19 @@ class TaskMetadata:
             logging.critical(f"No Q&A interface provided for task {self.name}.")
         return q
 
-    def get_row_description(self, row: pd.Series) -> str:
+    def get_row_description(self, row: pd.Series) -> str: # TODO make this only use non-nan columns per row
         """Encode a description of a given data row in textual form."""
         row = row[self.features]
-        return (
+        # row = row[row != "?"].dropna() # TODO confirm that dropping nan/uncollected variables is fine
+
+        res = (
             "\n".join(
                 "- " + self.cols_to_text[col].get_text(val)
                 for col, val in row.items()
             )
         )
+
+        return res
 
     def sensitive_attribute_value_map(self) -> Callable:
         """Returns a mapping between sensitive attribute values and their descriptions."""

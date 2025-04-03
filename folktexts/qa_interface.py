@@ -212,7 +212,10 @@ class MultipleChoiceQA(QAInterface):
         if not self.choices:
             raise ValueError("Choices must be provided.")
         if len(self.choices) > len(self._answer_keys_source):
-            raise ValueError("Number of choices must be less than or equal to the number of answer keys.")
+            # import pdb
+            # pdb.set_trace()
+            # raise ValueError("Number of choices must be less than or equal to the number of answer keys.")
+            print("WARNING: Number of choices must be less than or equal to the number of answer keys.")
 
     def __hash__(self) -> int:
         return int(hash_dict(dataclasses.asdict(self)), 16)

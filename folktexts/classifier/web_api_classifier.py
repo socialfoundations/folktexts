@@ -96,8 +96,9 @@ class WebAPILLMClassifier(LLMClassifier):
         import litellm
         litellm.success_callback = [self.track_cost_callback]
 
-        from litellm import completion
+        from litellm import completion, batch_completion
         self.text_completion_api = completion
+        self.batch_completion = batch_completion
 
         # Get supported parameters
         from litellm import get_supported_openai_params
@@ -188,26 +189,36 @@ class WebAPILLMClassifier(LLMClassifier):
             raise ValueError(f"Unknown question type '{type(question)}'.")
 
         # Query model for each prompt in the batch
-        responses_batch = []
-        for prompt in prompts_batch:
+        messages = [[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ] for prompt in prompts_batch]
+        responses_batch = self.batch_completion(
+            model=self.model_name,
+            messages=messages,
+            **api_call_params,
+        )
 
-            # Construct prompt messages object
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt},
-            ]
 
-            # Query the model API
-            # TODO: Retry on non-successful API calls (e.g., RPM exceeded).
-            response = self.text_completion_api(
-                model=self.model_name,
-                messages=messages,
-                **api_call_params,
-            )
-            responses_batch.append(response)
+        # for prompt in prompts_batch:
 
-            # Sleep for short period to avoid rate-limiting (max 5K RPM for OpenAI API)
-            time.sleep(60 / self.max_api_rpm)
+        #     # Construct prompt messages object
+        #     messages = [
+        #         {"role": "system", "content": system_prompt},
+        #         {"role": "user", "content": prompt},
+        #     ]
+
+        #     # Query the model API
+        #     # TODO: Retry on non-successful API calls (e.g., RPM exceeded).
+        #     response = self.text_completion_api(
+        #         model=self.model_name,
+        #         messages=messages,
+        #         **api_call_params,
+        #     )
+        #     responses_batch.append(response)
+
+        #     # Sleep for short period to avoid rate-limiting (max 5K RPM for OpenAI API)
+        #     time.sleep(60 / self.max_api_rpm)
 
         return responses_batch
 
@@ -239,7 +250,7 @@ class WebAPILLMClassifier(LLMClassifier):
         # Construct dictionary of token to linear token probability for each forward pass
         token_probs_all_passes = [
             {
-                token_metadata["token"]: np.exp(token_metadata["logprob"])
+                token_metadata.token: np.exp(token_metadata.logprob)
                 for token_metadata in top_token_logprobs["top_logprobs"]
             }
             for top_token_logprobs in token_choices_all_passes
