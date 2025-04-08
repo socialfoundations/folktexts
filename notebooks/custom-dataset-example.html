@@ -1,0 +1,737 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Run folktexts benchmark with a different data source &mdash; folktexts 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      <script src="../_static/custom.js?v=882eb7ae"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Run folktexts benchmark with a custom ACS task" href="custom-acs-task-example.html" />
+    <link rel="prev" title="Example: Run ACS benchmark task" href="detailed-example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            folktexts
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../readme.html">Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../source/modules.html">API reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../notebooks.html">Example notebooks</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="minimal-example.html">Evaluate model calibration using folktexts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="detailed-example.html">Example: Run ACS benchmark task</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Run <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> benchmark with a different data source</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Run-benchmark-on-MEPS-data">Run benchmark on MEPS data</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="custom-acs-task-example.html">Run <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> benchmark with a custom ACS task</a></li>
+<li class="toctree-l2"><a class="reference internal" href="paper-plots-and-tables.html">Render paper plots and tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="paper-plots-and-tables.html#Plots-comparing-different-prompting-schemes">Plots comparing different prompting schemes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="minimal-example_web-API-model.html">Evaluate model calibration using folktexts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="parse-acs-results.html">Fetch and parse ACS benchmark results under a given directory</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../notebooks.html">Notebooks Gallery</a></li>
+      <li class="breadcrumb-item active">Run <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> benchmark with a different data source</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/notebooks/custom-dataset-example.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Run-folktexts-benchmark-with-a-different-data-source">
+<h1>Run <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> benchmark with a different data source<a class="headerlink" href="#Run-folktexts-benchmark-with-a-different-data-source" title="Link to this heading"></a></h1>
+<p>This notebook describes how to use the <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> pipeline to run a benchmark on a different tabular dataset (distinct from the ACS tasks provided out-of-the-box).</p>
+<p>In this example, we have mapped 11 columns of the <a class="reference external" href="https://meps.ahrq.gov/mepsweb/index.jsp">Medical Expenditure Panel Survey (MEPS)</a> dataset (survey panels 19, 20, and 21).</p>
+<p>Data codebook available <a class="reference external" href="https://meps.ahrq.gov/mepsweb/data_stats/download_data_files_codebook.jsp?PUFId=H192">at this link</a>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">folktexts</span>
+
+<span class="n">folktexts</span><span class="o">.</span><span class="n">__version__</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&#39;0.0.22&#39;
+</pre></div></div>
+</div>
+<p>Define mappings for each dataset column using <code class="docutils literal notranslate"><span class="pre">ColumnToText</span></code>: each value of each column should be mapped to a meaningful text representation.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.col_to_text</span><span class="w"> </span><span class="kn">import</span> <span class="n">ColumnToText</span>
+
+<span class="c1"># AGE</span>
+<span class="n">meps_age_col</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;AGE&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;age&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="si">}</span><span class="s2"> years old&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># REGION: Census region</span>
+<span class="n">meps_region_col</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;REGION&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;US region&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Northeast&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Midwest&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;South&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;West&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># SEX</span>
+<span class="n">meps_sex_col</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;SEX&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;sex&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Male&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Female&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># MARRY / MARRY31X</span>
+<span class="n">meps_marital_status</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;MARRY&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;marital status&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Married&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Widowed&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Divorced&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;Separated&quot;</span><span class="p">,</span>
+        <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;Never married&quot;</span><span class="p">,</span>
+        <span class="mi">6</span><span class="p">:</span> <span class="s2">&quot;Inapplicable - Under 16 years old&quot;</span><span class="p">,</span>
+        <span class="mi">7</span><span class="p">:</span> <span class="s2">&quot;Married during current survey round&quot;</span><span class="p">,</span>
+        <span class="mi">8</span><span class="p">:</span> <span class="s2">&quot;Widowed during current survey round&quot;</span><span class="p">,</span>
+        <span class="mi">9</span><span class="p">:</span> <span class="s2">&quot;Divorced during current survey round&quot;</span><span class="p">,</span>
+        <span class="mi">10</span><span class="p">:</span> <span class="s2">&quot;Separated during current survey round&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># HONRDC: Honorably discharged from military</span>
+<span class="n">meps_education_col</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;HONRDC&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;honorably discharged status&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Yes, honorably discharged from military&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Not part of military or not honorably discharged&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Inapplicable - Under 16 years old&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;Inapplicable - Now on active duty&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># RTHLTH / RTHLTH31: Perceived health status</span>
+<span class="n">meps_health_status_col</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;RTHLTH&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;self-rated health status&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Excellent&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Very good&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Good&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;Fair&quot;</span><span class="p">,</span>
+        <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;Poor&quot;</span><span class="p">,</span>
+        <span class="o">-</span><span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Inapplicable - Missing data&quot;</span><span class="p">,</span>
+        <span class="o">-</span><span class="mi">7</span><span class="p">:</span> <span class="s2">&quot;Inapplicable - Refused to answer&quot;</span><span class="p">,</span>
+        <span class="o">-</span><span class="mi">8</span><span class="p">:</span> <span class="s2">&quot;Inapplicable - Don&#39;t know&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># MNHLTH / MNHLTH31: Perceived mental health status</span>
+<span class="n">meps_mental_health_status_col</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;MNHLTH&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;self-rated mental health status&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Excellent&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Very good&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Good&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;Fair&quot;</span><span class="p">,</span>
+        <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;Poor&quot;</span><span class="p">,</span>
+        <span class="o">-</span><span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Inapplicable - Missing data&quot;</span><span class="p">,</span>
+        <span class="o">-</span><span class="mi">7</span><span class="p">:</span> <span class="s2">&quot;Inapplicable - Refused to answer&quot;</span><span class="p">,</span>
+        <span class="o">-</span><span class="mi">8</span><span class="p">:</span> <span class="s2">&quot;Inapplicable - Don&#39;t know&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># POVCAT / POVCAT15: Poverty category</span>
+<span class="n">meps_poverty_category_col</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;POVCAT&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;poverty category&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Poor&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Near poor&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Low income&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;Middle income&quot;</span><span class="p">,</span>
+        <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;High income&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># INSCOV / INSCOV15: Insurance coverage</span>
+<span class="n">meps_insurance_coverage_col</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;INSCOV&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;insurance coverage&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Private insurance&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Public insurance&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Uninsured&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># DIABDX: Diabetes diagnosis</span>
+<span class="n">meps_diabetes_col</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;DIABDX&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;diabetes diagnosis&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Yes, diagnosed with diabetes&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;No, not diagnosed with diabetes&quot;</span><span class="p">,</span>
+        <span class="o">-</span><span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Inapplicable - Under 17 years old&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="n">missing_value_fill</span><span class="o">=</span><span class="s2">&quot;Inapplicable - Under 17 years old&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># HIBPDX: High blood pressure diagnosis</span>
+<span class="n">meps_high_blood_pressure_col</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;HIBPDX&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;high blood pressure diagnosis&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Yes, diagnosed with high blood pressure&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;No, not diagnosed with high blood pressure&quot;</span><span class="p">,</span>
+        <span class="o">-</span><span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Inapplicable - Under 17 years old&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="n">missing_value_fill</span><span class="o">=</span><span class="s2">&quot;Inapplicable - Under 17 years old&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>Define the target column mapping and the question to prompt the LLM with by instantiating a <code class="docutils literal notranslate"><span class="pre">MultipleChoiceQA</span></code> object:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.qa_interface</span><span class="w"> </span><span class="kn">import</span> <span class="n">MultipleChoiceQA</span><span class="p">,</span> <span class="n">Choice</span>
+
+<span class="n">TARGET_COL</span> <span class="o">=</span> <span class="s2">&quot;UTILIZATION&quot;</span>
+
+<span class="n">utilization_qa</span> <span class="o">=</span> <span class="n">MultipleChoiceQA</span><span class="p">(</span>
+    <span class="n">column</span><span class="o">=</span><span class="n">TARGET_COL</span><span class="p">,</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Was is this person&#39;s estimated number of doctor visits in the past year?&quot;</span><span class="p">,</span>
+    <span class="n">choices</span><span class="o">=</span><span class="p">(</span>
+        <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;More than 10 doctor visits (high health-care utilization)&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;10 or fewer doctor visits (low health-care utilization)&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># UTILIZATION: Number of doctor visits</span>
+<span class="n">meps_utilization_col</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="n">TARGET_COL</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;doctor visits&quot;</span><span class="p">,</span>
+    <span class="n">question</span><span class="o">=</span><span class="n">utilization_qa</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>Optionally, you can define a <strong>numeric question prompt that asks for a verbalized probability</strong> by instantiating a <code class="docutils literal notranslate"><span class="pre">DirectNumericQA</span></code> object:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.qa_interface</span><span class="w"> </span><span class="kn">import</span> <span class="n">DirectNumericQA</span>
+
+<span class="n">utilization_numeric_qa</span> <span class="o">=</span> <span class="n">DirectNumericQA</span><span class="p">(</span>
+    <span class="n">column</span><span class="o">=</span><span class="n">TARGET_COL</span><span class="p">,</span>
+    <span class="n">text</span><span class="o">=</span><span class="p">(</span>
+        <span class="s2">&quot;What is the probability that this person has high health-care utilization? &quot;</span>
+        <span class="s2">&quot;(i.e., more than 10 doctor visits per year)&quot;</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>Define the prediction task be instantiating a <code class="docutils literal notranslate"><span class="pre">TaskMetadata</span></code> object:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Helper dict to access ColumnToText objects by column name</span>
+<span class="n">meps_columns_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">col_mapper</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">col_mapper</span>
+    <span class="k">for</span> <span class="n">col_mapper</span> <span class="ow">in</span> <span class="nb">globals</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col_mapper</span><span class="p">,</span> <span class="n">ColumnToText</span><span class="p">)</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.task</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskMetadata</span>
+
+<span class="n">meps_task</span> <span class="o">=</span> <span class="n">TaskMetadata</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;health-care utilization&quot;</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+        <span class="s2">&quot;predict whether an individual had low or high healthcare utilization &quot;</span>
+        <span class="s2">&quot;in the past year by their number of doctor visits&quot;</span>
+    <span class="p">),</span>
+    <span class="n">features</span><span class="o">=</span><span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">meps_columns_map</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="n">TARGET_COL</span><span class="p">],</span>
+    <span class="n">target</span><span class="o">=</span><span class="n">TARGET_COL</span><span class="p">,</span>
+    <span class="n">cols_to_text</span><span class="o">=</span><span class="n">meps_columns_map</span><span class="p">,</span>
+    <span class="n">sensitive_attribute</span><span class="o">=</span><span class="s2">&quot;SEX&quot;</span><span class="p">,</span>
+    <span class="n">multiple_choice_qa</span><span class="o">=</span><span class="n">utilization_qa</span><span class="p">,</span>
+    <span class="n">direct_numeric_qa</span><span class="o">=</span><span class="n">utilization_numeric_qa</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p><strong>Set</strong> whether to use numeric risk prompting or the default multiple-choice Q&amp;A prompting:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">meps_task</span><span class="o">.</span><span class="n">use_numeric_qa</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="c1"># meps_task.use_numeric_qa = True</span>
+</pre></div>
+</div>
+</div>
+<p>Load MEPS data and instantiate the <code class="docutils literal notranslate"><span class="pre">Dataset</span></code> object:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+
+<span class="n">DATA_PATH</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">folktexts</span><span class="o">.</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;notebooks&quot;</span> <span class="o">/</span> <span class="s2">&quot;data&quot;</span> <span class="o">/</span> <span class="s2">&quot;meps.csv&quot;</span>
+<span class="n">meps_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">DATA_PATH</span><span class="p">)</span>
+
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">meps_df</span><span class="p">,</span>
+    <span class="n">task</span><span class="o">=</span><span class="n">meps_task</span><span class="p">,</span>
+    <span class="n">test_size</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span>
+    <span class="n">val_size</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">subsampling</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>   <span class="c1"># NOTE: Optional, for faster but noisier results!</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p><strong>Optionally,</strong> you can subsample the data to get faster but noisier results, with:</p>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="n">dataset</span><span class="o">.</span><span class="n">subsample</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>  <span class="c1"># Keeps only 10% of the data</span>
+</pre></div>
+</div>
+<p>Load huggingface LLM:</p>
+<p><strong>Note:</strong> Update <code class="docutils literal notranslate"><span class="pre">MODEL_NAME_OR_PATH</span></code> as needed.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">MODEL_NAME_OR_PATH</span> <span class="o">=</span> <span class="s2">&quot;meta-llama/Meta-Llama-3-8B&quot;</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.classifier</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransformersLLMClassifier</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.llm_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_model_tokenizer</span>
+
+<span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">load_model_tokenizer</span><span class="p">(</span><span class="n">MODEL_NAME_OR_PATH</span><span class="p">)</span>
+
+<span class="n">llm_clf</span> <span class="o">=</span> <span class="n">TransformersLLMClassifier</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+    <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+    <span class="n">task</span><span class="o">=</span><span class="n">meps_task</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+    <span class="n">context_length</span><span class="o">=</span><span class="mi">800</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "e35aa130a0844ed9910d21349c8c5c44", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<p>Example LLM prompt for this task:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">X_sample</span><span class="p">,</span> <span class="n">_y_sample</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">sample_n_train_examples</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">llm_clf</span><span class="o">.</span><span class="n">encode_row</span><span class="p">(</span><span class="n">X_sample</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">question</span><span class="o">=</span><span class="n">llm_clf</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">question</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+The following data corresponds to a survey respondent. The survey was conducted among US residents in 2018. Please answer the question based on the information provided. The data provided is enough to reach an approximate answer.
+
+Information:
+- The age is: 37 years old.
+- The US region is: West.
+- The sex is: Female.
+- The marital status is: Never married.
+- The honorably discharged status is: Not part of military or not honorably discharged.
+- The self-rated health status is: Good.
+- The self-rated mental health status is: Good.
+- The poverty category is: Poor.
+- The insurance coverage is: Private insurance.
+- The diabetes diagnosis is: No, not diagnosed with diabetes.
+- The high blood pressure diagnosis is: No, not diagnosed with high blood pressure.
+
+Question: Was is this person&#39;s estimated number of doctor visits in the past year?
+A. More than 10 doctor visits (high health-care utilization).
+B. 10 or fewer doctor visits (low health-care utilization).
+Answer:
+</pre></div></div>
+</div>
+<section id="Run-benchmark-on-MEPS-data">
+<h2>Run benchmark on MEPS data<a class="headerlink" href="#Run-benchmark-on-MEPS-data" title="Link to this heading"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.benchmark</span><span class="w"> </span><span class="kn">import</span> <span class="n">BenchmarkConfig</span><span class="p">,</span> <span class="n">Benchmark</span>
+<span class="n">bench</span> <span class="o">=</span> <span class="n">Benchmark</span><span class="p">(</span><span class="n">llm_clf</span><span class="o">=</span><span class="n">llm_clf</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
+<span class="n">bench</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">results_root_dir</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "1a6560c0c807478387e3a96afddf1214", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+We detected that you are passing `past_key_values` as a tuple and this is deprecated and will be removed in v4.43. Please use an appropriate `Cache` class (https://huggingface.co/docs/transformers/v4.41.3/en/internal/generation_utils#transformers.Cache)
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 2min 45s, sys: 5.43 s, total: 2min 51s
+Wall time: 2min 50s
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;threshold&#39;: 0.5,
+ &#39;n_samples&#39;: 1963,
+ &#39;n_positives&#39;: 354,
+ &#39;n_negatives&#39;: 1609,
+ &#39;model_name&#39;: &#39;Meta-Llama-3-8B&#39;,
+ &#39;accuracy&#39;: 0.630667345899134,
+ &#39;tpr&#39;: 0.7033898305084746,
+ &#39;fnr&#39;: 0.2966101694915254,
+ &#39;fpr&#39;: 0.3853325046612803,
+ &#39;tnr&#39;: 0.6146674953387197,
+ &#39;balanced_accuracy&#39;: 0.6590286629235971,
+ &#39;precision&#39;: 0.286536248561565,
+ &#39;ppr&#39;: 0.44268976057055526,
+ &#39;log_loss&#39;: 0.6640880361799258,
+ &#39;brier_score_loss&#39;: 0.23555848017340178,
+ &#39;fnr_ratio&#39;: 0.7005952380952382,
+ &#39;fnr_diff&#39;: 0.1007343124165554,
+ &#39;fpr_ratio&#39;: 0.9499246987951807,
+ &#39;fpr_diff&#39;: 0.019768133174791924,
+ &#39;ppr_ratio&#39;: 0.9785014080325124,
+ &#39;ppr_diff&#39;: 0.009620674692892017,
+ &#39;precision_ratio&#39;: 0.7380730854374539,
+ &#39;precision_diff&#39;: 0.086496795041585,
+ &#39;tpr_ratio&#39;: 0.8681980959035723,
+ &#39;tpr_diff&#39;: 0.1007343124165554,
+ &#39;balanced_accuracy_ratio&#39;: 0.9408797810568554,
+ &#39;balanced_accuracy_diff&#39;: 0.04048308962088176,
+ &#39;tnr_ratio&#39;: 0.968370986920333,
+ &#39;tnr_diff&#39;: 0.01976813317479187,
+ &#39;accuracy_ratio&#39;: 0.9913632326092872,
+ &#39;accuracy_diff&#39;: 0.0054705390193721115,
+ &#39;equalized_odds_ratio&#39;: 0.7005952380952382,
+ &#39;equalized_odds_diff&#39;: 0.1007343124165554,
+ &#39;roc_auc&#39;: 0.7183612307886781,
+ &#39;ece&#39;: 0.30890763123834214,
+ &#39;ece_quantile&#39;: 0.3089076312383417,
+ &#39;predictions_path&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-1075925211/health-care utilization_subsampled-0.1_seed-42_hash-1494059445.test_predictions.csv&#39;,
+ &#39;config&#39;: {&#39;numeric_risk_prompting&#39;: False,
+  &#39;few_shot&#39;: None,
+  &#39;reuse_few_shot_examples&#39;: False,
+  &#39;batch_size&#39;: None,
+  &#39;context_size&#39;: None,
+  &#39;correct_order_bias&#39;: True,
+  &#39;feature_subset&#39;: None,
+  &#39;population_filter&#39;: None,
+  &#39;seed&#39;: 42,
+  &#39;model_name&#39;: &#39;Meta-Llama-3-8B&#39;,
+  &#39;model_hash&#39;: 2852898721,
+  &#39;task_name&#39;: &#39;health-care utilization&#39;,
+  &#39;task_hash&#39;: 3442708664,
+  &#39;dataset_name&#39;: &#39;health-care utilization_subsampled-0.1_seed-42_hash-1494059445&#39;,
+  &#39;dataset_subsampling&#39;: 0.1,
+  &#39;dataset_hash&#39;: 1494059445},
+ &#39;benchmark_hash&#39;: 1075925211,
+ &#39;results_dir&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-1075925211&#39;,
+ &#39;results_root_dir&#39;: &#39;/lustre/home/acruz/folktexts/notebooks&#39;,
+ &#39;current_time&#39;: &#39;2024.08.30-14.54.40&#39;,
+ &#39;plots&#39;: {&#39;roc_curve_path&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-1075925211/imgs/roc_curve.pdf&#39;,
+  &#39;calibration_curve_path&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-1075925211/imgs/calibration_curve.pdf&#39;,
+  &#39;score_distribution_path&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-1075925211/imgs/score_distribution.pdf&#39;,
+  &#39;score_distribution_per_label_path&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-1075925211/imgs/score_distribution_per_label.pdf&#39;,
+  &#39;roc_curve_per_subgroup_path&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-1075925211/imgs/roc_curve_per_subgroup.pdf&#39;,
+  &#39;calibration_curve_per_subgroup_path&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-1075925211/imgs/calibration_curve_per_subgroup.pdf&#39;}}
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">bench</span><span class="o">.</span><span class="n">plot_results</span><span class="p">();</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_custom-dataset-example_24_0.png" src="../_images/notebooks_custom-dataset-example_24_0.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_custom-dataset-example_24_1.png" src="../_images/notebooks_custom-dataset-example_24_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_custom-dataset-example_24_2.png" src="../_images/notebooks_custom-dataset-example_24_2.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_custom-dataset-example_24_3.png" src="../_images/notebooks_custom-dataset-example_24_3.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_custom-dataset-example_24_4.png" src="../_images/notebooks_custom-dataset-example_24_4.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_custom-dataset-example_24_5.png" src="../_images/notebooks_custom-dataset-example_24_5.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">bench</span><span class="o">.</span><span class="n">results</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;threshold&#39;: 0.5,
+ &#39;n_samples&#39;: 1963,
+ &#39;n_positives&#39;: 354,
+ &#39;n_negatives&#39;: 1609,
+ &#39;model_name&#39;: &#39;Meta-Llama-3-8B&#39;,
+ &#39;accuracy&#39;: 0.630667345899134,
+ &#39;tpr&#39;: 0.7033898305084746,
+ &#39;fnr&#39;: 0.2966101694915254,
+ &#39;fpr&#39;: 0.3853325046612803,
+ &#39;tnr&#39;: 0.6146674953387197,
+ &#39;balanced_accuracy&#39;: 0.6590286629235971,
+ &#39;precision&#39;: 0.286536248561565,
+ &#39;ppr&#39;: 0.44268976057055526,
+ &#39;log_loss&#39;: 0.6640880361799258,
+ &#39;brier_score_loss&#39;: 0.23555848017340178,
+ &#39;fnr_ratio&#39;: 0.7005952380952382,
+ &#39;fnr_diff&#39;: 0.1007343124165554,
+ &#39;fpr_ratio&#39;: 0.9499246987951807,
+ &#39;fpr_diff&#39;: 0.019768133174791924,
+ &#39;ppr_ratio&#39;: 0.9785014080325124,
+ &#39;ppr_diff&#39;: 0.009620674692892017,
+ &#39;precision_ratio&#39;: 0.7380730854374539,
+ &#39;precision_diff&#39;: 0.086496795041585,
+ &#39;tpr_ratio&#39;: 0.8681980959035723,
+ &#39;tpr_diff&#39;: 0.1007343124165554,
+ &#39;balanced_accuracy_ratio&#39;: 0.9408797810568554,
+ &#39;balanced_accuracy_diff&#39;: 0.04048308962088176,
+ &#39;tnr_ratio&#39;: 0.968370986920333,
+ &#39;tnr_diff&#39;: 0.01976813317479187,
+ &#39;accuracy_ratio&#39;: 0.9913632326092872,
+ &#39;accuracy_diff&#39;: 0.0054705390193721115,
+ &#39;equalized_odds_ratio&#39;: 0.7005952380952382,
+ &#39;equalized_odds_diff&#39;: 0.1007343124165554,
+ &#39;roc_auc&#39;: 0.7183612307886781,
+ &#39;ece&#39;: 0.30890763123834214,
+ &#39;ece_quantile&#39;: 0.3089076312383417,
+ &#39;predictions_path&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-1075925211/health-care utilization_subsampled-0.1_seed-42_hash-1494059445.test_predictions.csv&#39;,
+ &#39;config&#39;: {&#39;numeric_risk_prompting&#39;: False,
+  &#39;few_shot&#39;: None,
+  &#39;reuse_few_shot_examples&#39;: False,
+  &#39;batch_size&#39;: None,
+  &#39;context_size&#39;: None,
+  &#39;correct_order_bias&#39;: True,
+  &#39;feature_subset&#39;: None,
+  &#39;population_filter&#39;: None,
+  &#39;seed&#39;: 42,
+  &#39;model_name&#39;: &#39;Meta-Llama-3-8B&#39;,
+  &#39;model_hash&#39;: 2852898721,
+  &#39;task_name&#39;: &#39;health-care utilization&#39;,
+  &#39;task_hash&#39;: 3442708664,
+  &#39;dataset_name&#39;: &#39;health-care utilization_subsampled-0.1_seed-42_hash-1494059445&#39;,
+  &#39;dataset_subsampling&#39;: 0.1,
+  &#39;dataset_hash&#39;: 1494059445},
+ &#39;benchmark_hash&#39;: 1075925211,
+ &#39;results_dir&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-1075925211&#39;,
+ &#39;results_root_dir&#39;: &#39;/lustre/home/acruz/folktexts/notebooks&#39;,
+ &#39;current_time&#39;: &#39;2024.08.30-14.54.41&#39;,
+ &#39;plots&#39;: {&#39;roc_curve_path&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-1075925211/imgs/roc_curve.pdf&#39;,
+  &#39;calibration_curve_path&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-1075925211/imgs/calibration_curve.pdf&#39;,
+  &#39;score_distribution_path&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-1075925211/imgs/score_distribution.pdf&#39;,
+  &#39;score_distribution_per_label_path&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-1075925211/imgs/score_distribution_per_label.pdf&#39;,
+  &#39;roc_curve_per_subgroup_path&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-1075925211/imgs/roc_curve_per_subgroup.pdf&#39;,
+  &#39;calibration_curve_per_subgroup_path&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-1075925211/imgs/calibration_curve_per_subgroup.pdf&#39;}}
+</pre></div></div>
+</div>
+<hr class="docutils" />
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="detailed-example.html" class="btn btn-neutral float-left" title="Example: Run ACS benchmark task" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="custom-acs-task-example.html" class="btn btn-neutral float-right" title="Run folktexts benchmark with a custom ACS task" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

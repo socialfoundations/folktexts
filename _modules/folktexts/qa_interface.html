@@ -1,0 +1,581 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>folktexts.qa_interface &mdash; folktexts 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../../_static/custom.js?v=882eb7ae"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            folktexts
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme.html">Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../notebooks.html">Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">folktexts.qa_interface</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for folktexts.qa_interface</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Interface for question-answering with LLMs.</span>
+
+<span class="sd">- Create different types of questions (direct numeric, multiple-choice).</span>
+<span class="sd">- Encode questions and decode model outputs.</span>
+<span class="sd">- Compute risk-estimate from model outputs.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">dataclasses</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">itertools</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterator</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">hash_dict</span>
+
+<span class="c1"># Minimum probability density assigned to all valid answers</span>
+<span class="c1"># &gt; small models will be worse at using valid answers...</span>
+<span class="n">ANSWER_PROB_THRESHOLD</span> <span class="o">=</span> <span class="mf">0.1</span>
+
+<span class="c1"># Default answer keys for multiple-choice questions</span>
+<span class="n">_ALPHABET</span> <span class="o">=</span> <span class="s2">&quot;ABCDEFGHIJKLMNOPQRSTUVWXYZ&quot;</span>
+
+
+<div class="viewcode-block" id="QAInterface">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.qa_interface.QAInterface">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">QAInterface</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;An interface for a question-answering system.&quot;&quot;&quot;</span>
+
+    <span class="n">column</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">text</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">num_forward_passes</span><span class="p">:</span> <span class="nb">int</span>
+
+<div class="viewcode-block" id="QAInterface.get_question_prompt">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.qa_interface.QAInterface.get_question_prompt">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_question_prompt</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a question and answer key.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<div class="viewcode-block" id="QAInterface.get_answer_from_model_output">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.qa_interface.QAInterface.get_answer_from_model_output">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_answer_from_model_output</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">last_token_probs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">tokenizer_vocab</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decodes the model&#39;s output into an answer for the given question.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        last_token_probs : np.ndarray</span>
+<span class="sd">            The model&#39;s last token probabilities for the question. The first</span>
+<span class="sd">            dimension corresponds to the number of forward passes as specified</span>
+<span class="sd">            by `self.num_forward_passes`.</span>
+<span class="sd">        tokenizer : dict[str, int]</span>
+<span class="sd">            The tokenizer&#39;s vocabulary.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        answer : float</span>
+<span class="sd">            The answer to the question.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">hash_dict</span><span class="p">(</span><span class="n">dataclasses</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)),</span> <span class="mi">16</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="DirectNumericQA">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.qa_interface.DirectNumericQA">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">DirectNumericQA</span><span class="p">(</span><span class="n">QAInterface</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents a direct numeric question.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    For example, the prompt could be &quot;</span>
+<span class="sd">    Q: What is 2 + 2?</span>
+<span class="sd">    A: &quot;</span>
+<span class="sd">    With the expected answer being &quot;4&quot;.</span>
+
+<span class="sd">    If looking for a direct numeric probability, the answer prompt will be</span>
+<span class="sd">    framed as so: &quot;</span>
+<span class="sd">    Q: What is the probability, between 0 and 1, of getting heads on a coin flip?</span>
+<span class="sd">    A: 0.&quot;</span>
+<span class="sd">    So that we can extract a numeric answer with at most 2 forward passes.</span>
+<span class="sd">    This is done automatically by passing the kwarg `answer_probability=True`.</span>
+
+<span class="sd">    Note that some models have multi-digit tokens in their vocabulary, so we</span>
+<span class="sd">    need to correctly assess which tokens in the vocabulary correspond to valid</span>
+<span class="sd">    numeric answers.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">num_forward_passes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span>     <span class="c1"># NOTE: overrides superclass default</span>
+    <span class="n">answer_probability</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="DirectNumericQA.get_question_prompt">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.qa_interface.DirectNumericQA.get_question_prompt">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_question_prompt</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">question_prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;Question: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">answer_probability</span><span class="p">:</span>
+            <span class="n">question_prompt</span> <span class="o">+=</span> <span class="s2">&quot;Answer (between 0 and 1): 0.&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">question_prompt</span> <span class="o">+=</span> <span class="s2">&quot;Answer: &quot;</span>
+
+        <span class="k">return</span> <span class="n">question_prompt</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_numeric_tokens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokenizer_vocab</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the indices of tokens that correspond to numbers.</span>
+
+<span class="sd">        This can include digits (&quot;0&quot;-&quot;9&quot;), multi-digit tokens (e.g., &quot;100&quot;), and</span>
+<span class="sd">        the decimal point (&quot;.&quot;).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">numeric_tokens</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">key</span><span class="p">:</span> <span class="n">token_id</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">token_id</span> <span class="ow">in</span> <span class="n">tokenizer_vocab</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="s2">&quot;.&quot;</span> <span class="ow">in</span> <span class="n">tokenizer_vocab</span><span class="p">:</span>
+            <span class="n">numeric_tokens</span><span class="p">[</span><span class="s2">&quot;.&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tokenizer_vocab</span><span class="p">[</span><span class="s2">&quot;.&quot;</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">numeric_tokens</span>
+
+<div class="viewcode-block" id="DirectNumericQA.get_answer_from_model_output">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.qa_interface.DirectNumericQA.get_answer_from_model_output">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_answer_from_model_output</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">last_token_probs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">tokenizer_vocab</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Outputs a numeric answer inferred from the model&#39;s output.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        last_token_probs : np.ndarray</span>
+<span class="sd">            The last token probabilities of the model for the question.</span>
+<span class="sd">            The first dimension must correspond to the number for forward passes</span>
+<span class="sd">            as specified by `num_forward_passes`.</span>
+<span class="sd">        tokenizer_vocab: dict[str, int],</span>
+<span class="sd">            The tokenizer&#39;s vocabulary.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        answer : float | int</span>
+<span class="sd">            The numeric answer to the question.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        Eventually we could run a search algorithm to find the most likely</span>
+<span class="sd">        answer over multiple forward passes, but for now we&#39;ll just take the</span>
+<span class="sd">        argmax on each forward pass.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">numeric_tokens_vocab</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_numeric_tokens</span><span class="p">(</span><span class="n">tokenizer_vocab</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">last_token_probs</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_forward_passes</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Expected </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_forward_passes</span><span class="si">}</span><span class="s2"> forward passes, got &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">last_token_probs</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+        <span class="n">answer_text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">ltp</span> <span class="ow">in</span> <span class="n">last_token_probs</span><span class="p">:</span>
+            <span class="c1"># Get the probability of each numeric token</span>
+            <span class="n">num_tokens_probs</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">num_token</span><span class="p">:</span> <span class="n">ltp</span><span class="p">[</span><span class="n">token_id</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ltp</span><span class="p">[</span><span class="n">token_id</span><span class="p">],</span> <span class="nb">float</span><span class="p">)</span> <span class="k">else</span> <span class="n">ltp</span><span class="p">[</span><span class="n">token_id</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">num_token</span><span class="p">,</span> <span class="n">token_id</span> <span class="ow">in</span> <span class="n">numeric_tokens_vocab</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
+
+            <span class="c1"># Get the most likely numeric token</span>
+            <span class="n">most_likely_numeric_token</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">num_tokens_probs</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">num_tokens_probs</span><span class="o">.</span><span class="n">get</span><span class="p">)</span>
+            <span class="n">answer_text</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">most_likely_numeric_token</span><span class="p">)</span>
+
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total prob. assigned to numeric tokens: </span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">num_tokens_probs</span><span class="o">.</span><span class="n">values</span><span class="p">())</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Filter out any non-numeric characters</span>
+        <span class="n">match_</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;[-+]?\d*\.\d+|\d+&quot;</span><span class="p">,</span> <span class="n">answer_text</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">match_</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Could not find numeric answer in &#39;</span><span class="si">{</span><span class="n">answer_text</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+        <span class="n">numeric_answer_text</span> <span class="o">=</span> <span class="n">match_</span><span class="o">.</span><span class="n">group</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">answer_probability</span> <span class="ow">and</span> <span class="s2">&quot;.&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">numeric_answer_text</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;0.</span><span class="si">{</span><span class="n">numeric_answer_text</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">numeric_answer_text</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Choice">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.qa_interface.Choice">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eq</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Choice</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents a choice in multiple-choice Q&amp;A.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    text : str</span>
+<span class="sd">        The text of the choice. E.g., &quot;25-34 years old&quot;.</span>
+<span class="sd">    data_value : object</span>
+<span class="sd">        The categorical value corresponding to this choice in the data.</span>
+<span class="sd">    numeric_value : float, optional</span>
+<span class="sd">        A meaningful numeric value for the choice. E.g., if the choice is &quot;25-34</span>
+<span class="sd">        years old&quot;, the numeric value could be 30. The choice with the highest</span>
+<span class="sd">        numeric value can be used as a proxy for the positive class. If not</span>
+<span class="sd">        provided, will try to use the `choice.value`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">text</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">data_value</span><span class="p">:</span> <span class="nb">object</span>
+    <span class="n">numeric_value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="Choice.get_numeric_value">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.qa_interface.Choice.get_numeric_value">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_numeric_value</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the numeric value of the choice.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">numeric_value</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">numeric_value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_value</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="MultipleChoiceQA">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.qa_interface.MultipleChoiceQA">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eq</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>    <span class="c1"># NOTE: kw_only=True requires Python 3.10</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MultipleChoiceQA</span><span class="p">(</span><span class="n">QAInterface</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents a multiple-choice question and its answer keys.&quot;&quot;&quot;</span>
+
+    <span class="n">num_forward_passes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>     <span class="c1"># NOTE: overrides superclass default</span>
+    <span class="n">choices</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Choice</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">tuple</span><span class="p">)</span>
+    <span class="n">_answer_keys_source</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">_ALPHABET</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">choices</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Choices must be provided.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">choices</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_answer_keys_source</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Number of choices must be less than or equal to the number of answer keys.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">hash_dict</span><span class="p">(</span><span class="n">dataclasses</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)),</span> <span class="mi">16</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MultipleChoiceQA.create_question_from_value_map">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.qa_interface.MultipleChoiceQA.create_question_from_value_map">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_question_from_value_map</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">column</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">value_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+        <span class="n">attribute</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;MultipleChoiceQA&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Constructs a question from a value map.&quot;&quot;&quot;</span>
+        <span class="n">choices</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">Choice</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">))</span> <span class="k">for</span> <span class="n">value</span><span class="p">,</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">value_map</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+
+        <span class="c1"># Set default question text</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;What is this person&#39;s </span><span class="si">{</span><span class="n">attribute</span><span class="si">}</span><span class="s2">?&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">column</span><span class="o">=</span><span class="n">column</span><span class="p">,</span>
+            <span class="n">choices</span><span class="o">=</span><span class="n">choices</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MultipleChoiceQA.create_answer_keys_permutations">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.qa_interface.MultipleChoiceQA.create_answer_keys_permutations">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_answer_keys_permutations</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">question</span><span class="p">:</span> <span class="s2">&quot;MultipleChoiceQA&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="s2">&quot;MultipleChoiceQA&quot;</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Yield questions with all permutations of answer keys.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        question : Question</span>
+<span class="sd">            The template question whose answer keys will be permuted.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        permutations : Iterator[Question]</span>
+<span class="sd">            A generator of questions with all permutations of answer keys.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">perm</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">permutations</span><span class="p">(</span><span class="n">question</span><span class="o">.</span><span class="n">choices</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">question</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">perm</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">answer_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_answer_keys_source</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">choices</span><span class="p">)]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">key_to_choice</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Choice</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">answer_keys</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">choices</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">choice_to_key</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Choice</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">choice</span><span class="p">:</span> <span class="n">key</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">choice</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">key_to_choice</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+<div class="viewcode-block" id="MultipleChoiceQA.get_value_to_text_map">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.qa_interface.MultipleChoiceQA.get_value_to_text_map">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_value_to_text_map</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">object</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the map from choice data value to choice textual representation.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">choice</span><span class="o">.</span><span class="n">data_value</span><span class="p">:</span> <span class="n">choice</span><span class="o">.</span><span class="n">text</span> <span class="k">for</span> <span class="n">choice</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">choices</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="MultipleChoiceQA.get_answer_key_from_value">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.qa_interface.MultipleChoiceQA.get_answer_key_from_value">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_answer_key_from_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the answer key corresponding to the given data value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">choice</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">choices</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">choice</span><span class="o">.</span><span class="n">data_value</span> <span class="o">==</span> <span class="n">value</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">choice_to_key</span><span class="p">[</span><span class="n">choice</span><span class="p">]</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not find choice for value: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="MultipleChoiceQA.get_answer_from_text">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.qa_interface.MultipleChoiceQA.get_answer_from_text">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_answer_from_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Choice</span><span class="p">:</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">text</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">key_to_choice</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">key_to_choice</span><span class="p">[</span><span class="n">text</span><span class="p">]</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not find answer for text: </span><span class="si">{</span><span class="n">text</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="MultipleChoiceQA.get_question_prompt">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.qa_interface.MultipleChoiceQA.get_question_prompt">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_question_prompt</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">choice_str</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">. </span><span class="si">{</span><span class="n">choice</span><span class="o">.</span><span class="n">text</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">choice</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">key_to_choice</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span><span class="se">\</span>
+<span class="s2">Question: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="si">}</span>
+<span class="si">{</span><span class="n">choice_str</span><span class="si">}</span>
+<span class="s2">Answer:&quot;&quot;&quot;</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_decode_model_output_to_choice_distribution</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">last_token_probs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">tokenizer_vocab</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decodes the model&#39;s output into an answer distribution.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        last_token_probs : np.ndarray</span>
+<span class="sd">            The model&#39;s last token probabilities for the question.</span>
+<span class="sd">        tokenizer_vocab: dict[str, int],</span>
+<span class="sd">            The tokenizer&#39;s vocabulary.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        answers : dict[Choice, float]</span>
+<span class="sd">            How much probability the model places on each answer choice.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        Answer-key tokens may be prefixed with a space, so we need to check</span>
+<span class="sd">        both &quot;A&quot; and &quot; A&quot; templates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">_get_choice_token_id</span><span class="p">(</span><span class="n">choice</span><span class="p">:</span> <span class="n">Choice</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+            <span class="n">choice_answer_text</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">choice_to_key</span><span class="p">[</span><span class="n">choice</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="n">choice_answer_text</span> <span class="ow">in</span> <span class="n">tokenizer_vocab</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">tokenizer_vocab</span><span class="p">[</span><span class="n">choice_answer_text</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="c1"># Different models may use different prefixes to represent white space</span>
+        <span class="c1"># or word boundaries; here we try a few common ones</span>
+        <span class="n">prefixes</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\u2581</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\u0120</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\u010A</span><span class="s2">&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Map probabilities to choice values</span>
+        <span class="n">answers_per_prefix</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">prf</span><span class="p">:</span> <span class="p">{</span>
+                <span class="n">choice</span><span class="p">:</span> <span class="n">last_token_probs</span><span class="p">[</span><span class="n">choice_token_id</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">choice</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">choices</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">choice_token_id</span> <span class="o">:=</span> <span class="n">_get_choice_token_id</span><span class="p">(</span><span class="n">choice</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="n">prf</span><span class="p">))</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">prf</span> <span class="ow">in</span> <span class="n">prefixes</span>
+        <span class="p">}</span>
+
+        <span class="c1"># Choose the prefix with the highest probability density</span>
+        <span class="n">best_prefix</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">answers_per_prefix</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">prf</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="n">answers_per_prefix</span><span class="p">[</span><span class="n">prf</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+        <span class="n">answers</span> <span class="o">=</span> <span class="n">answers_per_prefix</span><span class="p">[</span><span class="n">best_prefix</span><span class="p">]</span>
+
+        <span class="c1"># Log prefix information in debug mode</span>
+        <span class="k">for</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">choice_probs</span> <span class="ow">in</span> <span class="n">answers_per_prefix</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;prefix=&#39;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">&#39; has density </span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">choice_probs</span><span class="o">.</span><span class="n">values</span><span class="p">())</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Normalize probabilities to sum to 1</span>
+        <span class="n">answers_sum_prob</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">answers</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+        <span class="c1"># Log total probability density assigned to answers</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Answers have </span><span class="si">{</span><span class="n">answers_sum_prob</span><span class="si">:</span><span class="s2">.2%</span><span class="si">}</span><span class="s2"> probability assigned.&quot;</span>
+        <span class="k">if</span> <span class="n">answers_sum_prob</span> <span class="o">&lt;</span> <span class="n">ANSWER_PROB_THRESHOLD</span><span class="p">:</span>
+            <span class="n">id_to_tok</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="p">:</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">tokenizer_vocab</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+            <span class="n">argmax_token</span> <span class="o">=</span> <span class="n">id_to_tok</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">last_token_probs</span><span class="p">)]</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">msg</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot; Argmax token: &#39;</span><span class="si">{</span><span class="n">argmax_token</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="n">choice</span><span class="p">:</span> <span class="n">prob</span> <span class="o">/</span> <span class="n">answers_sum_prob</span>
+            <span class="k">for</span> <span class="n">choice</span><span class="p">,</span> <span class="n">prob</span> <span class="ow">in</span> <span class="n">answers</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+
+<div class="viewcode-block" id="MultipleChoiceQA.get_answer_from_model_output">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.qa_interface.MultipleChoiceQA.get_answer_from_model_output">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_answer_from_model_output</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">last_token_probs</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">tokenizer_vocab</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decodes the model&#39;s output into an answer for the given question.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        last_token_probs : np.ndarray</span>
+<span class="sd">            The model&#39;s last token probabilities for the question. The first</span>
+<span class="sd">            dimension corresponds to the number of forward passes as specified</span>
+<span class="sd">            by `self.num_forward_passes`.</span>
+<span class="sd">        tokenizer_vocab: dict[str, int],</span>
+<span class="sd">            The tokenizer&#39;s vocabulary.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        answer : float</span>
+<span class="sd">            The answer to the question.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">last_token_probs</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">last_token_probs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Multiple (</span><span class="si">{</span><span class="n">last_token_probs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">) forward passes &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;detected: using only the first pass.&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Using only 1st forward pass results</span>
+            <span class="n">last_token_probs</span> <span class="o">=</span> <span class="n">last_token_probs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">answers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_model_output_to_choice_distribution</span><span class="p">(</span>
+            <span class="n">last_token_probs</span><span class="o">=</span><span class="n">last_token_probs</span><span class="p">,</span>
+            <span class="n">tokenizer_vocab</span><span class="o">=</span><span class="n">tokenizer_vocab</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">sorted_choices_by_value</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+            <span class="n">answers</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span>
+            <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">choice</span><span class="p">:</span> <span class="n">choice</span><span class="o">.</span><span class="n">get_numeric_value</span><span class="p">(),</span>
+        <span class="p">)</span>
+
+        <span class="c1"># If binary question, return probability of positive answer</span>
+        <span class="c1"># &gt; positive answer always has the highest numeric value</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">answers</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">positive_choice</span> <span class="o">=</span> <span class="n">sorted_choices_by_value</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">answers</span><span class="p">[</span><span class="n">positive_choice</span><span class="p">]</span>
+
+        <span class="c1"># Compute risk estimate by summing weighted choices</span>
+        <span class="n">risk_estimate</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+            <span class="n">choice</span><span class="o">.</span><span class="n">get_numeric_value</span><span class="p">()</span> <span class="o">*</span> <span class="n">prob</span>
+            <span class="k">for</span> <span class="n">choice</span><span class="p">,</span> <span class="n">prob</span> <span class="ow">in</span> <span class="n">answers</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">)</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Risk estimate: </span><span class="si">{</span><span class="n">risk_estimate</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">risk_estimate</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

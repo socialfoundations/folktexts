@@ -1,0 +1,248 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>folktexts.cli.experiments &mdash; folktexts 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../../../_static/custom.js?v=882eb7ae"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            folktexts
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/modules.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">folktexts.cli.experiments</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for folktexts.cli.experiments</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;General constants and helper classes to run the main experiments on htcondor.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">asdict</span><span class="p">,</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClassVar</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">classad</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">htcondor</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">hash_dict</span>
+
+<span class="c1"># Cluster settings</span>
+<span class="n">DEFAULT_JOB_BID</span> <span class="o">=</span> <span class="mi">25</span>            <span class="c1"># htcondor bid (min. is 15 apparently...)</span>
+<span class="n">DEFAULT_JOB_CPUS</span> <span class="o">=</span> <span class="mi">4</span>            <span class="c1"># number of CPUs per experiment (per cluster job)</span>
+<span class="n">DEFAULT_JOB_MEMORY_GB</span> <span class="o">=</span> <span class="mi">62</span>      <span class="c1"># GBs of memory</span>
+<span class="n">DEFAULT_GPU_MEMORY_GB</span> <span class="o">=</span> <span class="mi">30</span>      <span class="c1"># GBs of GPU memory</span>
+
+<span class="n">MAX_RUNNING_PRICE</span> <span class="o">=</span> <span class="mi">1500</span>        <span class="c1"># Max price for running a job</span>
+
+
+<div class="viewcode-block" id="Experiment">
+<a class="viewcode-back" href="../../../source/folktexts.cli.html#folktexts.cli.experiments.Experiment">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Experiment</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A generic experiment to run on the cluster.&quot;&quot;&quot;</span>
+    <span class="n">executable_path</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">env_vars</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+
+    <span class="n">job_cpus</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_JOB_CPUS</span>
+    <span class="n">job_gpus</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">job_memory_gb</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_JOB_MEMORY_GB</span>
+    <span class="n">job_gpu_memory_gb</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_GPU_MEMORY_GB</span>
+    <span class="n">job_bid</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_JOB_BID</span>
+
+    <span class="n">_all_experiments</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="s2">&quot;Experiment&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Add experiment to the class-level list</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_all_experiments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Experiment.get_all_experiments">
+<a class="viewcode-back" href="../../../source/folktexts.cli.html#folktexts.cli.experiments.Experiment.get_all_experiments">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_all_experiments</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_all_experiments</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Attribute &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; not found in Experiment.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Experiment.hash">
+<a class="viewcode-back" href="../../../source/folktexts.cli.html#folktexts.cli.experiments.Experiment.hash">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">hash</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate a hexadecimal hash that uniquely identifies the experiment&#39;s arguments.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Get hash of the experiment&#39;s arguments</span>
+        <span class="n">kwargs_for_hash</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">executable_path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">executable_path</span><span class="p">,</span>
+            <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># These kwargs shouldn&#39;t be used to generate a unique hash</span>
+        <span class="n">kwargs_for_hash</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;results_dir&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">kwargs_for_hash</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;hash&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">hash_dict</span><span class="p">(</span><span class="n">kwargs_for_hash</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Experiment.to_dict">
+<a class="viewcode-back" href="../../../source/folktexts.cli.html#folktexts.cli.experiments.Experiment.to_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="launch_experiment_job">
+<a class="viewcode-back" href="../../../source/folktexts.cli.html#folktexts.cli.experiments.launch_experiment_job">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">launch_experiment_job</span><span class="p">(</span><span class="n">exp</span><span class="p">:</span> <span class="n">Experiment</span><span class="p">):</span>
+
+    <span class="c1"># Name/prefix for cluster logs related to this job</span>
+    <span class="n">cluster_job_log_name</span> <span class="o">=</span> <span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">exp</span><span class="o">.</span><span class="n">results_dir</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;log.$(Cluster).$(Process)&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span>
+
+    <span class="c1"># Construct executable cmd-line arguments</span>
+    <span class="n">cmd_line_args</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;--</span><span class="si">{</span><span class="n">key</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;-&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">True</span>
+            <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;--</span><span class="si">{</span><span class="n">key</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;-&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">exp</span><span class="o">.</span><span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Construct job description</span>
+    <span class="n">job_description</span> <span class="o">=</span> <span class="n">htcondor</span><span class="o">.</span><span class="n">Submit</span><span class="p">({</span>
+        <span class="s2">&quot;executable&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">sys</span><span class="o">.</span><span class="n">executable</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>  <span class="c1"># correct env for the python executable</span>
+        <span class="s2">&quot;arguments&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">exp</span><span class="o">.</span><span class="n">executable_path</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">cmd_line_args</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;output&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cluster_job_log_name</span><span class="si">}</span><span class="s2">.out&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cluster_job_log_name</span><span class="si">}</span><span class="s2">.err&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;log&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cluster_job_log_name</span><span class="si">}</span><span class="s2">.log&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;request_cpus&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">exp</span><span class="o">.</span><span class="n">job_cpus</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;request_gpus&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">exp</span><span class="o">.</span><span class="n">job_gpus</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;request_memory&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">exp</span><span class="o">.</span><span class="n">job_memory_gb</span><span class="si">}</span><span class="s2">GB&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;request_disk&quot;</span><span class="p">:</span> <span class="s2">&quot;10GB&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;jobprio&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">exp</span><span class="o">.</span><span class="n">job_bid</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1000</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;notify_user&quot;</span><span class="p">:</span> <span class="s2">&quot;andre.cruz@tuebingen.mpg.de&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;notification&quot;</span><span class="p">:</span> <span class="s2">&quot;error&quot;</span><span class="p">,</span>
+
+        <span class="c1"># Environment variables</span>
+        <span class="s2">&quot;environment&quot;</span><span class="p">:</span> <span class="n">exp</span><span class="o">.</span><span class="n">env_vars</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+
+        <span class="c1"># GPU requirements</span>
+        <span class="s2">&quot;requirements&quot;</span><span class="p">:</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;(TARGET.CUDAGlobalMemoryMb &gt; </span><span class="si">{</span><span class="n">exp</span><span class="o">.</span><span class="n">job_gpu_memory_gb</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1_000</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="p">)</span> <span class="k">if</span> <span class="n">exp</span><span class="o">.</span><span class="n">job_gpus</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+
+        <span class="c1"># Concurrency limits:</span>
+        <span class="c1"># &gt; each job uses this amount of resources out of a pool of 10k</span>
+        <span class="s2">&quot;concurrency_limits&quot;</span><span class="p">:</span> <span class="s2">&quot;user.folktexts:100&quot;</span><span class="p">,</span>     <span class="c1"># 100 jobs in parallel</span>
+
+        <span class="s2">&quot;+MaxRunningPrice&quot;</span><span class="p">:</span> <span class="n">MAX_RUNNING_PRICE</span><span class="p">,</span>
+        <span class="s2">&quot;+RunningPriceExceededAction&quot;</span><span class="p">:</span> <span class="n">classad</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="s2">&quot;restart&quot;</span><span class="p">),</span>
+    <span class="p">})</span>
+
+    <span class="c1"># Submit job to the htcondor scheduler</span>
+    <span class="n">schedd</span> <span class="o">=</span> <span class="n">htcondor</span><span class="o">.</span><span class="n">Schedd</span><span class="p">()</span>
+    <span class="n">submit_result</span> <span class="o">=</span> <span class="n">schedd</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="n">job_description</span><span class="p">)</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Launched </span><span class="si">{</span><span class="n">submit_result</span><span class="o">.</span><span class="n">num_procs</span><span class="p">()</span><span class="si">}</span><span class="s2"> processe(s) with &quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;cluster-ID=</span><span class="si">{</span><span class="n">submit_result</span><span class="o">.</span><span class="n">cluster</span><span class="p">()</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">submit_result</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

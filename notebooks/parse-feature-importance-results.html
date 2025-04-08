@@ -1,0 +1,1011 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fetch and parse feature importance results under a given directory &mdash; folktexts 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      <script src="../_static/custom.js?v=882eb7ae"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            folktexts
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../readme.html">Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../source/modules.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notebooks.html">Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Fetch and parse feature importance results under a given directory</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/notebooks/parse-feature-importance-results.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Fetch-and-parse-feature-importance-results-under-a-given-directory">
+<h1>Fetch and parse feature importance results under a given directory<a class="headerlink" href="#Fetch-and-parse-feature-importance-results-under-a-given-directory" title="Link to this heading"></a></h1>
+<p>This script collects all feature importance results files under a given root directory, parses them, and aggregates them into a more easily digestable pandas DataFrame.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm.auto</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+</pre></div>
+</div>
+</div>
+<p>Set the local path to the root results directory:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">RESULTS_ROOT_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/fast/groups/sf&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;folktexts-results&quot;</span> <span class="o">/</span> <span class="s2">&quot;2024-07-03&quot;</span>
+</pre></div>
+</div>
+</div>
+<p>Set the local path to the root data directory (needed only to train baseline ML methods):</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">DATA_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/fast/groups/sf&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;data&quot;</span>
+</pre></div>
+</div>
+</div>
+<p>Function to parse and flatten results:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">operator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">reduce</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_results_dict</span><span class="p">(</span><span class="n">dct</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">reduce</span><span class="p">(</span>
+        <span class="n">operator</span><span class="o">.</span><span class="n">or_</span><span class="p">,</span>
+        <span class="p">[{</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">feat</span><span class="si">}</span><span class="s2">_imp_mean&quot;</span><span class="p">:</span> <span class="n">dct</span><span class="p">[</span><span class="n">feat</span><span class="p">][</span><span class="s2">&quot;imp_mean&quot;</span><span class="p">],</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">feat</span><span class="si">}</span><span class="s2">_imp_std&quot;</span><span class="p">:</span> <span class="n">dct</span><span class="p">[</span><span class="n">feat</span><span class="p">][</span><span class="s2">&quot;imp_std&quot;</span><span class="p">]</span>
+        <span class="p">}</span> <span class="k">for</span> <span class="n">feat</span> <span class="ow">in</span> <span class="n">dct</span><span class="p">],</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>Iteratively search the root directory for results files matching the given regex:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_files</span><span class="p">,</span> <span class="n">load_json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+
+<span class="c1"># Results file name pattern</span>
+<span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;^feature-importance[.](?P&lt;task&gt;\w+)[.](?P&lt;model&gt;.*?)[.]json$&#39;</span>
+
+<span class="c1"># Find results files and aggregate</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">file_path</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">find_files</span><span class="p">(</span><span class="n">RESULTS_ROOT_DIR</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)):</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">Path</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">results</span><span class="p">[</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;task&quot;</span><span class="p">]][</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">parse_results_dict</span><span class="p">(</span><span class="n">load_json</span><span class="p">(</span><span class="n">file_path</span><span class="p">))</span>
+
+<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Couldn&#39;t find any results at </span><span class="si">{</span><span class="n">RESULTS_ROOT_DIR</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "a998789eb64b4cb6b29af43c4d373d03", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<p>Aggregate results into a single DataFrame, and generate a unique identifier for each row:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">llms_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;ACSIncome&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;ACSIncome&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">llms_df</span><span class="o">.</span><span class="n">shape</span><span class="si">=}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+llms_df.shape=(20, 20)
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Currently discarding Gemma 2 results as some extra analysis is needed:</span>
+<span class="n">llms_df</span> <span class="o">=</span> <span class="n">llms_df</span><span class="p">[[</span><span class="s2">&quot;gemma-2-&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">id_</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">id_</span> <span class="ow">in</span> <span class="n">llms_df</span><span class="o">.</span><span class="n">index</span><span class="p">]]</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">prettify_model_name</span>
+
+<span class="c1"># Add prettified model name</span>
+<span class="n">llms_df</span><span class="p">[</span><span class="s2">&quot;model_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">prettify_model_name</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="n">m</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;--&quot;</span><span class="p">)</span><span class="o">+</span><span class="mi">2</span><span class="p">:])</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">llms_df</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+<span class="n">llms_df</span> <span class="o">=</span> <span class="n">llms_df</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">&quot;model_name&quot;</span><span class="p">)</span>
+
+<span class="n">llms_df</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>AGEP_imp_mean</th>
+      <th>AGEP_imp_std</th>
+      <th>COW_imp_mean</th>
+      <th>COW_imp_std</th>
+      <th>MAR_imp_mean</th>
+      <th>MAR_imp_std</th>
+      <th>OCCP_imp_mean</th>
+      <th>OCCP_imp_std</th>
+      <th>POBP_imp_mean</th>
+      <th>POBP_imp_std</th>
+      <th>...</th>
+      <th>RAC1P_imp_std</th>
+      <th>RELP_imp_mean</th>
+      <th>RELP_imp_std</th>
+      <th>SCHL_imp_mean</th>
+      <th>SCHL_imp_std</th>
+      <th>SEX_imp_mean</th>
+      <th>SEX_imp_std</th>
+      <th>WKHP_imp_mean</th>
+      <th>WKHP_imp_std</th>
+      <th>model_name</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>google--gemma-2b</th>
+      <td>0.030893</td>
+      <td>0.003416</td>
+      <td>0.005972</td>
+      <td>0.001597</td>
+      <td>0.004709</td>
+      <td>0.002058</td>
+      <td>0.033321</td>
+      <td>0.004408</td>
+      <td>0.011186</td>
+      <td>0.003455</td>
+      <td>...</td>
+      <td>0.002855</td>
+      <td>0.004928</td>
+      <td>0.002963</td>
+      <td>0.047764</td>
+      <td>0.002630</td>
+      <td>-0.000595</td>
+      <td>0.002619</td>
+      <td>0.009022</td>
+      <td>0.003113</td>
+      <td>Gemma 2B</td>
+    </tr>
+    <tr>
+      <th>google--gemma-1.1-2b-it</th>
+      <td>0.057288</td>
+      <td>0.001795</td>
+      <td>0.002239</td>
+      <td>0.000988</td>
+      <td>0.003562</td>
+      <td>0.000592</td>
+      <td>0.054559</td>
+      <td>0.001415</td>
+      <td>0.002923</td>
+      <td>0.000761</td>
+      <td>...</td>
+      <td>0.000334</td>
+      <td>0.010951</td>
+      <td>0.000447</td>
+      <td>0.073909</td>
+      <td>0.001346</td>
+      <td>0.003064</td>
+      <td>0.000409</td>
+      <td>0.028131</td>
+      <td>0.001265</td>
+      <td>Gemma 2B (it)</td>
+    </tr>
+  </tbody>
+</table>
+<p>2 rows × 21 columns</p>
+</div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="n">all_features</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">llms_df</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="p">(</span><span class="n">m</span> <span class="o">:=</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^(?P&lt;name&gt;[a-zA-Z0-9]+)_imp_mean$&quot;</span><span class="p">,</span> <span class="n">col</span><span class="p">))]</span>
+
+<span class="n">feat_imp_cols</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">_imp_mean&quot;</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">all_features</span><span class="p">]</span>
+<span class="n">feat_imp_std_cols</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">_imp_std&quot;</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">all_features</span><span class="p">]</span>
+
+<span class="n">all_features</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[&#39;AGEP&#39;, &#39;COW&#39;, &#39;MAR&#39;, &#39;OCCP&#39;, &#39;POBP&#39;, &#39;RAC1P&#39;, &#39;RELP&#39;, &#39;SCHL&#39;, &#39;SEX&#39;, &#39;WKHP&#39;]
+</pre></div></div>
+</div>
+<section id="Get-feature-importance-for-GBM-and-LR">
+<h2>Get feature importance for GBM and LR<a class="headerlink" href="#Get-feature-importance-for-GBM-and-LR" title="Link to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.acs.acs_dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">ACSDataset</span>
+<span class="n">acs_income_dt</span> <span class="o">=</span> <span class="n">ACSDataset</span><span class="o">.</span><span class="n">make_from_task</span><span class="p">(</span><span class="n">task</span><span class="o">=</span><span class="s2">&quot;ACSIncome&quot;</span><span class="p">,</span> <span class="n">cache_dir</span><span class="o">=</span><span class="n">DATA_DIR</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Loading ACS data...
+CPU times: user 43.1 s, sys: 26.9 s, total: 1min 10s
+Wall time: 1min 19s
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span> <span class="o">=</span> <span class="n">acs_income_dt</span><span class="o">.</span><span class="n">get_train</span><span class="p">()</span>
+<span class="n">X_test</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">acs_income_dt</span><span class="o">.</span><span class="n">get_test</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.linear_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">LogisticRegression</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.ensemble</span><span class="w"> </span><span class="kn">import</span> <span class="n">HistGradientBoostingClassifier</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">xgboost</span><span class="w"> </span><span class="kn">import</span> <span class="n">XGBClassifier</span>    <span class="c1"># NOTE: requires `pip install xgboost`</span>
+
+<span class="n">baselines</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;GBM&quot;</span><span class="p">:</span> <span class="n">HistGradientBoostingClassifier</span><span class="p">(),</span>
+    <span class="s2">&quot;LR&quot;</span><span class="p">:</span> <span class="n">LogisticRegression</span><span class="p">(),</span>
+    <span class="s2">&quot;XGBoost&quot;</span><span class="p">:</span> <span class="n">XGBClassifier</span><span class="p">(),</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">parse_feat_imp_results</span><span class="p">(</span><span class="n">results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">parsed_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">feat</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">X_train</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">()):</span>
+        <span class="n">parsed_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">feat</span><span class="si">}</span><span class="s2">_imp_mean&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;importances_mean&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">parsed_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">feat</span><span class="si">}</span><span class="s2">_imp_std&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;importances_std&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">parsed_dict</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.inspection</span><span class="w"> </span><span class="kn">import</span> <span class="n">permutation_importance</span>
+<span class="n">baseline_feat_imp_results</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">clf</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">baselines</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+    <span class="c1"># Fit classifier</span>
+    <span class="n">clf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
+
+    <span class="c1"># Compute permutation importance</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">permutation_importance</span><span class="p">(</span>
+        <span class="n">estimator</span><span class="o">=</span><span class="n">clf</span><span class="p">,</span>
+        <span class="n">X</span><span class="o">=</span><span class="n">X_test</span><span class="p">,</span>
+        <span class="n">y</span><span class="o">=</span><span class="n">y_test</span><span class="p">,</span>
+        <span class="n">scoring</span><span class="o">=</span><span class="s2">&quot;roc_auc&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">baseline_feat_imp_results</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">r</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "9b9ef16acef94f42a75dda6f3e91873a", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/home/acruz/miniconda3/envs/folktexts/lib/python3.11/site-packages/sklearn/linear_model/_logistic.py:469: ConvergenceWarning: lbfgs failed to converge (status=1):
+STOP: TOTAL NO. of ITERATIONS REACHED LIMIT.
+
+Increase the number of iterations (max_iter) or scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">baselines_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span>
+    <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">parse_feat_imp_results</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">|</span> <span class="p">{</span><span class="s2">&quot;model_name&quot;</span><span class="p">:</span> <span class="n">name</span><span class="p">},</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">baseline_feat_imp_results</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+<span class="p">])</span>
+<span class="n">baselines_df</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>AGEP_imp_mean</th>
+      <th>AGEP_imp_std</th>
+      <th>COW_imp_mean</th>
+      <th>COW_imp_std</th>
+      <th>SCHL_imp_mean</th>
+      <th>SCHL_imp_std</th>
+      <th>MAR_imp_mean</th>
+      <th>MAR_imp_std</th>
+      <th>OCCP_imp_mean</th>
+      <th>OCCP_imp_std</th>
+      <th>...</th>
+      <th>POBP_imp_std</th>
+      <th>RELP_imp_mean</th>
+      <th>RELP_imp_std</th>
+      <th>WKHP_imp_mean</th>
+      <th>WKHP_imp_std</th>
+      <th>SEX_imp_mean</th>
+      <th>SEX_imp_std</th>
+      <th>RAC1P_imp_mean</th>
+      <th>RAC1P_imp_std</th>
+      <th>model_name</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>GBM</th>
+      <td>0.057407</td>
+      <td>0.000544</td>
+      <td>0.006616</td>
+      <td>0.000135</td>
+      <td>0.038793</td>
+      <td>0.000252</td>
+      <td>0.002003</td>
+      <td>0.000039</td>
+      <td>0.061977</td>
+      <td>0.000385</td>
+      <td>...</td>
+      <td>0.000078</td>
+      <td>0.013170</td>
+      <td>0.000146</td>
+      <td>0.075559</td>
+      <td>0.000622</td>
+      <td>0.013678</td>
+      <td>0.000182</td>
+      <td>0.000804</td>
+      <td>0.000042</td>
+      <td>GBM</td>
+    </tr>
+    <tr>
+      <th>LR</th>
+      <td>0.002650</td>
+      <td>0.000024</td>
+      <td>-0.000173</td>
+      <td>0.000084</td>
+      <td>-0.000614</td>
+      <td>0.000018</td>
+      <td>0.022415</td>
+      <td>0.000363</td>
+      <td>0.092150</td>
+      <td>0.000710</td>
+      <td>...</td>
+      <td>0.000185</td>
+      <td>0.049616</td>
+      <td>0.000824</td>
+      <td>0.071947</td>
+      <td>0.000480</td>
+      <td>0.003057</td>
+      <td>0.000042</td>
+      <td>0.000509</td>
+      <td>0.000119</td>
+      <td>LR</td>
+    </tr>
+    <tr>
+      <th>XGBoost</th>
+      <td>0.054982</td>
+      <td>0.000185</td>
+      <td>0.008279</td>
+      <td>0.000207</td>
+      <td>0.035391</td>
+      <td>0.000434</td>
+      <td>0.002507</td>
+      <td>0.000076</td>
+      <td>0.075997</td>
+      <td>0.000635</td>
+      <td>...</td>
+      <td>0.000098</td>
+      <td>0.013292</td>
+      <td>0.000332</td>
+      <td>0.072216</td>
+      <td>0.000690</td>
+      <td>0.012949</td>
+      <td>0.000112</td>
+      <td>0.001207</td>
+      <td>0.000072</td>
+      <td>XGBoost</td>
+    </tr>
+  </tbody>
+</table>
+<p>3 rows × 21 columns</p>
+</div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">((</span><span class="n">llms_df</span><span class="p">,</span> <span class="n">baselines_df</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="si">=}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+df.shape=(19, 21)
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_current_timestamp</span>
+<span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">RESULTS_ROOT_DIR</span><span class="p">)</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;feature_importance.</span><span class="si">{</span><span class="n">get_current_timestamp</span><span class="p">()</span><span class="si">}</span><span class="s2">.csv&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="Plots">
+<h1>Plots<a class="headerlink" href="#Plots" title="Link to this heading"></a></h1>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">IMGS_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">RESULTS_ROOT_DIR</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;imgs&quot;</span>
+<span class="n">IMGS_DIR</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">save_fig</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">((</span><span class="n">IMGS_DIR</span> <span class="o">/</span> <span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.pdf&quot;</span><span class="p">),</span> <span class="n">bbox_inches</span><span class="o">=</span><span class="s2">&quot;tight&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">seaborn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sns</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">set_style</span><span class="p">(</span><span class="s2">&quot;whitegrid&quot;</span><span class="p">,</span> <span class="n">rc</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;grid.linestyle&quot;</span><span class="p">:</span> <span class="s2">&quot;--&quot;</span><span class="p">})</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">rc</span><span class="p">(</span><span class="s2">&quot;figure&quot;</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">4.5</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">),</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+
+<span class="n">palette_name</span> <span class="o">=</span> <span class="s2">&quot;tab10&quot;</span>
+<span class="c1"># palette_name = &quot;colorblind&quot;</span>
+<span class="n">palette</span> <span class="o">=</span> <span class="n">sns</span><span class="o">.</span><span class="n">color_palette</span><span class="p">(</span><span class="n">palette_name</span><span class="p">)</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">set_palette</span><span class="p">(</span><span class="n">palette_name</span><span class="p">)</span>
+<span class="n">palette</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<svg  width="550" height="55"><rect x="0" y="0" width="55" height="55" style="fill:#1f77b4;stroke-width:2;stroke:rgb(255,255,255)"/><rect x="55" y="0" width="55" height="55" style="fill:#ff7f0e;stroke-width:2;stroke:rgb(255,255,255)"/><rect x="110" y="0" width="55" height="55" style="fill:#2ca02c;stroke-width:2;stroke:rgb(255,255,255)"/><rect x="165" y="0" width="55" height="55" style="fill:#d62728;stroke-width:2;stroke:rgb(255,255,255)"/><rect x="220" y="0" width="55" height="55" style="fill:#9467bd;stroke-width:2;stroke:rgb(255,255,255)"/><rect x="275" y="0" width="55" height="55" style="fill:#8c564b;stroke-width:2;stroke:rgb(255,255,255)"/><rect x="330" y="0" width="55" height="55" style="fill:#e377c2;stroke-width:2;stroke:rgb(255,255,255)"/><rect x="385" y="0" width="55" height="55" style="fill:#7f7f7f;stroke-width:2;stroke:rgb(255,255,255)"/><rect x="440" y="0" width="55" height="55" style="fill:#bcbd22;stroke-width:2;stroke:rgb(255,255,255)"/><rect x="495" y="0" width="55" height="55" style="fill:#17becf;stroke-width:2;stroke:rgb(255,255,255)"/></svg></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">barplot_feat_imp</span><span class="p">(</span><span class="n">row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">stdev_values</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">ax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+
+    <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span><span class="p">[:</span><span class="n">name</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)]</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">items</span><span class="p">()]</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">barplot</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">row</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span>
+        <span class="n">x</span><span class="o">=</span><span class="n">row</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+        <span class="n">y</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>
+        <span class="n">xerr</span><span class="o">=</span><span class="n">stdev_values</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>  <span class="c1"># 2 stdev ~&gt; 95% c.i.</span>
+        <span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="s1">&#39;grey&#39;</span><span class="p">,</span> <span class="n">capsize</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Mean feature importance (ACSIncome)&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Importance for ROC metric&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">feat_imp_cols_sorted</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">feat_imp_cols</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+<span class="n">feat_imp_std_cols_sorted</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_imp_mean&quot;</span><span class="p">,</span> <span class="s2">&quot;_imp_std&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">feat_imp_cols_sorted</span><span class="p">]</span>
+<span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">feat_imp_cols_sorted</span><span class="p">,</span> <span class="n">feat_imp_std_cols_sorted</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[(&#39;OCCP_imp_mean&#39;, &#39;OCCP_imp_std&#39;),
+ (&#39;SCHL_imp_mean&#39;, &#39;SCHL_imp_std&#39;),
+ (&#39;WKHP_imp_mean&#39;, &#39;WKHP_imp_std&#39;),
+ (&#39;AGEP_imp_mean&#39;, &#39;AGEP_imp_std&#39;),
+ (&#39;RELP_imp_mean&#39;, &#39;RELP_imp_std&#39;),
+ (&#39;MAR_imp_mean&#39;, &#39;MAR_imp_std&#39;),
+ (&#39;SEX_imp_mean&#39;, &#39;SEX_imp_std&#39;),
+ (&#39;COW_imp_mean&#39;, &#39;COW_imp_std&#39;),
+ (&#39;POBP_imp_mean&#39;, &#39;POBP_imp_std&#39;),
+ (&#39;RAC1P_imp_mean&#39;, &#39;RAC1P_imp_std&#39;)]
+</pre></div></div>
+</div>
+<p>Mean feature importance among all models:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">barplot_feat_imp</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">feat_imp_cols_sorted</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">df</span><span class="p">[</span><span class="n">feat_imp_std_cols_sorted</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">left</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">get_xlim</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">save_fig</span><span class="p">(</span><span class="n">plt</span><span class="o">.</span><span class="n">gcf</span><span class="p">(),</span> <span class="s2">&quot;mean-feat-imp&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_30_0.png" src="../_images/notebooks_parse-feature-importance-results_30_0.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">plot_feat_imp_subplots</span><span class="p">(</span><span class="n">df</span><span class="p">):</span>
+    <span class="n">N_COLS</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">N_ROWS</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span> <span class="o">/</span> <span class="n">N_COLS</span><span class="p">)</span>
+
+    <span class="n">cols_order</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">feat_imp_cols_sorted</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="n">std_cols_order</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_imp_mean&quot;</span><span class="p">,</span> <span class="s2">&quot;_imp_std&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">cols_order</span><span class="p">]</span>
+
+    <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="n">N_ROWS</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="n">N_COLS</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mf">2.8</span> <span class="o">*</span> <span class="n">N_ROWS</span><span class="p">),</span> <span class="n">sharey</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">sharex</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">):</span>
+        <span class="n">ax_row</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">//</span> <span class="n">N_COLS</span>
+        <span class="n">ax_col</span> <span class="o">=</span> <span class="n">idx</span> <span class="o">%</span> <span class="n">N_COLS</span>
+
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="n">ax_row</span><span class="p">,</span> <span class="n">ax_col</span><span class="p">]</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">m</span><span class="p">]</span>
+
+        <span class="n">barplot_feat_imp</span><span class="p">(</span>
+            <span class="n">row</span><span class="p">[</span><span class="n">cols_order</span><span class="p">],</span> <span class="n">stdev_values</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="n">std_cols_order</span><span class="p">],</span>
+            <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+            <span class="n">color</span><span class="o">=</span><span class="n">palette</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">m</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">baselines</span> <span class="k">else</span> <span class="n">palette</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+        <span class="p">)</span>
+
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;model_name&quot;</span><span class="p">])</span>
+
+    <span class="c1"># Set xlim</span>
+    <span class="n">max_xlim</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">ax_i</span><span class="o">.</span><span class="n">get_xlim</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">ax_row</span> <span class="ow">in</span> <span class="n">axes</span> <span class="k">for</span> <span class="n">ax_i</span> <span class="ow">in</span> <span class="n">ax_row</span><span class="p">)</span>
+    <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">left</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="n">max_xlim</span><span class="p">)</span>
+
+    <span class="c1"># Remove extra axes</span>
+    <span class="p">[</span><span class="n">axes</span><span class="p">[</span><span class="n">N_ROWS</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">N_COLS</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">((</span><span class="n">N_ROWS</span> <span class="o">*</span> <span class="n">N_COLS</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">))];</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">fig</span>
+</pre></div>
+</div>
+</div>
+<p>Feature importance for each model, plus baselines:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[38]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span> <span class="o">=</span> <span class="n">plot_feat_imp_subplots</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+<span class="n">save_fig</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="s2">&quot;all-feat-imps&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_33_0.png" src="../_images/notebooks_parse-feature-importance-results_33_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.llm_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_model_size_B</span>
+<span class="n">large_models_filter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([(</span><span class="n">get_model_size_B</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">default</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">40</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">])</span>
+<span class="c1"># baselines_filter = np.array([(m in baselines) for m in df.index])</span>
+<span class="n">baselines_filter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([(</span><span class="n">m</span> <span class="o">==</span> <span class="s2">&quot;XGBoost&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+ERROR:root:Could not infer model size from name &#39;GBM&#39;
+ERROR:root:Could not infer model size from name &#39;LR&#39;
+ERROR:root:Could not infer model size from name &#39;XGBoost&#39;
+</pre></div></div>
+</div>
+<p>Plot feature importance among large models (&gt;= 40B):</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span> <span class="o">=</span> <span class="n">plot_feat_imp_subplots</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">large_models_filter</span> <span class="o">|</span> <span class="n">baselines_filter</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">suptitle</span><span class="p">(</span><span class="s2">&quot;Feature importance among large models&quot;</span><span class="p">)</span>
+
+<span class="n">save_fig</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="s2">&quot;feat-imps-large-models&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_36_0.png" src="../_images/notebooks_parse-feature-importance-results_36_0.png" />
+</div>
+</div>
+<p>Feature importance averaged among all large models:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[33]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cols_order</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">large_models_filter</span><span class="p">][</span><span class="n">feat_imp_cols_sorted</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+<span class="n">std_cols_order</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_imp_mean&quot;</span><span class="p">,</span> <span class="s2">&quot;_imp_std&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">cols_order</span><span class="p">]</span>
+
+<span class="n">barplot_feat_imp</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">large_models_filter</span><span class="p">][</span><span class="n">cols_order</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">df</span><span class="p">[</span><span class="n">large_models_filter</span><span class="p">][</span><span class="n">std_cols_order</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">left</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">get_xlim</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Mean feature importance</span><span class="se">\n</span><span class="s2">(model size &gt; 50B; ACSIncome)&quot;</span><span class="p">)</span>
+<span class="n">save_fig</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="s2">&quot;mean-feat-imp-large-models&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_38_0.png" src="../_images/notebooks_parse-feature-importance-results_38_0.png" />
+</div>
+</div>
+<p>Plot feature importance for each model separately:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+
+    <span class="n">barplot_feat_imp</span><span class="p">(</span>
+        <span class="n">row</span><span class="p">[</span><span class="n">cols_order</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="n">std_cols_order</span><span class="p">],</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="n">palette</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="s2">&quot;model_name&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">baselines</span> <span class="k">else</span> <span class="n">palette</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+    <span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;model_name&quot;</span><span class="p">])</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">left</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">get_xlim</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">save_fig</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;feat-imp_</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+    <span class="c1"># plt.close(fig)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_40_0.png" src="../_images/notebooks_parse-feature-importance-results_40_0.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_40_1.png" src="../_images/notebooks_parse-feature-importance-results_40_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_40_2.png" src="../_images/notebooks_parse-feature-importance-results_40_2.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_40_3.png" src="../_images/notebooks_parse-feature-importance-results_40_3.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_40_4.png" src="../_images/notebooks_parse-feature-importance-results_40_4.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_40_5.png" src="../_images/notebooks_parse-feature-importance-results_40_5.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_40_6.png" src="../_images/notebooks_parse-feature-importance-results_40_6.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_40_7.png" src="../_images/notebooks_parse-feature-importance-results_40_7.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_40_8.png" src="../_images/notebooks_parse-feature-importance-results_40_8.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_40_9.png" src="../_images/notebooks_parse-feature-importance-results_40_9.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_40_10.png" src="../_images/notebooks_parse-feature-importance-results_40_10.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_40_11.png" src="../_images/notebooks_parse-feature-importance-results_40_11.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_40_12.png" src="../_images/notebooks_parse-feature-importance-results_40_12.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_40_13.png" src="../_images/notebooks_parse-feature-importance-results_40_13.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_40_14.png" src="../_images/notebooks_parse-feature-importance-results_40_14.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_40_15.png" src="../_images/notebooks_parse-feature-importance-results_40_15.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_40_16.png" src="../_images/notebooks_parse-feature-importance-results_40_16.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_40_17.png" src="../_images/notebooks_parse-feature-importance-results_40_17.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_parse-feature-importance-results_40_18.png" src="../_images/notebooks_parse-feature-importance-results_40_18.png" />
+</div>
+</div>
+<hr class="docutils" />
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

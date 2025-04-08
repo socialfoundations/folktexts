@@ -1,0 +1,812 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>folktexts.acs.acs_columns &mdash; folktexts 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../../../_static/custom.js?v=882eb7ae"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            folktexts
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/modules.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">folktexts.acs.acs_columns</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for folktexts.acs.acs_columns</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Module to hold ACS column mappings from values to natural text.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..col_to_text</span><span class="w"> </span><span class="kn">import</span> <span class="n">ColumnToText</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..qa_interface</span><span class="w"> </span><span class="kn">import</span> <span class="n">Choice</span><span class="p">,</span> <span class="n">DirectNumericQA</span><span class="p">,</span> <span class="n">MultipleChoiceQA</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_pums_code</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.acs_thresholds</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">acs_employment_threshold</span><span class="p">,</span>
+    <span class="n">acs_health_insurance_threshold</span><span class="p">,</span>
+    <span class="n">acs_income_threshold</span><span class="p">,</span>
+    <span class="n">acs_mobility_threshold</span><span class="p">,</span>
+    <span class="n">acs_poverty_ratio_threshold</span><span class="p">,</span>
+    <span class="n">acs_public_coverage_threshold</span><span class="p">,</span>
+    <span class="n">acs_travel_time_threshold</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Path to ACS codebook files</span>
+<span class="n">ACS_CODEBOOK_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;data&quot;</span>
+
+<span class="c1"># AGEP: Age</span>
+<span class="n">acs_age</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;AGEP&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;age&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="si">}</span><span class="s2"> years old&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># COW: Class of Worker</span>
+<span class="n">acs_class_of_worker</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;COW&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;class of worker&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Working for a for-profit private company or organization&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Working for a non-profit organization&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Working for the local government&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;Working for the state government&quot;</span><span class="p">,</span>
+        <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;Working for the federal government&quot;</span><span class="p">,</span>
+        <span class="mi">6</span><span class="p">:</span> <span class="s2">&quot;Owner of non-incorporated business, professional practice, or farm&quot;</span><span class="p">,</span>
+        <span class="mi">7</span><span class="p">:</span> <span class="s2">&quot;Owner of incorporated business, professional practice, or farm&quot;</span><span class="p">,</span>
+        <span class="mi">8</span><span class="p">:</span> <span class="s2">&quot;Working without pay in a for-profit family business or farm&quot;</span><span class="p">,</span>
+        <span class="mi">9</span><span class="p">:</span> <span class="s2">&quot;Unemployed and last worked 5 years ago or earlier or never worked&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># SCHL: Educational Attainment</span>
+<span class="n">acs_schooling</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;SCHL&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;highest educational attainment&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;N/A - no schooling completed&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Nursery school / preschool&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Kindergarten&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;1st grade only&quot;</span><span class="p">,</span>
+        <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;2nd grade&quot;</span><span class="p">,</span>
+        <span class="mi">6</span><span class="p">:</span> <span class="s2">&quot;3rd grade&quot;</span><span class="p">,</span>
+        <span class="mi">7</span><span class="p">:</span> <span class="s2">&quot;4th grade&quot;</span><span class="p">,</span>
+        <span class="mi">8</span><span class="p">:</span> <span class="s2">&quot;5th grade&quot;</span><span class="p">,</span>
+        <span class="mi">9</span><span class="p">:</span> <span class="s2">&quot;6th grade&quot;</span><span class="p">,</span>
+        <span class="mi">10</span><span class="p">:</span> <span class="s2">&quot;7th grade&quot;</span><span class="p">,</span>
+        <span class="mi">11</span><span class="p">:</span> <span class="s2">&quot;8th grade&quot;</span><span class="p">,</span>
+        <span class="mi">12</span><span class="p">:</span> <span class="s2">&quot;9th grade&quot;</span><span class="p">,</span>
+        <span class="mi">13</span><span class="p">:</span> <span class="s2">&quot;10th grade&quot;</span><span class="p">,</span>
+        <span class="mi">14</span><span class="p">:</span> <span class="s2">&quot;11th grade&quot;</span><span class="p">,</span>
+        <span class="mi">15</span><span class="p">:</span> <span class="s2">&quot;12th grade, no diploma&quot;</span><span class="p">,</span>
+        <span class="mi">16</span><span class="p">:</span> <span class="s2">&quot;Regular high school diploma&quot;</span><span class="p">,</span>
+        <span class="mi">17</span><span class="p">:</span> <span class="s2">&quot;GED or alternative credential&quot;</span><span class="p">,</span>
+        <span class="mi">18</span><span class="p">:</span> <span class="s2">&quot;Some college, less than 1 year&quot;</span><span class="p">,</span>
+        <span class="mi">19</span><span class="p">:</span> <span class="s2">&quot;Some college, 1 or more years, no degree&quot;</span><span class="p">,</span>
+        <span class="mi">20</span><span class="p">:</span> <span class="s2">&quot;Associate&#39;s degree&quot;</span><span class="p">,</span>
+        <span class="mi">21</span><span class="p">:</span> <span class="s2">&quot;Bachelor&#39;s degree&quot;</span><span class="p">,</span>
+        <span class="mi">22</span><span class="p">:</span> <span class="s2">&quot;Master&#39;s degree&quot;</span><span class="p">,</span>
+        <span class="mi">23</span><span class="p">:</span> <span class="s2">&quot;Professional degree beyond a bachelor&#39;s degree&quot;</span><span class="p">,</span>
+        <span class="mi">24</span><span class="p">:</span> <span class="s2">&quot;Doctorate degree&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># MAR: Marital Status</span>
+<span class="n">acs_marital_status</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;MAR&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;marital status&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Married&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Widowed&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Divorced&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;Separated&quot;</span><span class="p">,</span>
+        <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;Never married&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># OCCP: Occupation</span>
+<span class="n">acs_occupation</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;OCCP&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;occupation&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span>
+        <span class="n">parse_pums_code</span><span class="p">,</span>
+        <span class="n">file</span><span class="o">=</span><span class="n">ACS_CODEBOOK_DIR</span> <span class="o">/</span> <span class="s2">&quot;OCCP.txt&quot;</span><span class="p">,</span>
+        <span class="n">postprocess</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">4</span><span class="p">:]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># POBP: Place of Birth</span>
+<span class="n">acs_place_of_birth</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;POBP&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;place of birth&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span>
+        <span class="n">parse_pums_code</span><span class="p">,</span>
+        <span class="n">file</span><span class="o">=</span><span class="n">ACS_CODEBOOK_DIR</span> <span class="o">/</span> <span class="s2">&quot;POBP.txt&quot;</span><span class="p">,</span>
+        <span class="n">postprocess</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="p">[:</span> <span class="n">x</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)]</span> <span class="k">if</span> <span class="s2">&quot;/&quot;</span> <span class="ow">in</span> <span class="n">x</span> <span class="k">else</span> <span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># RELP: Relationship to Reference Person</span>
+<span class="n">acs_relationship</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;RELP&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;relationship to the reference person in the survey&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;The reference person itself&quot;</span><span class="p">,</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Husband/wife&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Biological son or daughter&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Adopted son or daughter&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;Stepson or stepdaughter&quot;</span><span class="p">,</span>
+        <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;Brother or sister&quot;</span><span class="p">,</span>
+        <span class="mi">6</span><span class="p">:</span> <span class="s2">&quot;Father or mother&quot;</span><span class="p">,</span>
+        <span class="mi">7</span><span class="p">:</span> <span class="s2">&quot;Grandchild&quot;</span><span class="p">,</span>
+        <span class="mi">8</span><span class="p">:</span> <span class="s2">&quot;Parent-in-law&quot;</span><span class="p">,</span>
+        <span class="mi">9</span><span class="p">:</span> <span class="s2">&quot;Son-in-law or daughter-in-law&quot;</span><span class="p">,</span>
+        <span class="mi">10</span><span class="p">:</span> <span class="s2">&quot;Other relative&quot;</span><span class="p">,</span>
+        <span class="mi">11</span><span class="p">:</span> <span class="s2">&quot;Roomer or boarder&quot;</span><span class="p">,</span>
+        <span class="mi">12</span><span class="p">:</span> <span class="s2">&quot;Housemate or roommate&quot;</span><span class="p">,</span>
+        <span class="mi">13</span><span class="p">:</span> <span class="s2">&quot;Unmarried partner&quot;</span><span class="p">,</span>
+        <span class="mi">14</span><span class="p">:</span> <span class="s2">&quot;Foster child&quot;</span><span class="p">,</span>
+        <span class="mi">15</span><span class="p">:</span> <span class="s2">&quot;Other non-relative&quot;</span><span class="p">,</span>
+        <span class="mi">16</span><span class="p">:</span> <span class="s2">&quot;Institutionalized group quarters population&quot;</span><span class="p">,</span>
+        <span class="mi">17</span><span class="p">:</span> <span class="s2">&quot;Non-institutionalized group quarters population&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># WKHP: Usual Hours Worked per Week</span>
+<span class="n">acs_work_hours</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;WKHP&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;usual number of hours worked per week&quot;</span><span class="p">,</span>
+    <span class="n">missing_value_fill</span><span class="o">=</span><span class="s2">&quot;N/A (less than 16 years old, or did not work during the past 12 months)&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="si">}</span><span class="s2"> hours&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># SEX: Sex</span>
+<span class="n">acs_sex</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;SEX&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;sex&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Male&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Female&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># RAC1P: Race</span>
+<span class="n">acs_race</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;RAC1P&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;race&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;White&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Black or African American&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;American Indian&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;Alaska Native&quot;</span><span class="p">,</span>
+        <span class="mi">5</span><span class="p">:</span> <span class="p">(</span>
+            <span class="s2">&quot;American Indian and Alaska Native tribes specified; or American &quot;</span>
+            <span class="s2">&quot;Indian or Alaska Native, not specified and no other races&quot;</span><span class="p">),</span>
+        <span class="mi">6</span><span class="p">:</span> <span class="s2">&quot;Asian&quot;</span><span class="p">,</span>
+        <span class="mi">7</span><span class="p">:</span> <span class="s2">&quot;Native Hawaiian and Other Pacific Islander&quot;</span><span class="p">,</span>
+        <span class="mi">8</span><span class="p">:</span> <span class="s2">&quot;Some other race alone (non-White)&quot;</span><span class="p">,</span>
+        <span class="c1"># 8: &quot;Some other race alone&quot;,</span>
+        <span class="mi">9</span><span class="p">:</span> <span class="s2">&quot;Two or more races&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># PINCP: Yearly Income</span>
+<span class="n">acs_income</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;PINCP&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;yearly income&quot;</span><span class="p">,</span>
+    <span class="n">missing_value_fill</span><span class="o">=</span><span class="s2">&quot;N/A (less than 15 years old)&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;$</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># PINCP: Yearly Income (Thresholded)</span>
+<span class="n">acs_income_qa</span> <span class="o">=</span> <span class="n">MultipleChoiceQA</span><span class="p">(</span>
+    <span class="n">column</span><span class="o">=</span><span class="n">acs_income_threshold</span><span class="o">.</span><span class="n">apply_to_column_name</span><span class="p">(</span><span class="s2">&quot;PINCP&quot;</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">&quot;What is this person&#39;s estimated yearly income?&quot;</span><span class="p">,</span>
+    <span class="n">choices</span><span class="o">=</span><span class="p">(</span>
+        <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;Below $50,000&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;Above $50,000&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">acs_income_numeric_qa</span> <span class="o">=</span> <span class="n">DirectNumericQA</span><span class="p">(</span>
+    <span class="n">column</span><span class="o">=</span><span class="n">acs_income_threshold</span><span class="o">.</span><span class="n">apply_to_column_name</span><span class="p">(</span><span class="s2">&quot;PINCP&quot;</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="p">(</span>
+        <span class="s2">&quot;What is the probability that this person&#39;s estimated yearly income is &quot;</span>
+        <span class="s2">&quot;above $50,000 ?&quot;</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">acs_income_target_col</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="n">acs_income_threshold</span><span class="o">.</span><span class="n">apply_to_column_name</span><span class="p">(</span><span class="s2">&quot;PINCP&quot;</span><span class="p">),</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;yearly income&quot;</span><span class="p">,</span>
+    <span class="n">missing_value_fill</span><span class="o">=</span><span class="s2">&quot;N/A (less than 15 years old)&quot;</span><span class="p">,</span>
+    <span class="n">question</span><span class="o">=</span><span class="n">acs_income_qa</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># PUBCOV: Public Health Coverage (Original)</span>
+<span class="n">acs_pubcov_og_qa</span> <span class="o">=</span> <span class="n">MultipleChoiceQA</span><span class="p">(</span>
+    <span class="n">column</span><span class="o">=</span><span class="s2">&quot;PUBCOV&quot;</span><span class="p">,</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Does this person have public health insurance coverage?&quot;</span><span class="p">,</span>
+    <span class="n">choices</span><span class="o">=</span><span class="p">(</span>
+        <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;Yes, person is covered by public health insurance&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;No, person is not covered by public health insurance&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>  <span class="c1"># NOTE: value=2 for no public coverage!</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">acs_pubcov</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;PUBCOV&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;public health coverage status&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Covered by public health insurance&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Not covered by public health insurance&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="n">question</span><span class="o">=</span><span class="n">acs_pubcov_og_qa</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># PUBCOV: Public Health Coverage (Thresholded)</span>
+<span class="n">acs_pubcov_qa</span> <span class="o">=</span> <span class="n">MultipleChoiceQA</span><span class="p">(</span>
+    <span class="n">column</span><span class="o">=</span><span class="n">acs_public_coverage_threshold</span><span class="o">.</span><span class="n">apply_to_column_name</span><span class="p">(</span><span class="s2">&quot;PUBCOV&quot;</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Does this person have public health insurance coverage?&quot;</span><span class="p">,</span>
+    <span class="n">choices</span><span class="o">=</span><span class="p">(</span>
+        <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;Yes, person is covered by public health insurance&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;No, person is not covered by public health insurance&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>  <span class="c1"># NOTE: value=0 for no public coverage!</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">acs_pubcov_numeric_qa</span> <span class="o">=</span> <span class="n">DirectNumericQA</span><span class="p">(</span>
+    <span class="n">column</span><span class="o">=</span><span class="n">acs_public_coverage_threshold</span><span class="o">.</span><span class="n">apply_to_column_name</span><span class="p">(</span><span class="s2">&quot;PUBCOV&quot;</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="p">(</span>
+        <span class="s2">&quot;What is the probability that this person is covered by public health insurance?&quot;</span>
+    <span class="p">),</span>  <span class="c1"># NOTE: value=1 for yes, 0 for no</span>
+<span class="p">)</span>
+
+<span class="n">acs_pubcov_target_col</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="n">acs_public_coverage_threshold</span><span class="o">.</span><span class="n">apply_to_column_name</span><span class="p">(</span><span class="s2">&quot;PUBCOV&quot;</span><span class="p">),</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;public health coverage status&quot;</span><span class="p">,</span>
+    <span class="n">question</span><span class="o">=</span><span class="n">acs_pubcov_qa</span><span class="p">,</span>
+    <span class="n">use_value_map_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># DIS: Disability Status</span>
+<span class="n">acs_disability</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;DIS&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;disability status&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;With a disability&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;No disability&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># ESP: Employment Status of Parents</span>
+<span class="n">acs_emp_parents</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;ESP&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;employment status of parents&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Living with two parents, both employed&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Living with two parents, only Father is employed&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Living with two parents, only Mother is employed&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;Living with two parents, neither employed&quot;</span><span class="p">,</span>
+        <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;Living with Father, and Father is employed&quot;</span><span class="p">,</span>
+        <span class="mi">6</span><span class="p">:</span> <span class="s2">&quot;Living with Father, and Father is not employed&quot;</span><span class="p">,</span>
+        <span class="mi">7</span><span class="p">:</span> <span class="s2">&quot;Living with Mother, and Mother is employed&quot;</span><span class="p">,</span>
+        <span class="mi">8</span><span class="p">:</span> <span class="s2">&quot;Living with Mother, and Mother is not employed&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="n">missing_value_fill</span><span class="o">=</span><span class="s2">&quot;N/A (not own child of householder, and not child in subfamily)&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># CIT: Citizenship Status</span>
+<span class="n">acs_citizenship</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;CIT&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;citizenship status&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Born in the United States&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Born in Puerto Rico, Guam, the U.S. Virgin Islands, or the Northern Marianas&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Born abroad of American parents&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;Naturalized US citizen&quot;</span><span class="p">,</span>
+        <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;Not a US citizen&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># MIG: Mobility Status</span>
+<span class="n">acs_mobility</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;MIG&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;mobility status over the last year&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Lived in the same house one year ago&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Lived in a different house, outside the United States and Puerto Rico, one year ago&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Lived in a different house in the United States one year ago&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># MIG: Mobility Status (Thresholded)</span>
+<span class="n">acs_mobility_qa</span> <span class="o">=</span> <span class="n">MultipleChoiceQA</span><span class="p">(</span>
+    <span class="n">column</span><span class="o">=</span><span class="n">acs_mobility_threshold</span><span class="o">.</span><span class="n">apply_to_column_name</span><span class="p">(</span><span class="s2">&quot;MIG&quot;</span><span class="p">),</span>      <span class="c1"># NOTE: Thresholded by MIG!=1</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Has this person moved in the last year?&quot;</span><span class="p">,</span>
+    <span class="n">choices</span><span class="o">=</span><span class="p">(</span>
+        <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;No, person has lived in the same house for the last year&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;Yes, person has moved in the last year&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">acs_mobility_numeric_qa</span> <span class="o">=</span> <span class="n">DirectNumericQA</span><span class="p">(</span>
+    <span class="n">column</span><span class="o">=</span><span class="n">acs_mobility_threshold</span><span class="o">.</span><span class="n">apply_to_column_name</span><span class="p">(</span><span class="s2">&quot;MIG&quot;</span><span class="p">),</span>      <span class="c1"># NOTE: Thresholded by MIG!=1</span>
+    <span class="n">text</span><span class="o">=</span><span class="p">(</span>
+        <span class="s2">&quot;What is the probability that this person has moved in the last year?&quot;</span>
+    <span class="p">),</span>  <span class="c1"># NOTE: Question should relate to probability of MIG!=1</span>
+<span class="p">)</span>
+
+<span class="n">acs_mobility_target_col</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="n">acs_mobility_threshold</span><span class="o">.</span><span class="n">apply_to_column_name</span><span class="p">(</span><span class="s2">&quot;MIG&quot;</span><span class="p">),</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;mobility status over the last year&quot;</span><span class="p">,</span>
+    <span class="n">question</span><span class="o">=</span><span class="n">acs_mobility_qa</span><span class="p">,</span>
+    <span class="n">use_value_map_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># MIL: Military Service Status</span>
+<span class="n">acs_military</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;MIL&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;military service status&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Now on active duty&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;On active duty in the past, but not now&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Only on active duty for training in Reserved/National Guard&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;Never served in the military&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="n">missing_value_fill</span><span class="o">=</span><span class="s2">&quot;N/A (less than 17 years old)&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># ANC: Ancestry</span>
+<span class="n">acs_ancestry</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;ANC&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;ancestry&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Single ancestry&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Multiple ancestry&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Unclassified&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;Not reported&quot;</span><span class="p">,</span>
+        <span class="mi">8</span><span class="p">:</span> <span class="s2">&quot;N/A (information suppressed for certain area codes)&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># ANC1P: Detailed Ancestry</span>
+<span class="n">acs_detailed_ancestry</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;ANC1P&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;detailed ancestry&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span>
+        <span class="n">parse_pums_code</span><span class="p">,</span>
+        <span class="n">file</span><span class="o">=</span><span class="n">ACS_CODEBOOK_DIR</span> <span class="o">/</span> <span class="s2">&quot;ANC1P.txt&quot;</span><span class="p">,</span>
+        <span class="n">postprocess</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># NATIVITY: Nativity</span>
+<span class="n">acs_nativity</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;NATIVITY&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;nativity&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Native&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Foreign born&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># LANX: Language other than English spoken at home</span>
+<span class="n">acs_lanx</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;LANX&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;language other than English spoken at home&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Speaks a language other than English at home.&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Speaks only English at home.&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="n">use_value_map_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">missing_value_fill</span><span class="o">=</span><span class="s2">&quot;N/A (less than 5 years old)&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># LANP: Language spoken at home</span>
+<span class="n">acs_lanp</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;LANP&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;language spoken at home (other than English)&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span>
+        <span class="n">parse_pums_code</span><span class="p">,</span>
+        <span class="n">file</span><span class="o">=</span><span class="n">ACS_CODEBOOK_DIR</span> <span class="o">/</span> <span class="s2">&quot;LANP.txt&quot;</span><span class="p">,</span>
+        <span class="n">postprocess</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+    <span class="p">),</span>
+    <span class="n">missing_value_fill</span><span class="o">=</span><span class="s2">&quot;N/A (speaks only English at home)&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># ENG: Ability to Speak English</span>
+<span class="n">acs_eng</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;ENG&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;ability to speak English&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Very well&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Well&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Not well&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;Not at all&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="n">missing_value_fill</span><span class="o">=</span><span class="s2">&quot;Native (speaks only English)&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># NOP: Nativity of Parents</span>
+<span class="n">acs_nop</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;NOP&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;nativity of parents&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Living with both parents, both of whom are native&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Living with both parents, Father only is foreign born&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Living with both parents, Mother only is foreign born&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;Living with both parents, both of whom are foreign born&quot;</span><span class="p">,</span>
+        <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;Living with Father only, who is native&quot;</span><span class="p">,</span>
+        <span class="mi">6</span><span class="p">:</span> <span class="s2">&quot;Living with Father only, who is foreign born&quot;</span><span class="p">,</span>
+        <span class="mi">7</span><span class="p">:</span> <span class="s2">&quot;Living with Mother only, who is native&quot;</span><span class="p">,</span>
+        <span class="mi">8</span><span class="p">:</span> <span class="s2">&quot;Living with Mother only, who is foreign born&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="n">missing_value_fill</span><span class="o">=</span><span class="p">(</span>
+        <span class="s2">&quot;N/A (not own child of householder and not child in subfamily)&quot;</span>
+        <span class="c1"># OR greater than 17 years old</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># DEAR: Hearing Status</span>
+<span class="n">acs_hearing</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;DEAR&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;hearing status&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;With hearing difficulty&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;No hearing difficulty&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># DEYE: Vision Status</span>
+<span class="n">acs_vision</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;DEYE&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;vision status&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;With vision difficulty&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;No vision difficulty&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># DREM: Cognitive Status</span>
+<span class="n">acs_cognitive</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;DREM&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;cognition status&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;With cognitive difficulty&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;No cognitive difficulty&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="n">missing_value_fill</span><span class="o">=</span><span class="s2">&quot;N/A (less than 5 years old)&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># ESR: Employment Status</span>
+<span class="n">acs_employment</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;ESR&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;employment status&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Civilian employed, at work&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Civilian employed, with a job but not at work&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Unemployed&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;Armed forces, at work&quot;</span><span class="p">,</span>
+        <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;Armed forces, with a job but not at work&quot;</span><span class="p">,</span>
+        <span class="mi">6</span><span class="p">:</span> <span class="s2">&quot;Not in labor force&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="n">missing_value_fill</span><span class="o">=</span><span class="s2">&quot;N/A (less than 16 years old)&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># ESR: Employment Status (Thresholded)</span>
+<span class="n">acs_employment_qa</span> <span class="o">=</span> <span class="n">MultipleChoiceQA</span><span class="p">(</span>
+    <span class="n">column</span><span class="o">=</span><span class="n">acs_employment_threshold</span><span class="o">.</span><span class="n">apply_to_column_name</span><span class="p">(</span><span class="s2">&quot;ESR&quot;</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">&quot;What is this person&#39;s employment status?&quot;</span><span class="p">,</span>
+    <span class="n">choices</span><span class="o">=</span><span class="p">(</span>
+        <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;Employed civilian&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;Unemployed or in the military&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">acs_employment_numeric_qa</span> <span class="o">=</span> <span class="n">DirectNumericQA</span><span class="p">(</span>
+    <span class="n">column</span><span class="o">=</span><span class="n">acs_employment_threshold</span><span class="o">.</span><span class="n">apply_to_column_name</span><span class="p">(</span><span class="s2">&quot;ESR&quot;</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="p">(</span>
+        <span class="s2">&quot;What is the probability that this person is an employed civilian?&quot;</span>
+        <span class="c1"># &quot;What is the probability that this person is currently employed?&quot;</span>
+    <span class="p">),</span>  <span class="c1"># NOTE: Question should relate to probability of ESR==1</span>
+<span class="p">)</span>
+
+<span class="n">acs_employment_target_col</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="n">acs_employment_threshold</span><span class="o">.</span><span class="n">apply_to_column_name</span><span class="p">(</span><span class="s2">&quot;ESR&quot;</span><span class="p">),</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;employment status&quot;</span><span class="p">,</span>
+    <span class="n">question</span><span class="o">=</span><span class="n">acs_employment_qa</span><span class="p">,</span>
+    <span class="n">use_value_map_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># ST: State</span>
+<span class="n">acs_state</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;ST&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;resident state&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span>
+        <span class="n">parse_pums_code</span><span class="p">,</span>
+        <span class="n">file</span><span class="o">=</span><span class="n">ACS_CODEBOOK_DIR</span> <span class="o">/</span> <span class="s2">&quot;ST.txt&quot;</span><span class="p">,</span>
+        <span class="n">postprocess</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[:</span><span class="n">x</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)]</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># HISP: Hispanic Origin (Detailed)</span>
+<span class="n">acs_hispanic</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;HISP&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;Hispanic origin&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span>
+        <span class="n">parse_pums_code</span><span class="p">,</span>
+        <span class="n">file</span><span class="o">=</span><span class="n">ACS_CODEBOOK_DIR</span> <span class="o">/</span> <span class="s2">&quot;HISP.txt&quot;</span><span class="p">,</span>
+        <span class="n">postprocess</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># FER: Parenthood Status</span>
+<span class="n">acs_parenthood</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;FER&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;person has given birth within the last year&quot;</span><span class="p">,</span>
+    <span class="n">use_value_map_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Person has given birth within the last year.&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Person has not given birth within the last year.&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="n">missing_value_fill</span><span class="o">=</span><span class="s2">&quot;N/A (less than 15 years old, or greater than 50 years old, or male)&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># JWMNP: Commute Time</span>
+<span class="n">acs_commute_time</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;JWMNP&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;commute time&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="si">}</span><span class="s2"> minutes&quot;</span><span class="p">,</span>
+    <span class="n">missing_value_fill</span><span class="o">=</span><span class="s2">&quot;N/A (not a worker, or worker who worked at home)&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># JWMNP: Commute Time (Thresholded)</span>
+<span class="n">acs_commute_time_qa</span> <span class="o">=</span> <span class="n">MultipleChoiceQA</span><span class="p">(</span>
+    <span class="n">column</span><span class="o">=</span><span class="n">acs_travel_time_threshold</span><span class="o">.</span><span class="n">apply_to_column_name</span><span class="p">(</span><span class="s2">&quot;JWMNP&quot;</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">&quot;What is this person&#39;s commute time?&quot;</span><span class="p">,</span>
+    <span class="n">choices</span><span class="o">=</span><span class="p">(</span>
+        <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;Longer than 20 minutes&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;Less than 20 minutes&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">acs_commute_time_numeric_qa</span> <span class="o">=</span> <span class="n">DirectNumericQA</span><span class="p">(</span>
+    <span class="n">column</span><span class="o">=</span><span class="n">acs_travel_time_threshold</span><span class="o">.</span><span class="n">apply_to_column_name</span><span class="p">(</span><span class="s2">&quot;JWMNP&quot;</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="p">(</span>
+        <span class="s2">&quot;What is the probability that this person&#39;s commute time is longer than 20 minutes?&quot;</span>
+    <span class="p">),</span>  <span class="c1"># NOTE: Question should relate to probability of JWMNP&gt;20</span>
+<span class="p">)</span>
+
+<span class="n">acs_travel_time_target_col</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="n">acs_travel_time_threshold</span><span class="o">.</span><span class="n">apply_to_column_name</span><span class="p">(</span><span class="s2">&quot;JWMNP&quot;</span><span class="p">),</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;commute time&quot;</span><span class="p">,</span>
+    <span class="n">question</span><span class="o">=</span><span class="n">acs_commute_time_qa</span><span class="p">,</span>
+    <span class="n">use_value_map_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># JWTR: Commute Method</span>
+<span class="n">acs_commute_method</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;JWTR&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;means of transportation to work&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Car, truck, or van&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Bus or trolley bus&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Streetcar or trolley car&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;Subway or elevated&quot;</span><span class="p">,</span>
+        <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;Railroad&quot;</span><span class="p">,</span>
+        <span class="mi">6</span><span class="p">:</span> <span class="s2">&quot;Ferryboat&quot;</span><span class="p">,</span>
+        <span class="mi">7</span><span class="p">:</span> <span class="s2">&quot;Taxicab&quot;</span><span class="p">,</span>
+        <span class="mi">8</span><span class="p">:</span> <span class="s2">&quot;Motorcycle&quot;</span><span class="p">,</span>
+        <span class="mi">9</span><span class="p">:</span> <span class="s2">&quot;Bicycle&quot;</span><span class="p">,</span>
+        <span class="mi">10</span><span class="p">:</span> <span class="s2">&quot;Walked&quot;</span><span class="p">,</span>
+        <span class="mi">11</span><span class="p">:</span> <span class="s2">&quot;Worked at home&quot;</span><span class="p">,</span>
+        <span class="mi">12</span><span class="p">:</span> <span class="s2">&quot;Other method&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="describe_income_to_poverty_ratio_pct">
+<a class="viewcode-back" href="../../../source/folktexts.acs.html#folktexts.acs.acs_columns.describe_income_to_poverty_ratio_pct">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">describe_income_to_poverty_ratio_pct</span><span class="p">(</span><span class="n">ratio_pct</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Describe the income-to-poverty ratio in natural language.&quot;&quot;&quot;</span>
+    <span class="n">context_msg</span><span class="p">:</span> <span class="nb">str</span>
+
+    <span class="k">if</span> <span class="n">ratio_pct</span> <span class="o">&lt;</span> <span class="mi">90</span><span class="p">:</span>
+        <span class="n">context_msg</span> <span class="o">=</span> <span class="s2">&quot;below the poverty line&quot;</span>
+    <span class="k">elif</span> <span class="mi">90</span> <span class="o">&lt;=</span> <span class="n">ratio_pct</span> <span class="o">&lt;</span> <span class="mi">110</span><span class="p">:</span>
+        <span class="n">context_msg</span> <span class="o">=</span> <span class="s2">&quot;at or near the poverty line&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">context_msg</span> <span class="o">=</span> <span class="s2">&quot;above the poverty line&quot;</span>
+
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">ratio_pct</span><span class="p">)</span><span class="si">}</span><span class="s2">% of the poverty line income, which is </span><span class="si">{</span><span class="n">context_msg</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+
+
+<span class="c1"># POVPIP: Income-to-Poverty Ratio</span>
+<span class="n">acs_poverty_ratio</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;POVPIP&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;income-to-poverty ratio&quot;</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="n">describe_income_to_poverty_ratio_pct</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># POVPIP: Income-to-Poverty Ratio (Thresholded)</span>
+<span class="n">acs_poverty_ratio_qa</span> <span class="o">=</span> <span class="n">MultipleChoiceQA</span><span class="p">(</span>
+    <span class="n">column</span><span class="o">=</span><span class="n">acs_poverty_ratio_threshold</span><span class="o">.</span><span class="n">apply_to_column_name</span><span class="p">(</span><span class="s2">&quot;POVPIP&quot;</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="p">(</span>
+        <span class="s2">&quot;Is this person&#39;s income-to-poverty ratio below 2.5 ? &quot;</span>
+        <span class="s2">&quot;That is, is this person&#39;s annual income below 2.5 times the poverty line income?&quot;</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">choices</span><span class="o">=</span><span class="p">(</span>
+        <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;Yes, this person earns below 2.5 times the poverty line income&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;No, this person earns above 2.5 times the poverty line income.&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">acs_poverty_ratio_target_col</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="n">acs_poverty_ratio_threshold</span><span class="o">.</span><span class="n">apply_to_column_name</span><span class="p">(</span><span class="s2">&quot;POVPIP&quot;</span><span class="p">),</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;income-to-poverty ratio is below 2.5&quot;</span><span class="p">,</span>
+    <span class="n">question</span><span class="o">=</span><span class="n">acs_poverty_ratio_qa</span><span class="p">,</span>
+    <span class="n">use_value_map_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># GCL: Grandparent Living with Grandchildren</span>
+<span class="n">acs_gcl_col</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;GCL&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;grandparent living with grandchildren&quot;</span><span class="p">,</span>
+    <span class="n">use_value_map_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Household includes grandparent living with grandchildren&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Household does not include grandparents living with grandchildren&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="n">missing_value_fill</span><span class="o">=</span><span class="s2">&quot;N/A (less than 30 years old, or living in institutional group quarters)&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># PUMA: Public Use Microdata Area Code</span>
+<span class="c1"># TODO: assign meaningful natural-text values to PUMA codes</span>
+<span class="c1"># &gt; Consult: https://www2.census.gov/geo/pdfs/reference/puma/2010_PUMA_Names.pdf</span>
+<span class="n">acs_puma_col</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;PUMA&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;Public Use Microdata Area (PUMA) code&quot;</span><span class="p">,</span>
+    <span class="n">use_value_map_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Public Use Microdata Area (PUMA) code: </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="c1"># missing_value_fill=&quot;N/A (less than 16 years old)&quot;,</span>
+<span class="p">)</span>
+
+<span class="c1"># POWPUMA: Place of Work PUMA</span>
+<span class="n">acs_powpuma_col</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;POWPUMA&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;place of work PUMA&quot;</span><span class="p">,</span>
+    <span class="n">use_value_map_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Public Use Microdata Area (PUMA) code for the place of work: </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">,</span>
+    <span class="c1"># missing_value_fill=&quot;N/A (not a worker, or worker who worked at home)&quot;,</span>
+<span class="p">)</span>
+
+<span class="c1"># HINS2: Health Insurance Coverage through Private Company</span>
+<span class="n">acs_health_ins_2_col</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="s2">&quot;HINS2&quot;</span><span class="p">,</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;acquired health insurance directly from an insurance company&quot;</span><span class="p">,</span>
+    <span class="n">use_value_map_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">value_map</span><span class="o">=</span><span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Person has purchased insurance directly from an insurance company&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="p">(</span>
+            <span class="s2">&quot;Person has not purchased insurance directly from an insurance &quot;</span>
+            <span class="s2">&quot;company (is either uninsured or insured through another source)&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+
+<span class="c1"># HINS2: Health Insurance Coverage through Private Company (Thresholded)</span>
+<span class="n">acs_health_ins_2_qa</span> <span class="o">=</span> <span class="n">MultipleChoiceQA</span><span class="p">(</span>
+    <span class="n">column</span><span class="o">=</span><span class="n">acs_health_insurance_threshold</span><span class="o">.</span><span class="n">apply_to_column_name</span><span class="p">(</span><span class="s2">&quot;HINS2&quot;</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Has this person purchased health insurance directly from an insurance company?&quot;</span><span class="p">,</span>
+    <span class="n">choices</span><span class="o">=</span><span class="p">(</span>
+        <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;Yes, this person has health insurance through a private company&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;No, this person either has insurance through other means or is uninsured&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+
+<span class="n">acs_health_ins_2_numeric_qa</span> <span class="o">=</span> <span class="n">DirectNumericQA</span><span class="p">(</span>
+    <span class="n">column</span><span class="o">=</span><span class="n">acs_health_insurance_threshold</span><span class="o">.</span><span class="n">apply_to_column_name</span><span class="p">(</span><span class="s2">&quot;HINS2&quot;</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="p">(</span>
+        <span class="s2">&quot;What is the probability that this person has purchased health &quot;</span>
+        <span class="s2">&quot;insurance directly through a private company?&quot;</span>
+    <span class="p">),</span>  <span class="c1"># NOTE: Question should relate to probability of HINS2==1</span>
+<span class="p">)</span>
+
+<span class="n">acs_health_ins_2_target_col</span> <span class="o">=</span> <span class="n">ColumnToText</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="n">acs_health_insurance_threshold</span><span class="o">.</span><span class="n">apply_to_column_name</span><span class="p">(</span><span class="s2">&quot;HINS2&quot;</span><span class="p">),</span>
+    <span class="n">short_description</span><span class="o">=</span><span class="s2">&quot;acquired health insurance directly from an insurance company&quot;</span><span class="p">,</span>
+    <span class="n">question</span><span class="o">=</span><span class="n">acs_health_ins_2_qa</span><span class="p">,</span>
+    <span class="n">use_value_map_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

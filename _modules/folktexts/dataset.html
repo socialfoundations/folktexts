@@ -1,0 +1,521 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>folktexts.dataset &mdash; folktexts 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../../_static/custom.js?v=882eb7ae"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            folktexts
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme.html">Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../notebooks.html">Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">folktexts.dataset</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for folktexts.dataset</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;General Dataset functionality for text-based datasets.</span>
+
+<span class="sd">TODO</span>
+<span class="sd">----</span>
+<span class="sd">- Re-assess if the Dataset needs permanent access to the task;</span>
+<span class="sd">    - The task is already in the LLMClassifier;</span>
+<span class="sd">    - Maybe the Dataset should simply receive the `task` object whenever a</span>
+<span class="sd">    method needs it.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">hash_dict</span><span class="p">,</span> <span class="n">is_valid_number</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.task</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskMetadata</span>
+
+<span class="n">DEFAULT_TEST_SIZE</span> <span class="o">=</span> <span class="mf">0.1</span>
+<span class="n">DEFAULT_VAL_SIZE</span> <span class="o">=</span> <span class="mf">0.1</span>
+<span class="n">DEFAULT_SEED</span> <span class="o">=</span> <span class="mi">42</span>
+
+
+<div class="viewcode-block" id="Dataset">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.dataset.Dataset">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Dataset</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+        <span class="n">task</span><span class="p">:</span> <span class="n">TaskMetadata</span><span class="p">,</span>
+        <span class="n">test_size</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_TEST_SIZE</span><span class="p">,</span>
+        <span class="n">val_size</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">DEFAULT_VAL_SIZE</span><span class="p">,</span>
+        <span class="n">subsampling</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_SEED</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct a Dataset object.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : pd.DataFrame</span>
+<span class="sd">            The dataset&#39;s data in pandas DataFrame format.</span>
+<span class="sd">        task : TaskMetadata</span>
+<span class="sd">            The metadata for the prediction task.</span>
+<span class="sd">        test_size : float, optional</span>
+<span class="sd">            The size of the test set, as a fraction of the total dataset size,</span>
+<span class="sd">            by default 0.1.</span>
+<span class="sd">        val_size : float, optional</span>
+<span class="sd">            The size of the validation set, as a fraction of the total dataset</span>
+<span class="sd">            size, by default 0.1.</span>
+<span class="sd">        subsampling : float, optional</span>
+<span class="sd">            Whether to use sub-sampling, and which fraction of the data to keep.</span>
+<span class="sd">            By default will not use sub-sampling (`subsampling=None`).</span>
+<span class="sd">        seed : int, optional</span>
+<span class="sd">            The random state seed, by default 42.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="n">task</span>
+
+        <span class="c1"># Validate task</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="p">,</span> <span class="n">TaskMetadata</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Invalid `task` type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="p">)</span><span class="si">}</span><span class="s2">. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Expected `TaskMetadata`.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Validate data for this task</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">check_task_columns_are_available</span><span class="p">(</span>
+            <span class="n">available_cols</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_size</span> <span class="o">=</span> <span class="n">test_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_val_size</span> <span class="o">=</span> <span class="n">val_size</span> <span class="ow">or</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_train_size</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_test_size</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_val_size</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_size</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_seed</span> <span class="o">=</span> <span class="n">seed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_seed</span><span class="p">)</span>
+
+        <span class="c1"># Make train/test/val split</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_train_indices</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_test_indices</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_val_indices</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_make_train_test_val_split</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">val_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rng</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Subsample the train/test/val data (if requested)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_subsampling</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">subsampling</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">subsample</span><span class="p">(</span><span class="n">subsampling</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span>
+
+    <span class="nd">@data</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="c1"># Check if task columns are in the data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">check_task_columns_are_available</span><span class="p">(</span>
+            <span class="n">new_data</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Update data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">new_data</span>
+
+        <span class="c1"># Reset train/test/val indices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_train_indices</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_test_indices</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_val_indices</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_make_train_test_val_split</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">test_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">val_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rng</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Set subsampling to None</span>
+        <span class="c1"># (data was manually set, any subsampling will have to be re-done)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_subsampling</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">task</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TaskMetadata</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span>
+
+    <span class="nd">@task</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_task</span><span class="p">:</span> <span class="n">TaskMetadata</span><span class="p">):</span>
+        <span class="c1"># Check if task columns are in the data</span>
+        <span class="n">new_task</span><span class="o">.</span><span class="n">check_task_columns_are_available</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="n">new_task</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">train_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_size</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_test_size</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">val_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_val_size</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">subsampling</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_subsampling&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">seed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_seed</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;A unique name for this dataset.&quot;&quot;&quot;</span>
+        <span class="n">subsampling_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;subsampled-</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">subsampling</span><span class="si">:</span><span class="s2">.3</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">subsampling</span> <span class="k">else</span> <span class="s2">&quot;full&quot;</span>
+        <span class="n">seed_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;seed-</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_seed</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">hash_str</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;hash-</span><span class="si">{</span><span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">subsampling_str</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">seed_str</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">hash_str</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_train_test_val_split</span><span class="p">(</span>
+        <span class="n">data</span><span class="p">,</span>
+        <span class="n">test_size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">val_size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">rng</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">Generator</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+        <span class="c1"># Permute indices</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+
+        <span class="c1"># Split train/test</span>
+        <span class="n">train_size</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">test_size</span> <span class="o">-</span> <span class="n">val_size</span>
+        <span class="n">train_indices</span> <span class="o">=</span> <span class="n">indices</span><span class="p">[:</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span> <span class="o">*</span> <span class="n">train_size</span><span class="p">)]</span>
+        <span class="n">test_indices</span> <span class="o">=</span> <span class="n">indices</span><span class="p">[</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">train_indices</span><span class="p">):</span>
+            <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">train_size</span> <span class="o">+</span> <span class="n">test_size</span><span class="p">))]</span>
+
+        <span class="c1"># Split val if requested</span>
+        <span class="k">if</span> <span class="n">val_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">val_size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">val_indices</span> <span class="o">=</span> <span class="n">indices</span><span class="p">[</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">train_indices</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_indices</span><span class="p">):]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">val_indices</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">train_indices</span><span class="p">,</span>
+            <span class="n">test_indices</span><span class="p">,</span>
+            <span class="n">val_indices</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_subsample_train_test_val_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subsampling</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dataset</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Subsample the dataset in-place.&quot;&quot;&quot;</span>
+
+        <span class="c1"># Check argument is valid</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_valid_number</span><span class="p">(</span><span class="n">subsampling</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;</span> <span class="n">subsampling</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;`subsampling=</span><span class="si">{</span><span class="n">subsampling</span><span class="si">}</span><span class="s2">` must be in the range (0, 1]&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Update train/test/val indices</span>
+        <span class="n">new_train_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_indices</span><span class="p">)</span> <span class="o">*</span> <span class="n">subsampling</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>
+        <span class="n">new_test_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_test_indices</span><span class="p">)</span> <span class="o">*</span> <span class="n">subsampling</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_train_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_indices</span><span class="p">[:</span> <span class="n">new_train_size</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_test_indices</span><span class="p">[:</span> <span class="n">new_test_size</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_val_indices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">new_val_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_val_indices</span><span class="p">)</span> <span class="o">*</span> <span class="n">subsampling</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_val_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_val_indices</span><span class="p">[:</span> <span class="n">new_val_size</span><span class="p">]</span>
+
+        <span class="c1"># Log new dataset size</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Train size: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_indices</span><span class="p">)</span><span class="si">}</span><span class="s2">, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Test size:  </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_test_indices</span><span class="p">)</span><span class="si">}</span><span class="s2">, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Val size:   </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_val_indices</span><span class="p">)</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">_val_indices</span><span class="w"> </span><span class="ow">is</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="kc">None</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="mi">0</span><span class="si">}</span><span class="s2">;&quot;</span>
+        <span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span>
+
+<div class="viewcode-block" id="Dataset.subsample">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.dataset.Dataset.subsample">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">subsample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subsampling</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Subsamples this dataset in-place.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">subsampling</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Got `subsampling=</span><span class="si">{</span><span class="n">subsampling</span><span class="si">}</span><span class="s2">`, skipping...&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span>
+
+        <span class="c1"># Update train/test/val indices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_subsample_train_test_val_indices</span><span class="p">(</span><span class="n">subsampling</span><span class="p">)</span>
+
+        <span class="c1"># Update subsampling factor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_subsampling</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_subsampling</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">subsampling</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_filter_inplace</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">population_feature_values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Dataset&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Subset the dataset in-place: keep only samples with the given feature values.&quot;&quot;&quot;</span>
+        <span class="c1"># Check argument is of valid type</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">population_feature_values</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Invalid `population_feature_values` type: &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">population_feature_values</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Check argument keys are valid columns</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">population_feature_values</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Invalid `population_feature_values` keys; columns don&#39;t exist &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;in the dataset: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">population_feature_values</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Create boolean filter based on the given feature values</span>
+        <span class="n">population_filter</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">population_feature_values</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">population_filter</span> <span class="o">&amp;=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">==</span> <span class="n">value</span><span class="p">)</span>
+
+        <span class="c1"># Update train/test/val indices</span>
+        <span class="n">train_pop_filter</span> <span class="o">=</span> <span class="n">population_filter</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_indices</span><span class="p">]</span>
+        <span class="n">test_pop_filter</span> <span class="o">=</span> <span class="n">population_filter</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_test_indices</span><span class="p">]</span>
+        <span class="n">val_pop_filter</span> <span class="o">=</span> <span class="n">population_filter</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_val_indices</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_val_indices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_train_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_indices</span><span class="p">[</span><span class="n">train_pop_filter</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_test_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_test_indices</span><span class="p">[</span><span class="n">test_pop_filter</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_val_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_val_indices</span><span class="p">[</span><span class="n">val_pop_filter</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_val_indices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="bp">self</span>
+
+<div class="viewcode-block" id="Dataset.filter">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.dataset.Dataset.filter">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">population_feature_values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Filter dataset rows in-place.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_filter_inplace</span><span class="p">(</span><span class="n">population_feature_values</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Dataset.get_features_data">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.dataset.Dataset.get_features_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_features_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">features</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="Dataset.get_target_data">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.dataset.Dataset.get_target_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_target_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">get_target</span><span class="p">()]</span></div>
+
+
+<div class="viewcode-block" id="Dataset.get_sensitive_attribute_data">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.dataset.Dataset.get_sensitive_attribute_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_sensitive_attribute_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">sensitive_attribute</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">sensitive_attribute</span><span class="p">]</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="Dataset.get_data_split">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.dataset.Dataset.get_data_split">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_data_split</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">split</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">split</span> <span class="o">==</span> <span class="s2">&quot;train&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_train</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">split</span> <span class="o">==</span> <span class="s2">&quot;test&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_test</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">split</span> <span class="o">==</span> <span class="s2">&quot;val&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_val</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid split &#39;</span><span class="si">{</span><span class="n">split</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Dataset.get_train">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.dataset.Dataset.get_train">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">train_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_indices</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">train_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">features</span><span class="p">],</span> <span class="n">train_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">get_target</span><span class="p">()]</span></div>
+
+
+<div class="viewcode-block" id="Dataset.sample_n_train_examples">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.dataset.Dataset.sample_n_train_examples">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sample_n_train_examples</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">reuse_examples</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">class_balancing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a set of samples from the training set.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        n : int</span>
+<span class="sd">            The number of example rows to return.</span>
+<span class="sd">        reuse_examples : bool, optional</span>
+<span class="sd">            Whether to reuse the same examples for consistency. By default will</span>
+<span class="sd">            sample new examples each time (`reuse_examples=False`).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        X, y : tuple[pd.DataFrame, pd.Series]</span>
+<span class="sd">            The features and target data for the sampled examples.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">class_balancing</span><span class="p">:</span>
+
+            <span class="n">train_labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_target_data</span><span class="p">()</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_indices</span><span class="p">]</span>
+            <span class="n">unique_labels</span><span class="p">,</span> <span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">train_labels</span><span class="p">,</span> <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="c1"># Calculate number of samples to sample per label</span>
+            <span class="n">per_label_n</span> <span class="o">=</span> <span class="n">n</span> <span class="o">//</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique_labels</span><span class="p">)</span>
+            <span class="n">remaining</span> <span class="o">=</span> <span class="n">n</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique_labels</span><span class="p">)</span>  <span class="c1"># distribute extra samples</span>
+
+            <span class="k">if</span> <span class="nb">min</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">per_label_n</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Labels are very imbalanced: Attempting to sample </span><span class="si">{</span><span class="n">per_label_n</span><span class="si">}</span><span class="s2">, &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;but minimal group size is </span><span class="si">{</span><span class="nb">min</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+            <span class="n">example_indices</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">unique_labels</span><span class="p">):</span>
+                <span class="n">class_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_indices</span><span class="p">[</span><span class="n">train_labels</span> <span class="o">==</span> <span class="n">label</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">reuse_examples</span><span class="p">:</span>
+                    <span class="n">selected</span> <span class="o">=</span> <span class="n">class_indices</span><span class="p">[:</span><span class="n">per_label_n</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">remaining</span><span class="p">)]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">selected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">class_indices</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">per_label_n</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">i</span> <span class="o">&lt;</span> <span class="n">remaining</span><span class="p">),</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="n">example_indices</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">selected</span><span class="p">)</span>
+
+            <span class="c1"># shuffle indices to ensure classes are mixed</span>
+            <span class="n">example_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rng</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="n">example_indices</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">reuse_examples</span><span class="p">:</span>
+                <span class="n">example_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_indices</span><span class="p">[:</span><span class="n">n</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">example_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_indices</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">example_indices</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">features</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">example_indices</span><span class="p">][</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">get_target</span><span class="p">()],</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Dataset.get_test">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.dataset.Dataset.get_test">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_test</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">test_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_test_indices</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">test_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">features</span><span class="p">],</span> <span class="n">test_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">get_target</span><span class="p">()]</span></div>
+
+
+<div class="viewcode-block" id="Dataset.get_val">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.dataset.Dataset.get_val">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_val</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_val_indices</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">val_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_val_indices</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">val_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">features</span><span class="p">],</span> <span class="n">val_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">get_target</span><span class="p">()]</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the i-th training sample.&quot;&quot;&quot;</span>
+        <span class="n">curr_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_indices</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">curr_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">curr_indices</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">curr_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">features</span><span class="p">],</span> <span class="n">curr_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">get_target</span><span class="p">()]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Iterates over the training data.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_indices</span><span class="p">)):</span>
+            <span class="k">yield</span> <span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="n">hashable_params</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;data_shape&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+            <span class="s2">&quot;task&quot;</span><span class="p">:</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="p">),</span>
+            <span class="s2">&quot;train_size&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_indices</span><span class="p">),</span>
+            <span class="s2">&quot;test_size&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_test_indices</span><span class="p">),</span>
+            <span class="s2">&quot;val_size&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_val_indices</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_val_indices</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s2">&quot;subsampling&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">subsampling</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s2">&quot;seed&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">hash_dict</span><span class="p">(</span><span class="n">hashable_params</span><span class="p">),</span> <span class="mi">16</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

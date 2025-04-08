@@ -1,0 +1,542 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>folktexts.classifier.base &mdash; folktexts 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../../../_static/custom.js?v=882eb7ae"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            folktexts
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/modules.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">folktexts.classifier.base</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for folktexts.classifier.base</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Module containing the base class for all LLM risk classifiers.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">ClassifierMixin</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm.auto</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.evaluation</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_best_threshold</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.prompting</span><span class="w"> </span><span class="kn">import</span> <span class="n">encode_row_prompt</span> <span class="k">as</span> <span class="n">default_encode_row_prompt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.qa_interface</span><span class="w"> </span><span class="kn">import</span> <span class="n">DirectNumericQA</span><span class="p">,</span> <span class="n">MultipleChoiceQA</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.task</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskMetadata</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">hash_dict</span><span class="p">,</span> <span class="n">hash_function</span>
+
+<span class="n">DEFAULT_CONTEXT_SIZE</span> <span class="o">=</span> <span class="mi">600</span>
+<span class="n">DEFAULT_BATCH_SIZE</span> <span class="o">=</span> <span class="mi">16</span>
+
+<span class="n">SCORE_COL_NAME</span> <span class="o">=</span> <span class="s2">&quot;risk_score&quot;</span>
+<span class="n">LABEL_COL_NAME</span> <span class="o">=</span> <span class="s2">&quot;label&quot;</span>
+
+
+<div class="viewcode-block" id="LLMClassifier">
+<a class="viewcode-back" href="../../../source/folktexts.classifier.html#folktexts.classifier.base.LLMClassifier">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LLMClassifier</span><span class="p">(</span><span class="n">BaseEstimator</span><span class="p">,</span> <span class="n">ClassifierMixin</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;An interface to produce risk scores and class predictions with an LLM.&quot;&quot;&quot;</span>
+
+    <span class="n">DEFAULT_INFERENCE_KWARGS</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;context_size&quot;</span><span class="p">:</span> <span class="n">DEFAULT_CONTEXT_SIZE</span><span class="p">,</span>
+        <span class="s2">&quot;batch_size&quot;</span><span class="p">:</span> <span class="n">DEFAULT_BATCH_SIZE</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">task</span><span class="p">:</span> <span class="n">TaskMetadata</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">custom_prompt_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">encode_row</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">correct_order_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">inference_kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates an LLMClassifier object.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model_name : str</span>
+<span class="sd">            The model name or ID.</span>
+<span class="sd">        task : TaskMetadata | str</span>
+<span class="sd">            The task metadata object or name of an already created task.</span>
+<span class="sd">        custom_prompt_prefix : str, optional</span>
+<span class="sd">            A custom prompt prefix to supply to the model before the encoded</span>
+<span class="sd">            row data, by default None.</span>
+<span class="sd">        encode_row : Callable[[pd.Series], str], optional</span>
+<span class="sd">            The function used to encode tabular rows into natural text. If not</span>
+<span class="sd">            provided, will use the default encoding function for the task.</span>
+<span class="sd">        threshold : float, optional</span>
+<span class="sd">            The classification threshold to use when outputting binary</span>
+<span class="sd">            predictions, by default 0.5. Must be between 0 and 1. Will be</span>
+<span class="sd">            re-calibrated if `fit` is called.</span>
+<span class="sd">        correct_order_bias : bool, optional</span>
+<span class="sd">            Whether to correct ordering bias in multiple-choice Q&amp;A questions,</span>
+<span class="sd">            by default True.</span>
+<span class="sd">        seed : int, optional</span>
+<span class="sd">            The random seed - used for reproducibility.</span>
+<span class="sd">        **inference_kwargs</span>
+<span class="sd">            Additional keyword arguments to be used at inference time. Options</span>
+<span class="sd">            include `context_size` and `batch_size`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Set classifier metadata</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span> <span class="o">=</span> <span class="n">model_name</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="n">TaskMetadata</span><span class="o">.</span><span class="n">get_task</span><span class="p">(</span><span class="n">task</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="n">task</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_custom_prompt_prefix</span> <span class="o">=</span> <span class="n">custom_prompt_prefix</span>
+
+        <span class="c1"># TODO: Add default custom_prompt_prefix to row encoder here?</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_encode_row</span> <span class="o">=</span> <span class="n">encode_row</span> <span class="ow">or</span> <span class="n">partial</span><span class="p">(</span>
+            <span class="n">default_encode_row_prompt</span><span class="p">,</span>
+            <span class="n">task</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_threshold</span> <span class="o">=</span> <span class="n">threshold</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_correct_order_bias</span> <span class="o">=</span> <span class="n">correct_order_bias</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_seed</span> <span class="o">=</span> <span class="n">seed</span>
+
+        <span class="c1"># Default inference kwargs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inference_kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_INFERENCE_KWARGS</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inference_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">inference_kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Fixed sklearn parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">classes_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_is_fitted</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate a unique hash for this object.&quot;&quot;&quot;</span>
+
+        <span class="c1"># All parameters that affect the model&#39;s behavior</span>
+        <span class="n">hash_params</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">model_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="p">,</span>
+            <span class="n">task_hash</span><span class="o">=</span><span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="p">),</span>
+            <span class="n">custom_prompt_prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">custom_prompt_prefix</span><span class="p">,</span>
+            <span class="n">correct_order_bias</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">correct_order_bias</span><span class="p">,</span>
+            <span class="n">threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="p">,</span>
+            <span class="n">encode_row_hash</span><span class="o">=</span><span class="n">hash_function</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">encode_row</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">hash_dict</span><span class="p">(</span><span class="n">hash_params</span><span class="p">),</span> <span class="mi">16</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">model_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">task</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TaskMetadata</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">custom_prompt_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_custom_prompt_prefix</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">encode_row</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">],</span> <span class="nb">str</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_encode_row</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">threshold</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_threshold</span>
+
+    <span class="nd">@threshold</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">threshold</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">value</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Threshold must be between 0 and 1; got </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Clip threshold to valid range</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_threshold</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Setting </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="si">}</span><span class="s2"> threshold to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_threshold</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">correct_order_bias</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_correct_order_bias</span>
+
+    <span class="nd">@correct_order_bias</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">correct_order_bias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_correct_order_bias</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Setting </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="si">}</span><span class="s2"> correct_order_bias to </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">seed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_seed</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">inference_kwargs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inference_kwargs</span>
+
+<div class="viewcode-block" id="LLMClassifier.set_inference_kwargs">
+<a class="viewcode-back" href="../../../source/folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.set_inference_kwargs">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_inference_kwargs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set inference kwargs for the model.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inference_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__sklearn_is_fitted__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check fitted status and return a Boolean value.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_is_fitted&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_fitted</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_positive_class_scores</span><span class="p">(</span><span class="n">risk_scores</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Helper function to get positive class scores from risk scores.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">risk_scores</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">risk_scores</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">risk_scores</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_make_predictions_multiclass</span><span class="p">(</span><span class="n">pos_class_scores</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Converts positive class scores to multiclass scores.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="mi">1</span> <span class="o">-</span> <span class="n">pos_class_scores</span><span class="p">,</span> <span class="n">pos_class_scores</span><span class="p">])</span>
+
+<div class="viewcode-block" id="LLMClassifier.fit">
+<a class="viewcode-back" href="../../../source/folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.fit">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">false_pos_cost</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">false_neg_cost</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Uses the provided data sample to fit the prediction threshold.&quot;&quot;&quot;</span>
+
+        <span class="c1"># Compute risk estimates for the data</span>
+        <span class="n">y_pred_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_positive_class_scores</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Compute the best threshold for the given data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span> <span class="o">=</span> <span class="n">compute_best_threshold</span><span class="p">(</span>
+            <span class="n">y</span><span class="p">,</span> <span class="n">y_pred_scores</span><span class="p">,</span>
+            <span class="n">false_pos_cost</span><span class="o">=</span><span class="n">false_pos_cost</span><span class="p">,</span>
+            <span class="n">false_neg_cost</span><span class="o">=</span><span class="n">false_neg_cost</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Update sklearn is_fitted status</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_is_fitted</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_predictions_from_disk</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">predictions_save_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Attempts to load pre-computed predictions from disk.&quot;&quot;&quot;</span>
+
+        <span class="c1"># Load predictions from disk</span>
+        <span class="n">predictions_save_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">predictions_save_path</span><span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.csv&quot;</span><span class="p">)</span>
+        <span class="n">predictions_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">predictions_save_path</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Check if index matches our current dataframe</span>
+        <span class="k">if</span> <span class="n">predictions_df</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">predictions_df</span><span class="p">[</span><span class="n">SCORE_COL_NAME</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Saved predictions do not match the current dataframe.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="LLMClassifier.predict">
+<a class="viewcode-back" href="../../../source/folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.predict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+        <span class="n">predictions_save_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">labels</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns binary predictions for the given data.&quot;&quot;&quot;</span>
+        <span class="n">risk_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span>
+            <span class="n">data</span><span class="p">,</span>
+            <span class="n">predictions_save_path</span><span class="o">=</span><span class="n">predictions_save_path</span><span class="p">,</span>
+            <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_positive_class_scores</span><span class="p">(</span><span class="n">risk_scores</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LLMClassifier.predict_proba">
+<a class="viewcode-back" href="../../../source/folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.predict_proba">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">predict_proba</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+        <span class="n">predictions_save_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">labels</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns probability estimates for the given data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : pd.DataFrame</span>
+<span class="sd">            The DataFrame to compute risk estimates for.</span>
+<span class="sd">        predictions_save_path : str | Path, optional</span>
+<span class="sd">            If provided, will save the computed risk scores to this path in</span>
+<span class="sd">            disk. If the path exists, will attempt to load pre-computed</span>
+<span class="sd">            predictions from this path.</span>
+<span class="sd">        labels : pd.Series | np.ndarray, optional</span>
+<span class="sd">            The labels corresponding to the provided data. Not required to</span>
+<span class="sd">            compute predictions. Will only be used to save alongside predictions</span>
+<span class="sd">            to disk.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        risk_scores : np.ndarray</span>
+<span class="sd">            The risk scores for the given data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Validate arguments</span>
+        <span class="k">if</span> <span class="n">labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">predictions_save_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                <span class="s2">&quot;** Ignoring `labels` argument as `predictions_save_path` was not provided. **&quot;</span>
+                <span class="s2">&quot;The `labels` argument is only used in conjunction with &quot;</span>
+                <span class="s2">&quot;`predictions_save_path` to save alongside predictions to disk. &quot;</span><span class="p">)</span>
+
+        <span class="c1"># Check if `predictions_save_path` exists and load predictions if possible</span>
+        <span class="k">if</span> <span class="n">predictions_save_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">Path</span><span class="p">(</span><span class="n">predictions_save_path</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_predictions_from_disk</span><span class="p">(</span><span class="n">predictions_save_path</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loaded predictions from </span><span class="si">{</span><span class="n">predictions_save_path</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_predictions_multiclass</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Failed to load predictions from </span><span class="si">{</span><span class="n">predictions_save_path</span><span class="si">}</span><span class="s2">. &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Re-computing predictions and overwriting local file...&quot;</span>
+                <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;`data` must be a pd.DataFrame, received </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="si">}</span><span class="s2"> instead.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Compute risk estimates</span>
+        <span class="n">risk_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_risk_estimates_for_dataframe</span><span class="p">(</span><span class="n">df</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="c1"># Save to disk if `predictions_save_path` is provided</span>
+        <span class="k">if</span> <span class="n">predictions_save_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">predictions_save_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">predictions_save_path</span><span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.csv&quot;</span><span class="p">)</span>
+
+            <span class="n">predictions_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">risk_scores</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="n">SCORE_COL_NAME</span><span class="p">])</span>
+            <span class="n">predictions_df</span><span class="p">[</span><span class="n">LABEL_COL_NAME</span><span class="p">]</span> <span class="o">=</span> <span class="n">labels</span>
+            <span class="n">predictions_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">predictions_save_path</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;w&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_predictions_multiclass</span><span class="p">(</span><span class="n">risk_scores</span><span class="p">)</span></div>
+
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_query_prompt_risk_estimates_batch</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">prompts_batch</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">question</span><span class="p">:</span> <span class="n">MultipleChoiceQA</span> <span class="o">|</span> <span class="n">DirectNumericQA</span><span class="p">,</span>
+        <span class="n">context_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Query model with a batch of prompts and return risk estimates.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Calling an abstract method :: Use one of the subclasses of LLMClassifier.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LLMClassifier.compute_risk_estimates_for_dataframe">
+<a class="viewcode-back" href="../../../source/folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.compute_risk_estimates_for_dataframe">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_risk_estimates_for_dataframe</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute risk estimates for a specific dataframe (internal helper function).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        df : pd.DataFrame</span>
+<span class="sd">            The dataframe to compute risk estimates for.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        risk_scores : np.ndarray</span>
+<span class="sd">            The risk estimates for each row in the dataframe.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Initialize risk scores and other constants</span>
+        <span class="n">fill_value</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">risk_scores</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">))</span>
+        <span class="n">risk_scores</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="n">fill_value</span><span class="p">)</span>    <span class="c1"># fill with -1&#39;s</span>
+
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inference_kwargs</span><span class="p">[</span><span class="s2">&quot;batch_size&quot;</span><span class="p">]</span>
+        <span class="n">context_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inference_kwargs</span><span class="p">[</span><span class="s2">&quot;context_size&quot;</span><span class="p">]</span>
+        <span class="n">num_batches</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span> <span class="o">/</span> <span class="n">batch_size</span><span class="p">)</span>
+
+        <span class="c1"># Get questions to ask</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">question</span>
+        <span class="n">questions</span> <span class="o">=</span> <span class="p">[</span><span class="n">q</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">correct_order_bias</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">DirectNumericQA</span><span class="p">):</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;No need to correct ordering bias for DirectNumericQA prompting.&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">MultipleChoiceQA</span><span class="p">):</span>
+                <span class="n">questions</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">MultipleChoiceQA</span><span class="o">.</span><span class="n">create_answer_keys_permutations</span><span class="p">(</span><span class="n">q</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown question type &#39;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">q</span><span class="p">)</span><span class="si">}</span><span class="s2">&#39;; cannot correct ordering bias.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Compute risk estimates per batch</span>
+        <span class="k">for</span> <span class="n">batch_idx</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">num_batches</span><span class="p">),</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Computing risk estimates&quot;</span><span class="p">):</span>
+            <span class="n">start_idx</span> <span class="o">=</span> <span class="n">batch_idx</span> <span class="o">*</span> <span class="n">batch_size</span>
+            <span class="n">end_idx</span> <span class="o">=</span> <span class="nb">min</span><span class="p">((</span><span class="n">batch_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">batch_size</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">))</span>
+            <span class="n">batch_data</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">start_idx</span><span class="p">:</span><span class="n">end_idx</span><span class="p">]</span>
+
+            <span class="n">batch_risk_scores</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">batch_data</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">questions</span><span class="p">)))</span>
+            <span class="k">for</span> <span class="n">q_idx</span><span class="p">,</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">questions</span><span class="p">):</span>
+
+                <span class="c1"># Encode batch data into natural text prompts</span>
+                <span class="n">data_texts_batch</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">encode_row</span><span class="p">(</span>
+                        <span class="n">row</span><span class="p">,</span>
+                        <span class="n">question</span><span class="o">=</span><span class="n">q</span><span class="p">,</span>
+                        <span class="n">custom_prompt_prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">custom_prompt_prefix</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">batch_data</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()</span>
+                <span class="p">]</span>
+
+                <span class="c1"># Query the model with the batch of data</span>
+                <span class="n">risk_estimates_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query_prompt_risk_estimates_batch</span><span class="p">(</span>
+                    <span class="n">prompts_batch</span><span class="o">=</span><span class="n">data_texts_batch</span><span class="p">,</span>
+                    <span class="n">question</span><span class="o">=</span><span class="n">q</span><span class="p">,</span>
+                    <span class="n">context_size</span><span class="o">=</span><span class="n">context_size</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="c1"># Store risk estimates for current question</span>
+                <span class="n">batch_risk_scores</span><span class="p">[:,</span> <span class="n">q_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">risk_estimates_batch</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">risk_scores</span><span class="p">[</span><span class="n">start_idx</span><span class="p">:</span> <span class="n">end_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">batch_risk_scores</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Check that all risk scores were computed</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">risk_scores</span><span class="p">,</span> <span class="n">fill_value</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">risk_scores</span></div>
+
+
+<div class="viewcode-block" id="LLMClassifier.compute_risk_estimates_for_dataset">
+<a class="viewcode-back" href="../../../source/folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.compute_risk_estimates_for_dataset">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_risk_estimates_for_dataset</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">dataset</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Computes risk estimates for each row in the dataset.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dataset : Dataset</span>
+<span class="sd">            The dataset to compute risk estimates for.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        results : dict[str, np.ndarray]</span>
+<span class="sd">            The risk estimates for each data type in the dataset (usually &quot;train&quot;,</span>
+<span class="sd">            &quot;val&quot;, &quot;test&quot;).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data_types</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;train&quot;</span><span class="p">:</span> <span class="n">dataset</span><span class="o">.</span><span class="n">get_train</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="s2">&quot;test&quot;</span><span class="p">:</span> <span class="n">dataset</span><span class="o">.</span><span class="n">get_test</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">dataset</span><span class="o">.</span><span class="n">get_val</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data_types</span><span class="p">[</span><span class="s2">&quot;val&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">get_val</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">data_type</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_risk_estimates_for_dataframe</span><span class="p">(</span>
+                <span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">data_type</span><span class="p">,</span> <span class="n">df</span> <span class="ow">in</span> <span class="n">data_types</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">results</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

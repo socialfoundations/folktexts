@@ -1,0 +1,361 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>folktexts.cli package &mdash; folktexts 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../_static/custom.js?v=882eb7ae"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Notebooks Gallery" href="../notebooks.html" />
+    <link rel="prev" title="folktexts.classifier package" href="folktexts.classifier.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            folktexts
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../readme.html">Readme file</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">API reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="folktexts.html">folktexts package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="folktexts.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="folktexts.acs.html">folktexts.acs package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html">folktexts.classifier package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">folktexts.cli package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.html#module-folktexts.benchmark">folktexts.benchmark module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.html#module-folktexts.col_to_text">folktexts.col_to_text module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.html#module-folktexts.dataset">folktexts.dataset module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.html#module-folktexts.evaluation">folktexts.evaluation module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.html#module-folktexts.llm_utils">folktexts.llm_utils module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.html#module-folktexts.plotting">folktexts.plotting module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.html#module-folktexts.prompting">folktexts.prompting module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.html#module-folktexts.qa_interface">folktexts.qa_interface module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.html#module-folktexts.task">folktexts.task module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.html#module-folktexts.threshold">folktexts.threshold module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.html#module-folktexts">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../notebooks.html">Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">folktexts</a></li>
+          <li class="breadcrumb-item"><a href="folktexts.html">folktexts package</a></li>
+      <li class="breadcrumb-item active">folktexts.cli package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/source/folktexts.cli.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="folktexts-cli-package">
+<h1>folktexts.cli package<a class="headerlink" href="#folktexts-cli-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-folktexts.cli.download_models">
+<span id="folktexts-cli-download-models-module"></span><h2>folktexts.cli.download_models module<a class="headerlink" href="#module-folktexts.cli.download_models" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.cli.download_models.is_bf16_compatible">
+<span class="sig-prename descclassname"><span class="pre">folktexts.cli.download_models.</span></span><span class="sig-name descname"><span class="pre">is_bf16_compatible</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/cli/download_models.html#is_bf16_compatible"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.cli.download_models.is_bf16_compatible" title="Link to this definition"></a></dt>
+<dd><p>Checks if the current environment is bfloat16 compatible.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.cli.download_models.main">
+<span class="sig-prename descclassname"><span class="pre">folktexts.cli.download_models.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/cli/download_models.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.cli.download_models.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.cli.download_models.setup_arg_parser">
+<span class="sig-prename descclassname"><span class="pre">folktexts.cli.download_models.</span></span><span class="sig-name descname"><span class="pre">setup_arg_parser</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/cli/download_models.html#setup_arg_parser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.cli.download_models.setup_arg_parser" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ArgumentParser</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-folktexts.cli.eval_feature_importance">
+<span id="folktexts-cli-eval-feature-importance-module"></span><h2>folktexts.cli.eval_feature_importance module<a class="headerlink" href="#module-folktexts.cli.eval_feature_importance" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.cli.eval_feature_importance.compute_feature_importance">
+<span class="sig-prename descclassname"><span class="pre">folktexts.cli.eval_feature_importance.</span></span><span class="sig-name descname"><span class="pre">compute_feature_importance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">llm_clf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scorer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">results_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fit_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/cli/eval_feature_importance.html#compute_feature_importance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.cli.eval_feature_importance.compute_feature_importance" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.cli.eval_feature_importance.main">
+<span class="sig-prename descclassname"><span class="pre">folktexts.cli.eval_feature_importance.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/cli/eval_feature_importance.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.cli.eval_feature_importance.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.cli.eval_feature_importance.parse_feature_importance">
+<span class="sig-prename descclassname"><span class="pre">folktexts.cli.eval_feature_importance.</span></span><span class="sig-name descname"><span class="pre">parse_feature_importance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/cli/eval_feature_importance.html#parse_feature_importance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.cli.eval_feature_importance.parse_feature_importance" title="Link to this definition"></a></dt>
+<dd><p>Parse the results dictionary of sklearn’s permutation_importance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.cli.eval_feature_importance.setup_arg_parser">
+<span class="sig-prename descclassname"><span class="pre">folktexts.cli.eval_feature_importance.</span></span><span class="sig-name descname"><span class="pre">setup_arg_parser</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/cli/eval_feature_importance.html#setup_arg_parser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.cli.eval_feature_importance.setup_arg_parser" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ArgumentParser</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-folktexts.cli.experiments">
+<span id="folktexts-cli-experiments-module"></span><h2>folktexts.cli.experiments module<a class="headerlink" href="#module-folktexts.cli.experiments" title="Link to this heading"></a></h2>
+<p>General constants and helper classes to run the main experiments on htcondor.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="folktexts.cli.experiments.Experiment">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">folktexts.cli.experiments.</span></span><span class="sig-name descname"><span class="pre">Experiment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">executable_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_vars=''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kwargs=&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_cpus=4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_gpus=0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_memory_gb=62</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_gpu_memory_gb=30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">job_bid=25</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/cli/experiments.html#Experiment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.cli.experiments.Experiment" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A generic experiment to run on the cluster.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.cli.experiments.Experiment.env_vars">
+<span class="sig-name descname"><span class="pre">env_vars</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></em><a class="headerlink" href="#folktexts.cli.experiments.Experiment.env_vars" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.cli.experiments.Experiment.executable_path">
+<span class="sig-name descname"><span class="pre">executable_path</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></em><a class="headerlink" href="#folktexts.cli.experiments.Experiment.executable_path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.cli.experiments.Experiment.get_all_experiments">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_all_experiments</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/cli/experiments.html#Experiment.get_all_experiments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.cli.experiments.Experiment.get_all_experiments" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.cli.experiments.Experiment.hash">
+<span class="sig-name descname"><span class="pre">hash</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/cli/experiments.html#Experiment.hash"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.cli.experiments.Experiment.hash" title="Link to this definition"></a></dt>
+<dd><p>Generate a hexadecimal hash that uniquely identifies the experiment’s arguments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.cli.experiments.Experiment.job_bid">
+<span class="sig-name descname"><span class="pre">job_bid</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">25</span></em><a class="headerlink" href="#folktexts.cli.experiments.Experiment.job_bid" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.cli.experiments.Experiment.job_cpus">
+<span class="sig-name descname"><span class="pre">job_cpus</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#folktexts.cli.experiments.Experiment.job_cpus" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.cli.experiments.Experiment.job_gpu_memory_gb">
+<span class="sig-name descname"><span class="pre">job_gpu_memory_gb</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">30</span></em><a class="headerlink" href="#folktexts.cli.experiments.Experiment.job_gpu_memory_gb" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.cli.experiments.Experiment.job_gpus">
+<span class="sig-name descname"><span class="pre">job_gpus</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#folktexts.cli.experiments.Experiment.job_gpus" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.cli.experiments.Experiment.job_memory_gb">
+<span class="sig-name descname"><span class="pre">job_memory_gb</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">62</span></em><a class="headerlink" href="#folktexts.cli.experiments.Experiment.job_memory_gb" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.cli.experiments.Experiment.kwargs">
+<span class="sig-name descname"><span class="pre">kwargs</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></em><a class="headerlink" href="#folktexts.cli.experiments.Experiment.kwargs" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.cli.experiments.Experiment.to_dict">
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/cli/experiments.html#Experiment.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.cli.experiments.Experiment.to_dict" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.cli.experiments.launch_experiment_job">
+<span class="sig-prename descclassname"><span class="pre">folktexts.cli.experiments.</span></span><span class="sig-name descname"><span class="pre">launch_experiment_job</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/cli/experiments.html#launch_experiment_job"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.cli.experiments.launch_experiment_job" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-folktexts.cli.launch_experiments_htcondor">
+<span id="folktexts-cli-launch-experiments-htcondor-module"></span><h2>folktexts.cli.launch_experiments_htcondor module<a class="headerlink" href="#module-folktexts.cli.launch_experiments_htcondor" title="Link to this heading"></a></h2>
+<p>Launch htcondor jobs for all ACS benchmark experiments.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.cli.launch_experiments_htcondor.main">
+<span class="sig-prename descclassname"><span class="pre">folktexts.cli.launch_experiments_htcondor.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/cli/launch_experiments_htcondor.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.cli.launch_experiments_htcondor.main" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.cli.launch_experiments_htcondor.make_llm_clf_experiment">
+<span class="sig-prename descclassname"><span class="pre">folktexts.cli.launch_experiments_htcondor.</span></span><span class="sig-name descname"><span class="pre">make_llm_clf_experiment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">executable_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">results_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_vars_str</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/cli/launch_experiments_htcondor.html#make_llm_clf_experiment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.cli.launch_experiments_htcondor.make_llm_clf_experiment" title="Link to this definition"></a></dt>
+<dd><p>Create an experiment object to run.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#folktexts.cli.experiments.Experiment" title="folktexts.cli.experiments.Experiment"><code class="xref py py-class docutils literal notranslate"><span class="pre">Experiment</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.cli.launch_experiments_htcondor.setup_arg_parser">
+<span class="sig-prename descclassname"><span class="pre">folktexts.cli.launch_experiments_htcondor.</span></span><span class="sig-name descname"><span class="pre">setup_arg_parser</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/cli/launch_experiments_htcondor.html#setup_arg_parser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.cli.launch_experiments_htcondor.setup_arg_parser" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ArgumentParser</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-folktexts.cli.rerun_experiment">
+<span id="folktexts-cli-rerun-experiment-module"></span><h2>folktexts.cli.rerun_experiment module<a class="headerlink" href="#module-folktexts.cli.rerun_experiment" title="Link to this heading"></a></h2>
+<p>Helper script to re-run a single experiment locally.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.cli.rerun_experiment.setup_arg_parser">
+<span class="sig-prename descclassname"><span class="pre">folktexts.cli.rerun_experiment.</span></span><span class="sig-name descname"><span class="pre">setup_arg_parser</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/cli/rerun_experiment.html#setup_arg_parser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.cli.rerun_experiment.setup_arg_parser" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ArgumentParser</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-folktexts.cli.run_acs_benchmark">
+<span id="folktexts-cli-run-acs-benchmark-module"></span><h2>folktexts.cli.run_acs_benchmark module<a class="headerlink" href="#module-folktexts.cli.run_acs_benchmark" title="Link to this heading"></a></h2>
+<p>Runs the LLM calibration benchmark from the command line.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.cli.run_acs_benchmark.main">
+<span class="sig-prename descclassname"><span class="pre">folktexts.cli.run_acs_benchmark.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/cli/run_acs_benchmark.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.cli.run_acs_benchmark.main" title="Link to this definition"></a></dt>
+<dd><p>Prepare and launch the LLM-as-classifier experiment using ACS data.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.cli.run_acs_benchmark.setup_arg_parser">
+<span class="sig-prename descclassname"><span class="pre">folktexts.cli.run_acs_benchmark.</span></span><span class="sig-name descname"><span class="pre">setup_arg_parser</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/cli/run_acs_benchmark.html#setup_arg_parser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.cli.run_acs_benchmark.setup_arg_parser" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">ArgumentParser</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-folktexts.cli">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-folktexts.cli" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="folktexts.classifier.html" class="btn btn-neutral float-left" title="folktexts.classifier package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../notebooks.html" class="btn btn-neutral float-right" title="Notebooks Gallery" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

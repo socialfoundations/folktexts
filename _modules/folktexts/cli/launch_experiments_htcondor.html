@@ -1,0 +1,374 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>folktexts.cli.launch_experiments_htcondor &mdash; folktexts 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../../../_static/custom.js?v=882eb7ae"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            folktexts
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/modules.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">folktexts.cli.launch_experiments_htcondor</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for folktexts.cli.launch_experiments_htcondor</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="sd">&quot;&quot;&quot;Launch htcondor jobs for all ACS benchmark experiments.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pprint</span><span class="w"> </span><span class="kn">import</span> <span class="n">pprint</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts._io</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_json</span><span class="p">,</span> <span class="n">save_json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.llm_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_model_folder_path</span><span class="p">,</span> <span class="n">get_model_size_B</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.experiments</span><span class="w"> </span><span class="kn">import</span> <span class="n">Experiment</span><span class="p">,</span> <span class="n">launch_experiment_job</span>
+
+<span class="c1"># All ACS prediction tasks</span>
+<span class="n">ACS_TASKS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;ACSIncome&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ACSEmployment&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ACSMobility&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ACSTravelTime&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ACSPublicCoverage&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1">################</span>
+<span class="c1"># Useful paths #</span>
+<span class="c1">################</span>
+<span class="n">ROOT_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/fast/groups/sf&quot;</span><span class="p">)</span>
+<span class="c1"># ROOT_DIR = Path(&quot;~&quot;).expanduser().resolve()               # on local machine</span>
+
+<span class="c1"># ACS data directory</span>
+<span class="n">ACS_DATA_DIR</span> <span class="o">=</span> <span class="n">ROOT_DIR</span> <span class="o">/</span> <span class="s2">&quot;data&quot;</span>
+
+<span class="c1"># Models save directory</span>
+<span class="n">MODELS_DIR</span> <span class="o">=</span> <span class="n">ROOT_DIR</span> <span class="o">/</span> <span class="s2">&quot;huggingface-models&quot;</span>
+
+
+<span class="c1">##################</span>
+<span class="c1"># Global configs #</span>
+<span class="c1">##################</span>
+<span class="n">BATCH_SIZE</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="n">CONTEXT_SIZE</span> <span class="o">=</span> <span class="mi">750</span>
+
+<span class="n">JOB_CPUS</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">JOB_MEMORY_GB</span> <span class="o">=</span> <span class="mi">60</span>
+<span class="n">JOB_BID</span> <span class="o">=</span> <span class="mi">250</span>
+
+<span class="c1"># LLMs to evaluate</span>
+<span class="n">LLM_MODELS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="c1"># Google Gemma2 models</span>
+    <span class="s2">&quot;google/gemma-2b&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;google/gemma-1.1-2b-it&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;google/gemma-7b&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;google/gemma-1.1-7b-it&quot;</span><span class="p">,</span>
+
+    <span class="s2">&quot;google/gemma-2-9b&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;google/gemma-2-9b-it&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;google/gemma-2-27b&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;google/gemma-2-27b-it&quot;</span><span class="p">,</span>
+
+    <span class="c1"># Meta Llama3 models</span>
+    <span class="s2">&quot;meta-llama/Meta-Llama-3-8B&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;meta-llama/Meta-Llama-3-8B-Instruct&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;meta-llama/Meta-Llama-3-70B&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;meta-llama/Meta-Llama-3-70B-Instruct&quot;</span><span class="p">,</span>
+
+    <span class="c1"># Mistral AI models</span>
+    <span class="s2">&quot;mistralai/Mistral-7B-v0.1&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;mistralai/Mistral-7B-Instruct-v0.2&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;mistralai/Mixtral-8x7B-v0.1&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;mistralai/Mixtral-8x7B-Instruct-v0.1&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;mistralai/Mixtral-8x22B-v0.1&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;mistralai/Mixtral-8x22B-Instruct-v0.1&quot;</span><span class="p">,</span>
+
+    <span class="c1"># Yi models</span>
+    <span class="s2">&quot;01-ai/Yi-34B&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;01-ai/Yi-34B-Chat&quot;</span><span class="p">,</span>
+
+    <span class="c1"># Qwen2 models</span>
+    <span class="c1"># &quot;Qwen/Qwen2-1.5B&quot;,</span>
+    <span class="c1"># &quot;Qwen/Qwen2-1.5B-Instruct&quot;,</span>
+    <span class="c1"># &quot;Qwen/Qwen2-7B&quot;,</span>
+    <span class="c1"># &quot;Qwen/Qwen2-7B-Instruct&quot;,</span>
+    <span class="c1"># &quot;Qwen/Qwen2-72B&quot;,</span>
+    <span class="c1"># &quot;Qwen/Qwen2-72B-Instruct&quot;,</span>
+<span class="p">]</span>
+
+
+<span class="c1"># Function that defines common settings among all LLM-as-clf experiments</span>
+<div class="viewcode-block" id="make_llm_clf_experiment">
+<a class="viewcode-back" href="../../../source/folktexts.cli.html#folktexts.cli.launch_experiments_htcondor.make_llm_clf_experiment">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_llm_clf_experiment</span><span class="p">(</span>
+    <span class="n">executable_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">task</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">results_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">env_vars_str</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Experiment</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create an experiment object to run.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Get model size</span>
+    <span class="n">model_size_B</span> <span class="o">=</span> <span class="n">get_model_size_B</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+
+    <span class="c1"># Get model path</span>
+    <span class="n">model_path</span> <span class="o">=</span> <span class="n">get_model_folder_path</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">root_dir</span><span class="o">=</span><span class="n">MODELS_DIR</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">Path</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="s2">&quot;use_web_api_model&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Model folder not found at &#39;</span><span class="si">{</span><span class="n">model_path</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Split experiment and job kwargs</span>
+    <span class="n">job_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">val</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;job_&quot;</span><span class="p">)}</span>
+    <span class="n">experiment_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">val</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">job_kwargs</span><span class="p">}</span>
+
+    <span class="c1"># Set default job kwargs</span>
+    <span class="n">job_kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;job_cpus&quot;</span><span class="p">,</span> <span class="n">JOB_CPUS</span><span class="p">)</span>
+    <span class="n">job_kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;job_gpus&quot;</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">model_size_B</span> <span class="o">/</span> <span class="mi">40</span><span class="p">))</span>     <span class="c1"># One GPU per 40B parameters</span>
+    <span class="n">job_kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;job_memory_gb&quot;</span><span class="p">,</span> <span class="n">JOB_MEMORY_GB</span><span class="p">)</span>
+    <span class="n">job_kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;job_gpu_memory_gb&quot;</span><span class="p">,</span> <span class="mi">35</span> <span class="k">if</span> <span class="n">model_size_B</span> <span class="o">&lt;</span> <span class="mi">5</span> <span class="k">else</span> <span class="mi">60</span><span class="p">)</span>
+    <span class="n">job_kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;job_bid&quot;</span><span class="p">,</span> <span class="n">JOB_BID</span><span class="p">)</span>
+
+    <span class="c1"># Set default experiment kwargs</span>
+    <span class="n">n_shots</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">experiment_kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;few_shot&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">experiment_kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;batch_size&quot;</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">BATCH_SIZE</span> <span class="o">/</span> <span class="n">n_shots</span><span class="p">))</span>
+    <span class="n">experiment_kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;context_size&quot;</span><span class="p">,</span> <span class="n">CONTEXT_SIZE</span> <span class="o">*</span> <span class="n">n_shots</span><span class="p">)</span>
+    <span class="n">experiment_kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;data_dir&quot;</span><span class="p">,</span> <span class="n">ACS_DATA_DIR</span><span class="o">.</span><span class="n">as_posix</span><span class="p">())</span>
+    <span class="c1"># experiment_kwargs.setdefault(&quot;fit_threshold&quot;, FIT_THRESHOLD)</span>
+
+    <span class="c1"># Define experiment</span>
+    <span class="n">exp</span> <span class="o">=</span> <span class="n">Experiment</span><span class="p">(</span>
+        <span class="n">executable_path</span><span class="o">=</span><span class="n">executable_path</span><span class="p">,</span>
+        <span class="n">env_vars</span><span class="o">=</span><span class="n">env_vars_str</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">=</span><span class="n">model_path</span> <span class="k">if</span> <span class="s2">&quot;use_web_api_model&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="k">else</span> <span class="n">model_name</span><span class="p">,</span>
+            <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span>
+            <span class="n">results_dir</span><span class="o">=</span><span class="n">results_dir</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">experiment_kwargs</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="o">**</span><span class="n">job_kwargs</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Create LLM results directory</span>
+    <span class="n">save_json</span><span class="p">(</span>
+        <span class="n">obj</span><span class="o">=</span><span class="n">exp</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span>
+        <span class="n">path</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="n">results_dir</span><span class="p">)</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;experiment.</span><span class="si">{</span><span class="n">exp</span><span class="o">.</span><span class="n">hash</span><span class="p">()</span><span class="si">}</span><span class="s2">.json&quot;</span><span class="p">,</span>
+        <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">exp</span></div>
+
+
+
+<div class="viewcode-block" id="setup_arg_parser">
+<a class="viewcode-back" href="../../../source/folktexts.cli.html#folktexts.cli.launch_experiments_htcondor.setup_arg_parser">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">setup_arg_parser</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">:</span>
+    <span class="c1"># Init parser</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Launch experiments to evaluate LLMs as classifiers.&quot;</span><span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--executable-path&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;[string] Path to the executable script to run.&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--results-dir&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;[string] Directory under which results will be saved.&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--model&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;[string] Model name on huggingface hub - can provide multiple!&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;append&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--task&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;[string] ACS task name to run experiments on - can provide multiple!&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;append&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--dry-run&quot;</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Construct folder structure and print experiments without launching them.&quot;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--experiment-json&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;[string] Path to an experiment JSON file to load. Will override all other args.&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--environment&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;[string] String defining environment variables to be passed to &quot;</span>
+            <span class="s2">&quot;launched jobs, in the form &#39;VAR1=val1;VAR2=val2;...&#39;.&quot;</span>
+        <span class="p">),</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">parser</span></div>
+
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../../source/folktexts.cli.html#folktexts.cli.launch_experiments_htcondor.main">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="c1"># Parse command-line arguments</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">setup_arg_parser</span><span class="p">()</span>
+    <span class="n">args</span><span class="p">,</span> <span class="n">extra_kwargs</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">()</span>
+
+    <span class="c1"># Parse extra kwargs</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">cmd_line_args_to_kwargs</span>
+    <span class="n">extra_kwargs</span> <span class="o">=</span> <span class="n">cmd_line_args_to_kwargs</span><span class="p">(</span><span class="n">extra_kwargs</span><span class="p">)</span>
+
+    <span class="c1"># Prepare command-line arguments</span>
+    <span class="n">models</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">model</span> <span class="ow">or</span> <span class="n">LLM_MODELS</span>
+    <span class="n">tasks</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">task</span> <span class="ow">or</span> <span class="n">ACS_TASKS</span>
+    <span class="n">executable_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">executable_path</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">executable_path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">executable_path</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Executable script not found at &#39;</span><span class="si">{</span><span class="n">executable_path</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Set-up results directory</span>
+    <span class="n">Path</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">results_dir</span><span class="p">)</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Load experiment from JSON file if provided</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">experiment_json</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Launching job for experiment at &#39;</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">experiment_json</span><span class="si">}</span><span class="s2">&#39;...&quot;</span><span class="p">)</span>
+        <span class="n">exp</span> <span class="o">=</span> <span class="n">Experiment</span><span class="p">(</span><span class="o">**</span><span class="n">load_json</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">experiment_json</span><span class="p">))</span>
+        <span class="n">all_experiments</span> <span class="o">=</span> <span class="p">[</span><span class="n">exp</span><span class="p">]</span>
+
+    <span class="c1"># Otherwise, run all experiments planned</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">all_experiments</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">make_llm_clf_experiment</span><span class="p">(</span>
+                <span class="n">executable_path</span><span class="o">=</span><span class="n">executable_path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">(),</span>
+                <span class="n">model_name</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span>
+                <span class="n">results_dir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">results_dir</span><span class="p">,</span>
+                <span class="n">env_vars_str</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">environment</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">extra_kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">model</span> <span class="ow">in</span> <span class="n">models</span>
+            <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">tasks</span>
+        <span class="p">]</span>
+
+    <span class="c1"># Log total number of experiments</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Launching </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">all_experiments</span><span class="p">)</span><span class="si">}</span><span class="s2"> experiment(s)...</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">exp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">all_experiments</span><span class="p">):</span>
+        <span class="n">cluster_id</span> <span class="o">=</span> <span class="n">launch_experiment_job</span><span class="p">(</span><span class="n">exp</span><span class="p">)</span><span class="o">.</span><span class="n">cluster</span><span class="p">()</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">dry_run</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">2</span><span class="si">}</span><span class="s2">. cluster-id=</span><span class="si">{</span><span class="n">cluster_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">pprint</span><span class="p">(</span><span class="n">exp</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,570 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>folktexts.evaluation &mdash; folktexts 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../../_static/custom.js?v=882eb7ae"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            folktexts
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../readme.html">Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../notebooks.html">Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">folktexts.evaluation</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for folktexts.evaluation</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Module to map risk-estimates to a variety of evaluation metrics.</span>
+
+<span class="sd">Notes</span>
+<span class="sd">-----</span>
+<span class="sd">Code based on the `error_parity.evaluation` module,</span>
+<span class="sd">at: https://github.com/socialfoundations/error-parity/blob/main/error_parity/evaluation.py</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">statistics</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">netcal.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">ECE</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">brier_score_loss</span><span class="p">,</span> <span class="n">confusion_matrix</span><span class="p">,</span> <span class="n">log_loss</span><span class="p">,</span> <span class="n">roc_auc_score</span><span class="p">,</span> <span class="n">roc_curve</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">is_valid_number</span><span class="p">,</span> <span class="n">join_dictionaries</span><span class="p">,</span> <span class="n">safe_division</span>
+
+
+<div class="viewcode-block" id="evaluate_binary_predictions">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.evaluation.evaluate_binary_predictions">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">evaluate_binary_predictions</span><span class="p">(</span><span class="n">y_true</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Evaluates the provided binary predictions on common performance metrics.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    y_true : np.ndarray</span>
+<span class="sd">        The true class labels.</span>
+<span class="sd">    y_pred : np.ndarray</span>
+<span class="sd">        The binary predictions.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        A dictionary with key-value pairs of (metric name, metric value).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Compute confusion matrix</span>
+    <span class="n">tn</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">tp</span> <span class="o">=</span> <span class="n">confusion_matrix</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+    <span class="n">tn</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">tp</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="p">(</span><span class="n">tn</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">tp</span><span class="p">))</span>
+
+    <span class="n">total</span> <span class="o">=</span> <span class="n">tn</span> <span class="o">+</span> <span class="n">fp</span> <span class="o">+</span> <span class="n">fn</span> <span class="o">+</span> <span class="n">tp</span>
+    <span class="n">pred_pos</span> <span class="o">=</span> <span class="n">tp</span> <span class="o">+</span> <span class="n">fp</span>
+    <span class="n">pred_neg</span> <span class="o">=</span> <span class="n">tn</span> <span class="o">+</span> <span class="n">fn</span>
+    <span class="k">assert</span> <span class="n">pred_pos</span> <span class="o">+</span> <span class="n">pred_neg</span> <span class="o">==</span> <span class="n">total</span>
+
+    <span class="n">label_pos</span> <span class="o">=</span> <span class="n">tp</span> <span class="o">+</span> <span class="n">fn</span>
+    <span class="n">label_neg</span> <span class="o">=</span> <span class="n">tn</span> <span class="o">+</span> <span class="n">fp</span>
+    <span class="k">assert</span> <span class="n">label_pos</span> <span class="o">+</span> <span class="n">label_neg</span> <span class="o">==</span> <span class="n">total</span>
+
+    <span class="n">results</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># Accuracy</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;accuracy&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">tp</span> <span class="o">+</span> <span class="n">tn</span><span class="p">)</span> <span class="o">/</span> <span class="n">total</span>
+
+    <span class="c1"># True Positive Rate (Recall)</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;tpr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">safe_division</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="n">label_pos</span><span class="p">,</span> <span class="n">worst_result</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># False Negative Rate (1 - TPR)</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;fnr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">safe_division</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">label_pos</span><span class="p">,</span> <span class="n">worst_result</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;tpr&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;fnr&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
+
+    <span class="c1"># False Positive Rate</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;fpr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">safe_division</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">label_neg</span><span class="p">,</span> <span class="n">worst_result</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># True Negative Rate</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;tnr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">safe_division</span><span class="p">(</span><span class="n">tn</span><span class="p">,</span> <span class="n">label_neg</span><span class="p">,</span> <span class="n">worst_result</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;tnr&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;fpr&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
+
+    <span class="c1"># Balanced accuracy</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;balanced_accuracy&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="s2">&quot;tpr&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="n">results</span><span class="p">[</span><span class="s2">&quot;tnr&quot;</span><span class="p">])</span>
+
+    <span class="c1"># Precision</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;precision&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">safe_division</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="n">pred_pos</span><span class="p">,</span> <span class="n">worst_result</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># Positive Prediction Rate</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;ppr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">safe_division</span><span class="p">(</span><span class="n">pred_pos</span><span class="p">,</span> <span class="n">total</span><span class="p">,</span> <span class="n">worst_result</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">results</span></div>
+
+
+
+<div class="viewcode-block" id="evaluate_binary_predictions_fairness">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.evaluation.evaluate_binary_predictions_fairness">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">evaluate_binary_predictions_fairness</span><span class="p">(</span>
+    <span class="n">y_true</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">y_pred</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">sensitive_attribute</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">return_groupwise_metrics</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">min_group_size</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.04</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Evaluates fairness of the given predictions.</span>
+
+<span class="sd">    Fairness metrics are computed as the ratios between group-wise performance</span>
+<span class="sd">    metrics.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    y_true : np.ndarray</span>
+<span class="sd">        The true class labels.</span>
+<span class="sd">    y_pred : np.ndarray</span>
+<span class="sd">        The discretized predictions.</span>
+<span class="sd">    sensitive_attribute : np.ndarray</span>
+<span class="sd">        The sensitive attribute (protected group membership).</span>
+<span class="sd">    return_groupwise_metrics : bool, optional</span>
+<span class="sd">        Whether to return group-wise performance metrics (bool: True) or only</span>
+<span class="sd">        the ratios between these metrics (bool: False), by default False.</span>
+<span class="sd">    min_group_size : float, optional</span>
+<span class="sd">        The minimum fraction of samples (as a fraction of the total number of</span>
+<span class="sd">        samples) that a group must have to be considered for fairness</span>
+<span class="sd">        evaluation, by default 0.04. This is meant to avoid evaluating metrics</span>
+<span class="sd">        on very small groups which leads to noisy and inconsistent results.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        A dictionary with key-value pairs of (metric name, metric value).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># All unique values for the sensitive attribute</span>
+    <span class="n">unique_groups</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">sensitive_attribute</span><span class="p">)</span>
+
+    <span class="n">results</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">groupwise_metrics</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">unique_metrics</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="c1"># Helper to compute key/name of a group-wise metric</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">group_metric_name</span><span class="p">(</span><span class="n">metric_name</span><span class="p">,</span> <span class="n">group_name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">metric_name</span><span class="si">}</span><span class="s2">_group=</span><span class="si">{</span><span class="n">group_name</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique_groups</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found a single unique sensitive attribute: </span><span class="si">{</span><span class="n">unique_groups</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">s_value</span> <span class="ow">in</span> <span class="n">unique_groups</span><span class="p">:</span>
+        <span class="c1"># Indices of samples that belong to the current group</span>
+        <span class="n">group_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">sensitive_attribute</span> <span class="o">==</span> <span class="n">s_value</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">group_indices</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">min_group_size</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_true</span><span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Skipping group </span><span class="si">{</span><span class="n">s_value</span><span class="si">}</span><span class="s2"> with </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">group_indices</span><span class="p">)</span><span class="si">}</span><span class="s2"> samples&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Filter labels and predictions for samples of the current group</span>
+        <span class="n">group_labels</span> <span class="o">=</span> <span class="n">y_true</span><span class="p">[</span><span class="n">group_indices</span><span class="p">]</span>
+        <span class="n">group_preds</span> <span class="o">=</span> <span class="n">y_pred</span><span class="p">[</span><span class="n">group_indices</span><span class="p">]</span>
+
+        <span class="c1"># Evaluate group-wise performance</span>
+        <span class="n">curr_group_metrics</span> <span class="o">=</span> <span class="n">evaluate_binary_predictions</span><span class="p">(</span><span class="n">group_labels</span><span class="p">,</span> <span class="n">group_preds</span><span class="p">)</span>
+
+        <span class="c1"># Add group-wise metrics to the dictionary</span>
+        <span class="n">groupwise_metrics</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="n">group_metric_name</span><span class="p">(</span><span class="n">metric_name</span><span class="p">,</span> <span class="n">s_value</span><span class="p">):</span> <span class="n">metric_value</span>
+                <span class="k">for</span> <span class="n">metric_name</span><span class="p">,</span> <span class="n">metric_value</span> <span class="ow">in</span> <span class="n">curr_group_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+
+        <span class="n">unique_metrics</span> <span class="o">=</span> <span class="n">unique_metrics</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">curr_group_metrics</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+    <span class="c1"># Compute ratios and absolute diffs</span>
+    <span class="k">for</span> <span class="n">metric_name</span> <span class="ow">in</span> <span class="n">unique_metrics</span><span class="p">:</span>
+        <span class="n">curr_metric_results</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">groupwise_metrics</span><span class="p">[</span><span class="n">curr_group_metric_name</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">group_name</span> <span class="ow">in</span> <span class="n">unique_groups</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">curr_group_metric_name</span> <span class="o">:=</span> <span class="n">group_metric_name</span><span class="p">(</span><span class="n">metric_name</span><span class="p">,</span> <span class="n">group_name</span><span class="p">))</span> <span class="ow">in</span> <span class="n">groupwise_metrics</span>
+        <span class="p">]</span>
+
+        <span class="c1"># Metrics&#39; ratio</span>
+        <span class="n">ratio_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">metric_name</span><span class="si">}</span><span class="s2">_ratio&quot;</span>
+
+        <span class="c1"># NOTE: should this ratio be computed w.r.t. global performance?</span>
+        <span class="c1"># - i.e., min(curr_metric_results) / global_curr_metric_result;</span>
+        <span class="c1"># - same question for the absolute diff calculations;</span>
+        <span class="n">results</span><span class="p">[</span><span class="n">ratio_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">safe_division</span><span class="p">(</span>
+            <span class="nb">min</span><span class="p">(</span><span class="n">curr_metric_results</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">curr_metric_results</span><span class="p">),</span>
+            <span class="n">worst_result</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Metrics&#39; absolute difference</span>
+        <span class="n">diff_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">metric_name</span><span class="si">}</span><span class="s2">_diff&quot;</span>
+        <span class="n">results</span><span class="p">[</span><span class="n">diff_name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">curr_metric_results</span><span class="p">)</span> <span class="o">-</span> <span class="nb">min</span><span class="p">(</span><span class="n">curr_metric_results</span><span class="p">)</span>
+
+    <span class="c1"># ** Equalized odds **</span>
+    <span class="c1"># default value: use maximum constraint violation for TPR and FPR equality</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;equalized_odds_ratio&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+        <span class="n">results</span><span class="p">[</span><span class="s2">&quot;fnr_ratio&quot;</span><span class="p">],</span>
+        <span class="n">results</span><span class="p">[</span><span class="s2">&quot;fpr_ratio&quot;</span><span class="p">],</span>
+    <span class="p">)</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;equalized_odds_diff&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+        <span class="n">results</span><span class="p">[</span><span class="s2">&quot;tpr_diff&quot;</span><span class="p">],</span>  <span class="c1"># same as FNR diff</span>
+        <span class="n">results</span><span class="p">[</span><span class="s2">&quot;fpr_diff&quot;</span><span class="p">],</span>  <span class="c1"># same as TNR diff</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Optionally, return group-wise metrics as well</span>
+    <span class="k">if</span> <span class="n">return_groupwise_metrics</span><span class="p">:</span>
+        <span class="n">results</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">groupwise_metrics</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">results</span></div>
+
+
+
+<div class="viewcode-block" id="compute_best_threshold">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.evaluation.compute_best_threshold">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_best_threshold</span><span class="p">(</span>
+    <span class="n">y_true</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">y_pred_scores</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">false_pos_cost</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">false_neg_cost</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes the binarization threshold that maximizes accuracy.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    y_true : np.ndarray</span>
+<span class="sd">        The true class labels.</span>
+<span class="sd">    y_pred_scores : np.ndarray</span>
+<span class="sd">        The predicted risk scores.</span>
+<span class="sd">    false_pos_cost : float, optional</span>
+<span class="sd">        The cost of a false positive error, by default 1.0</span>
+<span class="sd">    false_neg_cost : float, optional</span>
+<span class="sd">        The cost of a false negative error, by default 1.0</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    best_threshold : float</span>
+<span class="sd">        The threshold value that maximizes accuracy for the given predictions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Compute TPR and FPR for all possible thresholds</span>
+    <span class="n">fpr</span><span class="p">,</span> <span class="n">tpr</span><span class="p">,</span> <span class="n">thresholds</span> <span class="o">=</span> <span class="n">roc_curve</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred_scores</span><span class="p">)</span>
+
+    <span class="c1"># Compute the cost of each threshold</span>
+    <span class="n">costs</span> <span class="o">=</span> <span class="n">false_pos_cost</span> <span class="o">*</span> <span class="n">fpr</span> <span class="o">+</span> <span class="n">false_neg_cost</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">tpr</span><span class="p">)</span>
+
+    <span class="c1"># Get the threshold that minimizes the cost</span>
+    <span class="n">best_threshold</span> <span class="o">=</span> <span class="n">thresholds</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">costs</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">best_threshold</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="evaluate_predictions">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.evaluation.evaluate_predictions">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">evaluate_predictions</span><span class="p">(</span>
+    <span class="n">y_true</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">y_pred_scores</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">sensitive_attribute</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;best&quot;</span><span class="p">,</span>
+    <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Evaluates predictions on common performance and fairness metrics.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    y_true : np.ndarray</span>
+<span class="sd">        The true class labels.</span>
+<span class="sd">    y_pred_scores : np.ndarray</span>
+<span class="sd">        The predicted scores.</span>
+<span class="sd">    sensitive_attribute: np.ndarray, optional</span>
+<span class="sd">        The sensitive attribute data. Will compute fairness metrics if provided.</span>
+<span class="sd">    threshold : float | str, optional</span>
+<span class="sd">        The threshold to use for binarizing the predictions, or &quot;best&quot; to infer</span>
+<span class="sd">        which threshold maximizes accuracy.</span>
+<span class="sd">    model_name : str, optional</span>
+<span class="sd">        The name of the model to be used on the plots, by default None.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    results : dict</span>
+<span class="sd">        A dictionary with key-value pairs of (metric name, metric value).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Compute threshold if necessary</span>
+    <span class="k">if</span> <span class="n">threshold</span> <span class="o">==</span> <span class="s2">&quot;best&quot;</span><span class="p">:</span>
+        <span class="n">threshold</span> <span class="o">=</span> <span class="n">compute_best_threshold</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred_scores</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">is_valid_number</span><span class="p">(</span><span class="n">threshold</span><span class="p">)</span> <span class="ow">and</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">threshold</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">,</span> \
+        <span class="sa">f</span><span class="s2">&quot;Invalid threshold: </span><span class="si">{</span><span class="n">threshold</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="c1"># Save initial results&#39; statistics</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;threshold&quot;</span><span class="p">:</span> <span class="n">threshold</span><span class="p">,</span>
+        <span class="s2">&quot;n_samples&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_true</span><span class="p">),</span>
+        <span class="s2">&quot;n_positives&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y_true</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+        <span class="s2">&quot;n_negatives&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_true</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y_true</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
+        <span class="s2">&quot;model_name&quot;</span><span class="p">:</span> <span class="n">model_name</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="c1"># Compute binary predictions using the default threshold</span>
+    <span class="n">y_pred_binary</span> <span class="o">=</span> <span class="p">(</span><span class="n">y_pred_scores</span> <span class="o">&gt;=</span> <span class="n">threshold</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+    <span class="c1"># Evaluate binary predictions</span>
+    <span class="n">results</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">evaluate_binary_predictions</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred_binary</span><span class="p">))</span>
+
+    <span class="c1"># Add loss functions as proxies for calibration</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;log_loss&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">log_loss</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred_scores</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;brier_score_loss&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">brier_score_loss</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred_scores</span><span class="p">))</span>
+
+    <span class="c1"># Evaluate fairness metrics</span>
+    <span class="k">if</span> <span class="n">sensitive_attribute</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">results</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">evaluate_binary_predictions_fairness</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred_binary</span><span class="p">,</span> <span class="n">sensitive_attribute</span><span class="p">))</span>
+
+    <span class="c1"># Compute additional metrics</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;roc_auc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">roc_auc_score</span><span class="p">(</span><span class="n">y_true</span><span class="p">,</span> <span class="n">y_pred_scores</span><span class="p">))</span>
+
+    <span class="c1"># Compute Expected Calibration Error</span>
+    <span class="c1"># TODO: re-implement ECE scorer to avoid including 10 other dependencies for this one metric...</span>
+    <span class="n">class_preds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="mi">1</span> <span class="o">-</span> <span class="n">y_pred_scores</span><span class="p">,</span> <span class="n">y_pred_scores</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">n_bins</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="n">results</span><span class="p">[</span><span class="s2">&quot;ece&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ECE</span><span class="p">(</span><span class="n">bins</span><span class="o">=</span><span class="n">n_bins</span><span class="p">,</span> <span class="n">equal_intervals</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">class_preds</span><span class="p">,</span> <span class="n">y_true</span><span class="p">)</span>
+
+    <span class="c1"># Try to compute ECE with quantile bins</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">results</span><span class="p">[</span><span class="s2">&quot;ece_quantile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ECE</span><span class="p">(</span><span class="n">bins</span><span class="o">=</span><span class="n">n_bins</span><span class="p">,</span> <span class="n">equal_intervals</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">measure</span><span class="p">(</span><span class="n">class_preds</span><span class="p">,</span> <span class="n">y_true</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to compute ECE quantile: </span><span class="si">{</span><span class="n">err</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">results</span><span class="p">[</span><span class="s2">&quot;ece_quantile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">return</span> <span class="n">results</span></div>
+
+
+
+<div class="viewcode-block" id="bootstrap_estimate">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.evaluation.bootstrap_estimate">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">bootstrap_estimate</span><span class="p">(</span>
+    <span class="n">eval_func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">y_true</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">y_pred_scores</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">sensitive_attribute</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span>
+    <span class="n">confidence_pct</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">95</span><span class="p">,</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes bootstrap estimates of the given evaluation function.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    eval_func : Callable[[np.ndarray, np.ndarray, np.ndarray], dict[str, float]]</span>
+<span class="sd">        The evaluation function to run for each bootstrap sample. Must follow</span>
+<span class="sd">        the signature `eval_func(y_true, y_pred_scores, sensitive_attribute)`.</span>
+<span class="sd">    y_true : np.ndarray</span>
+<span class="sd">        The true labels.</span>
+<span class="sd">    y_pred_scores : np.ndarray</span>
+<span class="sd">        The predicted scores.</span>
+<span class="sd">    sensitive_attribute : np.ndarray, optional</span>
+<span class="sd">        Optionally, provide the sensitive attribute data to compute fairness</span>
+<span class="sd">        metrics, by default None.</span>
+<span class="sd">    k : int, optional</span>
+<span class="sd">        How many bootstrap samples to draw, by default 200.</span>
+<span class="sd">    confidence_pct : float, optional</span>
+<span class="sd">        The confidence interval to use, in percentage, by default 95.</span>
+<span class="sd">    seed : int, optional</span>
+<span class="sd">        The random seed, by default 42.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    results : dict[str, float]</span>
+<span class="sd">        A dictionary containing bootstrap estimates for a variety of metrics.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_true</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_pred_scores</span><span class="p">)</span>
+    <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+
+    <span class="c1"># Draw k bootstrap samples with replacement</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
+        <span class="c1"># Indices of current bootstrap sample</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y_true</span><span class="p">),</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">y_true</span><span class="p">))</span>
+
+        <span class="c1"># Evaluate predictions on this bootstrap sample</span>
+        <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">eval_func</span><span class="p">(</span>
+                <span class="n">y_true</span><span class="p">[</span><span class="n">indices</span><span class="p">],</span>            <span class="c1"># ground-truth labels</span>
+                <span class="n">y_pred_scores</span><span class="p">[</span><span class="n">indices</span><span class="p">],</span>     <span class="c1"># predicted risk scores</span>
+                <span class="n">sensitive_attribute</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">sensitive_attribute</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># sensitive attributes</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Compute statistics from bootstrapped results</span>
+    <span class="n">all_metrics</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+    <span class="n">bt_mean</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">bt_stdev</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">bt_percentiles</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">low_percentile</span> <span class="o">=</span> <span class="p">(</span><span class="mi">100</span> <span class="o">-</span> <span class="n">confidence_pct</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">confidence_percentiles</span> <span class="o">=</span> <span class="p">[</span><span class="n">low_percentile</span><span class="p">,</span> <span class="mi">100</span> <span class="o">-</span> <span class="n">low_percentile</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">all_metrics</span><span class="p">:</span>
+        <span class="n">metric_values</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span><span class="p">[</span><span class="n">m</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span>
+
+        <span class="n">bt_mean</span><span class="p">[</span><span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">statistics</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">metric_values</span><span class="p">)</span>
+        <span class="n">bt_stdev</span><span class="p">[</span><span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="n">statistics</span><span class="o">.</span><span class="n">stdev</span><span class="p">(</span><span class="n">metric_values</span><span class="p">)</span>
+        <span class="n">bt_percentiles</span><span class="p">[</span><span class="n">m</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">metric_values</span><span class="p">,</span> <span class="n">confidence_percentiles</span><span class="p">))</span>
+
+    <span class="c1"># Join bootstrap results for all metrics</span>
+    <span class="k">return</span> <span class="n">join_dictionaries</span><span class="p">(</span>
+        <span class="o">*</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">metric</span><span class="si">}</span><span class="s2">_mean&quot;</span><span class="p">:</span> <span class="n">bt_mean</span><span class="p">[</span><span class="n">metric</span><span class="p">],</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">metric</span><span class="si">}</span><span class="s2">_stdev&quot;</span><span class="p">:</span> <span class="n">bt_stdev</span><span class="p">[</span><span class="n">metric</span><span class="p">],</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">metric</span><span class="si">}</span><span class="s2">_low-percentile&quot;</span><span class="p">:</span> <span class="n">bt_percentiles</span><span class="p">[</span><span class="n">metric</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">metric</span><span class="si">}</span><span class="s2">_high-percentile&quot;</span><span class="p">:</span> <span class="n">bt_percentiles</span><span class="p">[</span><span class="n">metric</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">bt_mean</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="evaluate_predictions_bootstrap">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.evaluation.evaluate_predictions_bootstrap">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">evaluate_predictions_bootstrap</span><span class="p">(</span>
+    <span class="n">y_true</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">y_pred_scores</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">sensitive_attribute</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;best&quot;</span><span class="p">,</span>
+    <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span>
+    <span class="n">confidence_pct</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">95</span><span class="p">,</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Computes bootstrap estimates of classification metrics for the given predictions.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    y_true : np.ndarray</span>
+<span class="sd">        The true labels.</span>
+<span class="sd">    y_pred_scores : np.ndarray</span>
+<span class="sd">        The score predictions.</span>
+<span class="sd">    sensitive_attribute : np.ndarray, optional</span>
+<span class="sd">        The sensitive attribute data. Will compute fairness metrics if provided.</span>
+<span class="sd">    threshold : float | str, optional</span>
+<span class="sd">        The threshold to use for binarizing the predictions, or &quot;best&quot; to infer</span>
+<span class="sd">        which threshold maximizes accuracy, by default &quot;best&quot;.</span>
+<span class="sd">    k : int, optional</span>
+<span class="sd">        How many bootstrap samples to draw, by default 200.</span>
+<span class="sd">    confidence_pct : float, optional</span>
+<span class="sd">        How large of a confidence interval to use when reporting lower and upper</span>
+<span class="sd">        bounds, by default 95 (i.e., 2.5 to 97.5 percentile of results).</span>
+<span class="sd">    seed : int, optional</span>
+<span class="sd">        The random seed, by default 42.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    results : dict[str, float]</span>
+<span class="sd">        A dictionary containing bootstrap estimates for a variety of metrics.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">bootstrap_estimate</span><span class="p">(</span>
+        <span class="n">eval_func</span><span class="o">=</span><span class="k">lambda</span> <span class="n">labels</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">sens_attr</span><span class="o">=</span><span class="kc">None</span><span class="p">:</span> <span class="n">evaluate_predictions</span><span class="p">(</span>
+            <span class="n">y_true</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span>
+            <span class="n">y_pred_scores</span><span class="o">=</span><span class="n">scores</span><span class="p">,</span>
+            <span class="n">sensitive_attribute</span><span class="o">=</span><span class="n">sens_attr</span><span class="p">,</span>
+            <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">y_true</span><span class="o">=</span><span class="n">y_true</span><span class="p">,</span>
+        <span class="n">y_pred_scores</span><span class="o">=</span><span class="n">y_pred_scores</span><span class="p">,</span>
+        <span class="n">sensitive_attribute</span><span class="o">=</span><span class="n">sensitive_attribute</span><span class="p">,</span>
+        <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">,</span>
+        <span class="n">confidence_pct</span><span class="o">=</span><span class="n">confidence_pct</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

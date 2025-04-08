@@ -1,0 +1,512 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fetch and parse ACS benchmark results under a given directory &mdash; folktexts 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      <script src="../_static/custom.js?v=882eb7ae"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="Evaluate model calibration using folktexts" href="minimal-example_web-API-model.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            folktexts
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../readme.html">Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../source/modules.html">API reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../notebooks.html">Example notebooks</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="minimal-example.html">Evaluate model calibration using folktexts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="detailed-example.html">Example: Run ACS benchmark task</a></li>
+<li class="toctree-l2"><a class="reference internal" href="custom-dataset-example.html">Run <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> benchmark with a different data source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="custom-acs-task-example.html">Run <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> benchmark with a custom ACS task</a></li>
+<li class="toctree-l2"><a class="reference internal" href="paper-plots-and-tables.html">Render paper plots and tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="paper-plots-and-tables.html#Plots-comparing-different-prompting-schemes">Plots comparing different prompting schemes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="minimal-example_web-API-model.html">Evaluate model calibration using folktexts</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Fetch and parse ACS benchmark results under a given directory</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../notebooks.html">Notebooks Gallery</a></li>
+      <li class="breadcrumb-item active">Fetch and parse ACS benchmark results under a given directory</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/notebooks/parse-acs-results.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Fetch-and-parse-ACS-benchmark-results-under-a-given-directory">
+<h1>Fetch and parse ACS benchmark results under a given directory<a class="headerlink" href="#Fetch-and-parse-ACS-benchmark-results-under-a-given-directory" title="Link to this heading"></a></h1>
+<p>Each ACS benchmark run outputs a json file. This script collects all such files under a given root directory, parses them, and aggregates them into a more easily digestable pandas DataFrame.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm.auto</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+</pre></div>
+</div>
+</div>
+<p><strong>[Action required]</strong> Set <code class="docutils literal notranslate"><span class="pre">RESULTS_ROOT_DIR</span></code> to the root results directory path:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">RESULTS_ROOT_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/fast/groups/sf&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;folktexts-results&quot;</span> <span class="o">/</span> <span class="s2">&quot;2024-08-28_2&quot;</span>
+</pre></div>
+</div>
+</div>
+<p>Set the local path to the root data directory (needed only to train baseline ML methods):</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">DATA_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/fast/groups/sf&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;data&quot;</span>
+</pre></div>
+</div>
+</div>
+<p>Important results columns:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model_col</span> <span class="o">=</span> <span class="s2">&quot;config_model_name&quot;</span>
+<span class="n">task_col</span> <span class="o">=</span> <span class="s2">&quot;config_task_name&quot;</span>
+<span class="n">numeric_prompt_col</span> <span class="o">=</span> <span class="s2">&quot;config_numeric_risk_prompting&quot;</span>
+
+<span class="n">feature_subset_col</span> <span class="o">=</span> <span class="s2">&quot;config_feature_subset&quot;</span>
+<span class="n">predictions_path_col</span> <span class="o">=</span> <span class="s2">&quot;predictions_path&quot;</span>
+</pre></div>
+</div>
+</div>
+<p>Helper function to parse each dictionary containing benchmark results:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">num_features_helper</span><span class="p">,</span>
+    <span class="n">parse_model_name</span><span class="p">,</span>
+    <span class="n">get_non_instruction_tuned_name</span><span class="p">,</span>
+    <span class="n">prettify_model_name</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_results_dict</span><span class="p">(</span><span class="n">dct</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parses results dict and brings all information to the top-level.&quot;&quot;&quot;</span>
+
+    <span class="c1"># Make a copy so we don&#39;t modify the input object</span>
+    <span class="n">dct</span> <span class="o">=</span> <span class="n">dct</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="c1"># Discard plots&#39; paths</span>
+    <span class="n">dct</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;plots&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="c1"># Bring configs to top-level</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">dct</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;config&quot;</span><span class="p">,</span> <span class="p">{})</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">dct</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;config_</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+    <span class="c1"># Parse model name</span>
+    <span class="n">dct</span><span class="p">[</span><span class="n">model_col</span><span class="p">]</span> <span class="o">=</span> <span class="n">parse_model_name</span><span class="p">(</span><span class="n">dct</span><span class="p">[</span><span class="n">model_col</span><span class="p">])</span>
+    <span class="n">dct</span><span class="p">[</span><span class="s2">&quot;base_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_non_instruction_tuned_name</span><span class="p">(</span><span class="n">dct</span><span class="p">[</span><span class="n">model_col</span><span class="p">])</span>
+    <span class="n">dct</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">prettify_model_name</span><span class="p">(</span><span class="n">dct</span><span class="p">[</span><span class="n">model_col</span><span class="p">])</span>
+
+    <span class="c1"># Is instruction-tuned model?</span>
+    <span class="n">dct</span><span class="p">[</span><span class="s2">&quot;is_inst&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dct</span><span class="p">[</span><span class="s2">&quot;base_name&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">dct</span><span class="p">[</span><span class="n">model_col</span><span class="p">]</span> <span class="ow">or</span> <span class="s2">&quot;(it)&quot;</span> <span class="ow">in</span> <span class="n">dct</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="c1"># Log number of features</span>
+    <span class="n">dct</span><span class="p">[</span><span class="s2">&quot;num_features&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">num_features_helper</span><span class="p">(</span><span class="n">dct</span><span class="p">[</span><span class="n">feature_subset_col</span><span class="p">],</span> <span class="n">max_features_return</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">dct</span><span class="p">[</span><span class="s2">&quot;uses_all_features&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dct</span><span class="p">[</span><span class="n">feature_subset_col</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">dct</span><span class="p">[</span><span class="s2">&quot;num_features&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dct</span><span class="p">[</span><span class="n">feature_subset_col</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">dct</span><span class="p">[</span><span class="n">feature_subset_col</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;full&quot;</span>
+
+    <span class="c1"># Assert all results are at the top-level</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">dct</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">dct</span>
+<br/></pre></div>
+</div>
+</div>
+<p>Iteratively search the root directory for results files matching the given regex:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_files</span><span class="p">,</span> <span class="n">load_json</span>
+
+<span class="c1"># Results file name pattern</span>
+<span class="n">pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;^results.bench-(?P&lt;hash&gt;\d+)[.]json$&#39;</span>
+
+<span class="c1"># Find results files and aggregate</span>
+<span class="n">results</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">for</span> <span class="n">file_path</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">find_files</span><span class="p">(</span><span class="n">RESULTS_ROOT_DIR</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)):</span>
+    <span class="n">results</span><span class="p">[</span><span class="n">Path</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">parse_results_dict</span><span class="p">(</span><span class="n">load_json</span><span class="p">(</span><span class="n">file_path</span><span class="p">))</span>
+
+<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Couldn&#39;t find any results at </span><span class="si">{</span><span class="n">RESULTS_ROOT_DIR</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span><span class="si">}</span><span class="s2"> benchmark results.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "b984f67ca7644ba998983af5385ba147", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Found 241 benchmark results.
+</pre></div></div>
+</div>
+<p>Aggregate results into a single DataFrame, generate a unique identifier for each row, and drop potential duplicates:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">row_id</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Unique row identifier.&quot;&quot;&quot;</span>
+    <span class="n">numeric_or_multiple_choice</span> <span class="o">=</span> <span class="s2">&quot;Num&quot;</span> <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="n">numeric_prompt_col</span><span class="p">]</span> <span class="k">else</span> <span class="s2">&quot;QA&quot;</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="n">model_col</span><span class="p">]</span><span class="si">}</span><span class="s2">__</span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="n">task_col</span><span class="p">]</span><span class="si">}</span><span class="s2">__</span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;num_features&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">__</span><span class="si">{</span><span class="n">numeric_or_multiple_choice</span><span class="si">}</span><span class="s2">&quot;</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="si">=}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="n">df</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">row_id</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># Drop duplicates</span>
+<span class="n">len_with_dups</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;is_inst&quot;</span><span class="p">,</span> <span class="s2">&quot;num_features&quot;</span><span class="p">,</span> <span class="n">task_col</span><span class="p">,</span> <span class="n">numeric_prompt_col</span><span class="p">])</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">verify_integrity</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">len_with_dups</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Dropping </span><span class="si">{</span><span class="n">len_with_dups</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="si">}</span><span class="s2"> duplicates!&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="si">=}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+df.shape=(241, 58)
+Dropping 31 duplicates!
+df.shape=(210, 58)
+</pre></div></div>
+</div>
+<p>Load scores DFs and analyze score distribution:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">load_model_scores_df</span><span class="p">(</span><span class="n">df_row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Loads csv containing model scores corresponding to the given DF row.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">predictions_path_col</span> <span class="ow">in</span> <span class="n">df_row</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">df_row</span><span class="p">[</span><span class="n">predictions_path_col</span><span class="p">]):</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">df_row</span><span class="p">[</span><span class="n">predictions_path_col</span><span class="p">],</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.evaluation</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_best_threshold</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn</span><span class="w"> </span><span class="kn">import</span> <span class="n">metrics</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">stats</span>
+
+<span class="c1"># Number of samples used to fit the one-parameter binarization threshold!</span>
+<span class="n">N</span> <span class="o">=</span> <span class="mi">100</span>
+
+<span class="n">fit_thresh_col</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;fit_thresh_on_</span><span class="si">{</span><span class="n">N</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="n">fit_acc_col</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;fit_thresh_accuracy&quot;</span>
+
+<span class="n">optimal_thres_col</span> <span class="o">=</span> <span class="s2">&quot;optimal_thresh&quot;</span>
+<span class="n">optimal_acc_col</span> <span class="o">=</span> <span class="s2">&quot;optimal_thresh_accuracy&quot;</span>
+
+<span class="n">score_stdev_col</span> <span class="o">=</span> <span class="s2">&quot;score_stdev&quot;</span>
+<span class="n">score_mean_col</span> <span class="o">=</span> <span class="s2">&quot;score_mean&quot;</span>
+
+<span class="n">scores_stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">row_id</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">iterrows</span><span class="p">(),</span> <span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)):</span>
+
+    <span class="c1"># Load model scores</span>
+    <span class="n">scores_df</span> <span class="o">=</span> <span class="n">load_model_scores_df</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">scores_df</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Couldn&#39;t find scores for </span><span class="si">{</span><span class="n">row_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Extract scores and labels</span>
+    <span class="n">risk_scores</span> <span class="o">=</span> <span class="n">scores_df</span><span class="p">[</span><span class="s2">&quot;risk_score&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">scores_df</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+
+    <span class="c1"># Sample N rows to fit threshold</span>
+    <span class="n">scores_df_sample</span> <span class="o">=</span> <span class="n">scores_df</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">N</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+
+    <span class="c1"># Compute optimal threshold on each data sample</span>
+    <span class="n">fit_thr</span> <span class="o">=</span> <span class="n">compute_best_threshold</span><span class="p">(</span><span class="n">y_true</span><span class="o">=</span><span class="n">scores_df_sample</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">],</span> <span class="n">y_pred_scores</span><span class="o">=</span><span class="n">scores_df_sample</span><span class="p">[</span><span class="s2">&quot;risk_score&quot;</span><span class="p">])</span>
+    <span class="n">opt_thr</span> <span class="o">=</span> <span class="n">compute_best_threshold</span><span class="p">(</span><span class="n">y_true</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">y_pred_scores</span><span class="o">=</span><span class="n">risk_scores</span><span class="p">)</span>
+
+    <span class="c1"># Evaluate accuracy</span>
+    <span class="n">fit_acc</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">accuracy_score</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="p">(</span><span class="n">risk_scores</span> <span class="o">&gt;=</span> <span class="n">fit_thr</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">))</span>
+    <span class="n">opt_acc</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">accuracy_score</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="p">(</span><span class="n">risk_scores</span> <span class="o">&gt;=</span> <span class="n">opt_thr</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">))</span>
+
+    <span class="c1"># Save results</span>
+    <span class="n">scores_stats</span><span class="p">[</span><span class="n">row_id</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">fit_thresh_col</span><span class="p">:</span> <span class="n">fit_thr</span><span class="p">,</span>
+        <span class="n">fit_acc_col</span><span class="p">:</span> <span class="n">fit_acc</span><span class="p">,</span>
+        <span class="n">optimal_thres_col</span><span class="p">:</span> <span class="n">opt_thr</span><span class="p">,</span>
+        <span class="n">optimal_acc_col</span><span class="p">:</span> <span class="n">opt_acc</span><span class="p">,</span>
+        <span class="n">score_stdev_col</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">risk_scores</span><span class="p">),</span>
+        <span class="n">score_mean_col</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">risk_scores</span><span class="p">),</span>
+    <span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "64f4e6718312499b84fb8c9637ff10fd", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<p>Update results DF with scores statistics:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">scores_stats_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">scores_stats</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span> <span class="n">index</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">scores_stats</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">scores_stats_df</span><span class="o">.</span><span class="n">shape</span><span class="si">=}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="n">results_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">((</span><span class="n">df</span><span class="p">,</span> <span class="n">scores_stats_df</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="s2">&quot;columns&quot;</span><span class="p">)</span>
+<span class="n">results_df</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+scores_stats_df.shape=(210, 6)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>accuracy</th>
+      <th>accuracy_diff</th>
+      <th>accuracy_ratio</th>
+      <th>balanced_accuracy</th>
+      <th>balanced_accuracy_diff</th>
+      <th>balanced_accuracy_ratio</th>
+      <th>brier_score_loss</th>
+      <th>ece</th>
+      <th>ece_quantile</th>
+      <th>equalized_odds_diff</th>
+      <th>...</th>
+      <th>name</th>
+      <th>is_inst</th>
+      <th>num_features</th>
+      <th>uses_all_features</th>
+      <th>fit_thresh_on_100</th>
+      <th>fit_thresh_accuracy</th>
+      <th>optimal_thresh</th>
+      <th>optimal_thresh_accuracy</th>
+      <th>score_stdev</th>
+      <th>score_mean</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>gemma-2-27b__ACSTravelTime__-1__Num</th>
+      <td>0.539392</td>
+      <td>0.258000</td>
+      <td>0.656000</td>
+      <td>0.504500</td>
+      <td>0.100184</td>
+      <td>0.823204</td>
+      <td>0.388077</td>
+      <td>0.347071</td>
+      <td>NaN</td>
+      <td>0.221264</td>
+      <td>...</td>
+      <td>Gemma 2 27B</td>
+      <td>False</td>
+      <td>-1</td>
+      <td>True</td>
+      <td>0.13000</td>
+      <td>0.514676</td>
+      <td>0.210000</td>
+      <td>0.524692</td>
+      <td>0.311014</td>
+      <td>0.219864</td>
+    </tr>
+    <tr>
+      <th>gemma-1.1-2b-it__ACSEmployment__-1__QA</th>
+      <td>0.462874</td>
+      <td>0.235384</td>
+      <td>0.631881</td>
+      <td>0.427372</td>
+      <td>0.091640</td>
+      <td>0.800718</td>
+      <td>0.408398</td>
+      <td>0.382143</td>
+      <td>0.376308</td>
+      <td>0.212855</td>
+      <td>...</td>
+      <td>Gemma 2B (it)</td>
+      <td>True</td>
+      <td>-1</td>
+      <td>True</td>
+      <td>0.02033</td>
+      <td>0.482054</td>
+      <td>0.007577</td>
+      <td>0.485395</td>
+      <td>0.232183</td>
+      <td>0.216562</td>
+    </tr>
+  </tbody>
+</table>
+<p>2 rows × 64 columns</p>
+</div></div>
+</div>
+<p>Check if any results are missing:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">experiments_per_model_task_pair</span> <span class="o">=</span> <span class="n">results_df</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="n">model_col</span><span class="p">,</span> <span class="n">task_col</span><span class="p">])</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">results_df</span><span class="p">[</span><span class="n">model_col</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">results_df</span><span class="p">[</span><span class="n">task_col</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">():</span>
+        <span class="n">match_</span> <span class="o">=</span> <span class="n">results_df</span><span class="p">[(</span><span class="n">results_df</span><span class="p">[</span><span class="n">model_col</span><span class="p">]</span> <span class="o">==</span> <span class="n">m</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">results_df</span><span class="p">[</span><span class="n">task_col</span><span class="p">]</span> <span class="o">==</span> <span class="n">t</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">match_</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">experiments_per_model_task_pair</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Couldn&#39;t find all results for m=</span><span class="si">{</span><span class="n">m</span><span class="si">}</span><span class="s2">, t=</span><span class="si">{</span><span class="n">t</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">match_</span><span class="p">)</span><span class="si">}</span><span class="s2"> &lt; </span><span class="si">{</span><span class="n">experiments_per_model_task_pair</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>Finally, save results DF to the results root directory:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_current_timestamp</span>
+<span class="n">results_df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">RESULTS_ROOT_DIR</span><span class="p">)</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;aggregated_results.</span><span class="si">{</span><span class="n">get_current_timestamp</span><span class="p">()</span><span class="si">}</span><span class="s2">.csv&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<hr class="docutils" />
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="minimal-example_web-API-model.html" class="btn btn-neutral float-left" title="Evaluate model calibration using folktexts" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

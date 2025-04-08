@@ -1,0 +1,421 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Evaluate model calibration using folktexts &mdash; folktexts 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      <script src="../_static/custom.js?v=882eb7ae"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Fetch and parse ACS benchmark results under a given directory" href="parse-acs-results.html" />
+    <link rel="prev" title="Render paper plots and tables" href="paper-plots-and-tables.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            folktexts
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../readme.html">Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../source/modules.html">API reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../notebooks.html">Example notebooks</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="minimal-example.html">Evaluate model calibration using folktexts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="detailed-example.html">Example: Run ACS benchmark task</a></li>
+<li class="toctree-l2"><a class="reference internal" href="custom-dataset-example.html">Run <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> benchmark with a different data source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="custom-acs-task-example.html">Run <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> benchmark with a custom ACS task</a></li>
+<li class="toctree-l2"><a class="reference internal" href="paper-plots-and-tables.html">Render paper plots and tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="paper-plots-and-tables.html#Plots-comparing-different-prompting-schemes">Plots comparing different prompting schemes</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Evaluate model calibration using folktexts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#1.-Check-folktexts-is-installed">1. Check folktexts is installed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#2.-Load-model-API-using-litellm">2. Load model API using <code class="docutils literal notranslate"><span class="pre">litellm</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#3.-Set-OPENAI_API_KEY-environment-variable-(or-key-to-respective-API-provider)">3. Set <code class="docutils literal notranslate"><span class="pre">OPENAI_API_KEY</span></code> environment variable (or key to respective API provider)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#3.-Create-default-benchmarking-tasks">3. Create default benchmarking tasks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Benchmark-configuration">Benchmark configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#4.-Run-benchmark">4. Run benchmark</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#4.-Visualize-results">4. Visualize results</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parse-acs-results.html">Fetch and parse ACS benchmark results under a given directory</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../notebooks.html">Notebooks Gallery</a></li>
+      <li class="breadcrumb-item active">Evaluate model calibration using folktexts</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/notebooks/minimal-example_web-API-model.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Evaluate-model-calibration-using-folktexts">
+<h1>Evaluate model calibration using folktexts<a class="headerlink" href="#Evaluate-model-calibration-using-folktexts" title="Link to this heading"></a></h1>
+<p><strong>Prerequisite</strong>: Install <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> package with optional model API dependencies: <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">'folktexts[apis]'</span></code></p>
+<p><strong>Summary</strong>: The script demonstrates how to use folktexts to get insights into model calibration on a <strong>model hosted through a web API</strong>.</p>
+<section id="1.-Check-folktexts-is-installed">
+<h2>1. Check folktexts is installed<a class="headerlink" href="#1.-Check-folktexts-is-installed" title="Link to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">folktexts</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">folktexts</span><span class="o">.</span><span class="n">__version__</span><span class="si">=}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+folktexts.__version__=&#39;0.1.0&#39;
+</pre></div></div>
+</div>
+</section>
+<section id="2.-Load-model-API-using-litellm">
+<h2>2. Load model API using <code class="docutils literal notranslate"><span class="pre">litellm</span></code><a class="headerlink" href="#2.-Load-model-API-using-litellm" title="Link to this heading"></a></h2>
+<p>We use OpenAI’s <strong>GPT-4o-mini</strong> model for this demo. The workflow can be similarly applied to any compatible model.</p>
+<p><strong>Note:</strong> <em>Set</em> <code class="docutils literal notranslate"><span class="pre">model_name</span></code> to the model’s name. See the <code class="docutils literal notranslate"><span class="pre">litellm</span></code> <a class="reference external" href="https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models">list of compatible web-API providers and models</a>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model_name</span> <span class="o">=</span> <span class="s2">&quot;openai/gpt-4o-mini&quot;</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="3.-Set-OPENAI_API_KEY-environment-variable-(or-key-to-respective-API-provider)">
+<h2>3. Set <code class="docutils literal notranslate"><span class="pre">OPENAI_API_KEY</span></code> environment variable (or key to respective API provider)<a class="headerlink" href="#3.-Set-OPENAI_API_KEY-environment-variable-(or-key-to-respective-API-provider)" title="Link to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
+<span class="n">load_dotenv</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+True
+</pre></div></div>
+</div>
+</section>
+<section id="3.-Create-default-benchmarking-tasks">
+<h2>3. Create default benchmarking tasks<a class="headerlink" href="#3.-Create-default-benchmarking-tasks" title="Link to this heading"></a></h2>
+<p>We generate ACSIncome benchmark using folktexts.</p>
+<p><strong>NOTE:</strong> We will subsample the reference data for faster runtime. This should be removed for obtaining reproducible reslts.</p>
+</section>
+<section id="Benchmark-configuration">
+<h2>Benchmark configuration<a class="headerlink" href="#Benchmark-configuration" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">subsampling</span></code> and <code class="docutils literal notranslate"><span class="pre">numeric_risk_prompting</span></code> key-word arguments are examples of optional benchmark configurations. See this <a class="reference external" href="https://github.com/socialfoundations/folktexts?tab=readme-ov-file#benchmark-options">page for a list of available configs</a>.</p></li>
+</ul>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.benchmark</span><span class="w"> </span><span class="kn">import</span> <span class="n">Benchmark</span><span class="p">,</span> <span class="n">BenchmarkConfig</span>
+
+<span class="c1"># Note: This argument is optional. Omit, or set to 1 for reproducible benchmarking on the full data</span>
+<span class="n">subsampling_ratio</span> <span class="o">=</span> <span class="mf">0.002</span>
+
+<span class="n">bench</span> <span class="o">=</span> <span class="n">Benchmark</span><span class="o">.</span><span class="n">make_acs_benchmark</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">model_name</span><span class="p">,</span>
+    <span class="n">task_name</span><span class="o">=</span><span class="s2">&quot;ACSIncome&quot;</span><span class="p">,</span>
+    <span class="n">subsampling</span><span class="o">=</span><span class="n">subsampling_ratio</span><span class="p">,</span>
+    <span class="n">numeric_risk_prompting</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+WARNING:root:Received non-standard ACS argument &#39;subsampling&#39; (using subsampling=0.002 instead of default subsampling=None). This may affect reproducibility.
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Loading ACS data...
+Using zero-shot prompting.
+CPU times: user 45.7 s, sys: 13.7 s, total: 59.3 s
+Wall time: 1min 1s
+</pre></div></div>
+</div>
+</section>
+<section id="4.-Run-benchmark">
+<h2>4. Run benchmark<a class="headerlink" href="#4.-Run-benchmark" title="Link to this heading"></a></h2>
+<p>Results will be saved in a folder RESULTS_DIR. There is</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">.json</span></code> file contains evaluated metrics</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.cvs</span></code> file contains risk scores of each datapoint</p></li>
+<li><p>folder called <code class="docutils literal notranslate"><span class="pre">imgs/</span></code> contains figures</p></li>
+</ul>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">RESULTS_DIR</span> <span class="o">=</span> <span class="s2">&quot;res&quot;</span>
+<span class="n">bench</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">results_root_dir</span><span class="o">=</span><span class="n">RESULTS_DIR</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "c2d0f16089014d93bd06d864634b41a7", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+WARNING:root:Skipping group 3 with 5 samples
+WARNING:root:Skipping group 5 with 1 samples
+WARNING:root:Skipping group 7 with 1 samples
+WARNING:root:Skipping group 8 with 11 samples
+WARNING:root:Skipping group 9 with 8 samples
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;threshold&#39;: 0.5,
+ &#39;n_samples&#39;: 333,
+ &#39;n_positives&#39;: 119,
+ &#39;n_negatives&#39;: 214,
+ &#39;model_name&#39;: &#39;openai/gpt-4o-mini&#39;,
+ &#39;accuracy&#39;: 0.7897897897897898,
+ &#39;tpr&#39;: 0.7394957983193278,
+ &#39;fnr&#39;: 0.2605042016806723,
+ &#39;fpr&#39;: 0.1822429906542056,
+ &#39;tnr&#39;: 0.8177570093457944,
+ &#39;balanced_accuracy&#39;: 0.7786264038325611,
+ &#39;precision&#39;: 0.6929133858267716,
+ &#39;ppr&#39;: 0.3813813813813814,
+ &#39;log_loss&#39;: 0.6841978422446943,
+ &#39;brier_score_loss&#39;: 0.1570022784327027,
+ &#39;fpr_ratio&#39;: 0.0,
+ &#39;fpr_diff&#39;: 0.2229299363057325,
+ &#39;fnr_ratio&#39;: 0.375,
+ &#39;fnr_diff&#39;: 0.2777777777777778,
+ &#39;tpr_ratio&#39;: 0.6666666666666666,
+ &#39;tpr_diff&#39;: 0.2777777777777778,
+ &#39;tnr_ratio&#39;: 0.7770700636942676,
+ &#39;tnr_diff&#39;: 0.22292993630573243,
+ &#39;balanced_accuracy_ratio&#39;: 0.8108672936259144,
+ &#39;balanced_accuracy_diff&#39;: 0.17337164750957856,
+ &#39;accuracy_ratio&#39;: 0.8277526395173455,
+ &#39;accuracy_diff&#39;: 0.1599439775910364,
+ &#39;ppr_ratio&#39;: 0.43095123128923224,
+ &#39;ppr_diff&#39;: 0.24324045407636738,
+ &#39;precision_ratio&#39;: 0.6788990825688074,
+ &#39;precision_diff&#39;: 0.3211009174311926,
+ &#39;equalized_odds_ratio&#39;: 0.0,
+ &#39;equalized_odds_diff&#39;: 0.2777777777777778,
+ &#39;roc_auc&#39;: 0.833307154637556,
+ &#39;ece&#39;: 0.05772135735735722,
+ &#39;ece_quantile&#39;: 0.06144326126126136,
+ &#39;predictions_path&#39;: &#39;/Users/acruz/Documents/folktexts/notebooks/res/openai/gpt-4o-mini_bench-4104804744/ACSIncome_subsampled-0.002_seed-42_hash-2198313341.test_predictions.csv&#39;,
+ &#39;config&#39;: {&#39;numeric_risk_prompting&#39;: True,
+  &#39;few_shot&#39;: None,
+  &#39;reuse_few_shot_examples&#39;: False,
+  &#39;balance_few_shot_examples&#39;: False,
+  &#39;batch_size&#39;: None,
+  &#39;context_size&#39;: None,
+  &#39;correct_order_bias&#39;: True,
+  &#39;feature_subset&#39;: None,
+  &#39;population_filter&#39;: None,
+  &#39;seed&#39;: 42,
+  &#39;model_name&#39;: &#39;openai/gpt-4o-mini&#39;,
+  &#39;model_hash&#39;: 2029904219,
+  &#39;task_name&#39;: &#39;ACSIncome&#39;,
+  &#39;task_hash&#39;: 2088199492,
+  &#39;dataset_name&#39;: &#39;ACSIncome_subsampled-0.002_seed-42_hash-2198313341&#39;,
+  &#39;dataset_subsampling&#39;: 0.002,
+  &#39;dataset_hash&#39;: 2198313341},
+ &#39;benchmark_hash&#39;: 4104804744,
+ &#39;results_dir&#39;: &#39;/Users/acruz/Documents/folktexts/notebooks/res/openai/gpt-4o-mini_bench-4104804744&#39;,
+ &#39;results_root_dir&#39;: &#39;/Users/acruz/Documents/folktexts/notebooks/res&#39;,
+ &#39;current_time&#39;: &#39;2025.04.08-18.04.16&#39;,
+ &#39;plots&#39;: {&#39;roc_curve_path&#39;: &#39;/Users/acruz/Documents/folktexts/notebooks/res/openai/gpt-4o-mini_bench-4104804744/imgs/roc_curve.pdf&#39;,
+  &#39;calibration_curve_path&#39;: &#39;/Users/acruz/Documents/folktexts/notebooks/res/openai/gpt-4o-mini_bench-4104804744/imgs/calibration_curve.pdf&#39;,
+  &#39;score_distribution_path&#39;: &#39;/Users/acruz/Documents/folktexts/notebooks/res/openai/gpt-4o-mini_bench-4104804744/imgs/score_distribution.pdf&#39;,
+  &#39;score_distribution_per_label_path&#39;: &#39;/Users/acruz/Documents/folktexts/notebooks/res/openai/gpt-4o-mini_bench-4104804744/imgs/score_distribution_per_label.pdf&#39;,
+  &#39;roc_curve_per_subgroup_path&#39;: &#39;/Users/acruz/Documents/folktexts/notebooks/res/openai/gpt-4o-mini_bench-4104804744/imgs/roc_curve_per_subgroup.pdf&#39;,
+  &#39;calibration_curve_per_subgroup_path&#39;: &#39;/Users/acruz/Documents/folktexts/notebooks/res/openai/gpt-4o-mini_bench-4104804744/imgs/calibration_curve_per_subgroup.pdf&#39;}}
+</pre></div></div>
+</div>
+</section>
+<section id="4.-Visualize-results">
+<h2>4. Visualize results<a class="headerlink" href="#4.-Visualize-results" title="Link to this heading"></a></h2>
+<p>We can also visualize the results inline:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">bench</span><span class="o">.</span><span class="n">plot_results</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_minimal-example_web-API-model_12_0.png" src="../_images/notebooks_minimal-example_web-API-model_12_0.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_minimal-example_web-API-model_12_1.png" src="../_images/notebooks_minimal-example_web-API-model_12_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_minimal-example_web-API-model_12_2.png" src="../_images/notebooks_minimal-example_web-API-model_12_2.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_minimal-example_web-API-model_12_3.png" src="../_images/notebooks_minimal-example_web-API-model_12_3.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_minimal-example_web-API-model_12_4.png" src="../_images/notebooks_minimal-example_web-API-model_12_4.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_minimal-example_web-API-model_12_5.png" src="../_images/notebooks_minimal-example_web-API-model_12_5.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;roc_curve_path&#39;: &#39;/Users/acruz/Documents/folktexts/notebooks/res/openai/gpt-4o-mini_bench-4104804744/imgs/roc_curve.pdf&#39;,
+ &#39;calibration_curve_path&#39;: &#39;/Users/acruz/Documents/folktexts/notebooks/res/openai/gpt-4o-mini_bench-4104804744/imgs/calibration_curve.pdf&#39;,
+ &#39;score_distribution_path&#39;: &#39;/Users/acruz/Documents/folktexts/notebooks/res/openai/gpt-4o-mini_bench-4104804744/imgs/score_distribution.pdf&#39;,
+ &#39;score_distribution_per_label_path&#39;: &#39;/Users/acruz/Documents/folktexts/notebooks/res/openai/gpt-4o-mini_bench-4104804744/imgs/score_distribution_per_label.pdf&#39;,
+ &#39;roc_curve_per_subgroup_path&#39;: &#39;/Users/acruz/Documents/folktexts/notebooks/res/openai/gpt-4o-mini_bench-4104804744/imgs/roc_curve_per_subgroup.pdf&#39;,
+ &#39;calibration_curve_per_subgroup_path&#39;: &#39;/Users/acruz/Documents/folktexts/notebooks/res/openai/gpt-4o-mini_bench-4104804744/imgs/calibration_curve_per_subgroup.pdf&#39;}
+</pre></div></div>
+</div>
+<hr class="docutils" />
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="paper-plots-and-tables.html" class="btn btn-neutral float-left" title="Render paper plots and tables" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="parse-acs-results.html" class="btn btn-neutral float-right" title="Fetch and parse ACS benchmark results under a given directory" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

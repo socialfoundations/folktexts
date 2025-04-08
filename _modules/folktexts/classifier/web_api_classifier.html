@@ -1,0 +1,480 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>folktexts.classifier.web_api_classifier &mdash; folktexts 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../../../_static/custom.js?v=882eb7ae"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            folktexts
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/modules.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">folktexts.classifier.web_api_classifier</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for folktexts.classifier.web_api_classifier</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Module for using a language model through a web API for risk classification.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.qa_interface</span><span class="w"> </span><span class="kn">import</span> <span class="n">DirectNumericQA</span><span class="p">,</span> <span class="n">MultipleChoiceQA</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.task</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskMetadata</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMClassifier</span>
+
+
+<div class="viewcode-block" id="WebAPILLMClassifier">
+<a class="viewcode-back" href="../../../source/folktexts.classifier.html#folktexts.classifier.web_api_classifier.WebAPILLMClassifier">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">WebAPILLMClassifier</span><span class="p">(</span><span class="n">LLMClassifier</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Use an LLM through a web API to produce risk scores.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">task</span><span class="p">:</span> <span class="n">TaskMetadata</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">custom_prompt_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">encode_row</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">correct_order_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">max_api_rpm</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5000</span><span class="p">,</span>    <span class="c1"># NOTE: OpenAI Tier 1 limit is only 500 RPM !</span>
+        <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">inference_kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates an LLMClassifier object that uses a web API for inference.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model_name : str</span>
+<span class="sd">            The model ID to be resolved by `litellm`.</span>
+<span class="sd">        task : TaskMetadata | str</span>
+<span class="sd">            The task metadata object or name of an already created task.</span>
+<span class="sd">        custom_prompt_prefix : str, optional</span>
+<span class="sd">            A custom prompt prefix to supply to the model before the encoded</span>
+<span class="sd">            row data, by default None.</span>
+<span class="sd">        encode_row : Callable[[pd.Series], str], optional</span>
+<span class="sd">            The function used to encode tabular rows into natural text. If not</span>
+<span class="sd">            provided, will use the default encoding function for the task.</span>
+<span class="sd">        threshold : float, optional</span>
+<span class="sd">            The classification threshold to use when outputting binary</span>
+<span class="sd">            predictions, by default 0.5. Must be between 0 and 1. Will be</span>
+<span class="sd">            re-calibrated if `fit` is called.</span>
+<span class="sd">        correct_order_bias : bool, optional</span>
+<span class="sd">            Whether to correct ordering bias in multiple-choice Q&amp;A questions,</span>
+<span class="sd">            by default True.</span>
+<span class="sd">        max_api_rpm : int, optional</span>
+<span class="sd">            The maximum number of requests per minute allowed for the API.</span>
+<span class="sd">        seed : int, optional</span>
+<span class="sd">            The random seed - used for reproducibility.</span>
+<span class="sd">        **inference_kwargs</span>
+<span class="sd">            Additional keyword arguments to be used at inference time. Options</span>
+<span class="sd">            include `context_size` and `batch_size`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model_name</span><span class="o">=</span><span class="n">model_name</span><span class="p">,</span>
+            <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span>
+            <span class="n">custom_prompt_prefix</span><span class="o">=</span><span class="n">custom_prompt_prefix</span><span class="p">,</span>
+            <span class="n">encode_row</span><span class="o">=</span><span class="n">encode_row</span><span class="p">,</span>
+            <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+            <span class="n">correct_order_bias</span><span class="o">=</span><span class="n">correct_order_bias</span><span class="p">,</span>
+            <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">inference_kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Initialize total cost of API calls</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_total_cost</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Set maximum requests per minute</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_api_rpm</span> <span class="o">=</span> <span class="n">max_api_rpm</span>
+        <span class="k">if</span> <span class="s2">&quot;MAX_API_RPM&quot;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_api_rpm</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;MAX_API_RPM&quot;</span><span class="p">))</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;MAX_API_RPM environment variable is set. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Overriding previous value of </span><span class="si">{</span><span class="n">max_api_rpm</span><span class="si">}</span><span class="s2"> with </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_api_rpm</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Check extra dependencies</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_webAPI_deps</span><span class="p">(),</span> <span class="s2">&quot;Web API dependencies are not installed.&quot;</span>
+
+        <span class="c1"># Check OpenAI API key was passed</span>
+        <span class="k">if</span> <span class="s2">&quot;OPENAI_API_KEY&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;OpenAI API key not found in environment variables&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Set-up litellm API client</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">litellm</span>
+        <span class="n">litellm</span><span class="o">.</span><span class="n">success_callback</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">track_cost_callback</span><span class="p">]</span>
+
+        <span class="kn">from</span><span class="w"> </span><span class="nn">litellm</span><span class="w"> </span><span class="kn">import</span> <span class="n">completion</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text_completion_api</span> <span class="o">=</span> <span class="n">completion</span>
+
+        <span class="c1"># Get supported parameters</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">litellm</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_supported_openai_params</span>
+        <span class="n">supported_params</span> <span class="o">=</span> <span class="n">get_supported_openai_params</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">supported_params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to get supported parameters for model &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">supported_params</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">supported_params</span><span class="p">)</span>
+
+        <span class="c1"># Set litellm logger level to WARNING</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;LiteLLM&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
+
+<div class="viewcode-block" id="WebAPILLMClassifier.check_webAPI_deps">
+<a class="viewcode-back" href="../../../source/folktexts.classifier.html#folktexts.classifier.web_api_classifier.WebAPILLMClassifier.check_webAPI_deps">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_webAPI_deps</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if litellm dependencies are available.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">litellm</span>  <span class="c1"># noqa: F401</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">critical</span><span class="p">(</span>
+                <span class="s2">&quot;Please install extra API dependencies with &quot;</span>
+                <span class="s2">&quot;`pip install &#39;folktexts[apis]&#39;` &quot;</span>
+                <span class="s2">&quot;to use the WebAPILLMClassifier.&quot;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_query_webapi_batch</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">prompts_batch</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">question</span><span class="p">:</span> <span class="n">MultipleChoiceQA</span> <span class="o">|</span> <span class="n">DirectNumericQA</span><span class="p">,</span>
+        <span class="n">context_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Query the web API with a batch of prompts and returns the json response.</span>
+
+<span class="sd">        TODO! Retry on non-successful API calls (e.g., RPM exceeded).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        prompts_batch : list[str]</span>
+<span class="sd">            A batch of string prompts to query the model with.</span>
+<span class="sd">        question : MultipleChoiceQA | DirectNumericQA</span>
+<span class="sd">            The question (`QAInterface`) object to use for querying the model.</span>
+<span class="sd">        context_size : int, optional</span>
+<span class="sd">            The maximum context size to consider for each input (in tokens).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        responses_batch : list[dict]</span>
+<span class="sd">            The returned JSON responses for each prompt in the batch.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Adapt number of forward passes</span>
+        <span class="c1"># &gt; Single token answers should require only one forward pass</span>
+        <span class="k">if</span> <span class="n">question</span><span class="o">.</span><span class="n">num_forward_passes</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">num_forward_passes</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="c1"># NOTE: Models often generate &quot;0.&quot; instead of directly outputting the fractional part</span>
+        <span class="c1"># &gt; Therefore: for multi-token answers, extra forward passes may be required</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Add extra tokens for textual prefix, e.g., &quot;The probability is: ...&quot;</span>
+            <span class="n">num_forward_passes</span> <span class="o">=</span> <span class="n">question</span><span class="o">.</span><span class="n">num_forward_passes</span> <span class="o">+</span> <span class="mi">2</span>
+
+        <span class="n">api_call_params</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">temperature</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">max_tokens</span><span class="o">=</span><span class="n">num_forward_passes</span><span class="p">,</span>
+            <span class="n">stream</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">seed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span>
+            <span class="n">logprobs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">top_logprobs</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">api_call_params</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">supported_params</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Unsupported API parameters for model &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="si">}</span><span class="s2">&#39;: &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">set</span><span class="p">(</span><span class="n">api_call_params</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">supported_params</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Get system prompt depending on Q&amp;A type</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">question</span><span class="p">,</span> <span class="n">DirectNumericQA</span><span class="p">):</span>
+            <span class="n">system_prompt</span> <span class="o">=</span> <span class="s2">&quot;Your response must start with a number representing the estimated probability.&quot;</span>
+            <span class="c1"># system_prompt = (</span>
+            <span class="c1">#     &quot;You are a highly specialized assistant that always responds with a single number. &quot;</span>
+            <span class="c1">#     &quot;For every input, you must analyze the request and respond with only the relevant single number, &quot;</span>
+            <span class="c1">#     &quot;without any additional text, explanation, or symbols.&quot;</span>
+            <span class="c1"># )</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">question</span><span class="p">,</span> <span class="n">MultipleChoiceQA</span><span class="p">):</span>
+            <span class="n">system_prompt</span> <span class="o">=</span> <span class="s2">&quot;Please respond with a single letter.&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown question type &#39;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">question</span><span class="p">)</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Query model for each prompt in the batch</span>
+        <span class="n">responses_batch</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">prompt</span> <span class="ow">in</span> <span class="n">prompts_batch</span><span class="p">:</span>
+
+            <span class="c1"># Construct prompt messages object</span>
+            <span class="n">messages</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">system_prompt</span><span class="p">},</span>
+                <span class="p">{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">prompt</span><span class="p">},</span>
+            <span class="p">]</span>
+
+            <span class="c1"># Query the model API</span>
+            <span class="c1"># TODO: Retry on non-successful API calls (e.g., RPM exceeded).</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_completion_api</span><span class="p">(</span>
+                <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="p">,</span>
+                <span class="n">messages</span><span class="o">=</span><span class="n">messages</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">api_call_params</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">responses_batch</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+
+            <span class="c1"># Sleep for short period to avoid rate-limiting (max 5K RPM for OpenAI API)</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">60</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_api_rpm</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">responses_batch</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_decode_risk_estimate_from_api_response</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">response</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+        <span class="n">question</span><span class="p">:</span> <span class="n">MultipleChoiceQA</span> <span class="o">|</span> <span class="n">DirectNumericQA</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Decode model output from API response to get risk estimate.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        response : dict</span>
+<span class="sd">            The response from the API call.</span>
+<span class="sd">        question : MultipleChoiceQA | DirectNumericQA</span>
+<span class="sd">            The question (`QAInterface`) object to use for querying the model.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        risk_estimate : float</span>
+<span class="sd">            The risk estimate for the API query.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Get response message</span>
+        <span class="n">response_message</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="o">.</span><span class="n">content</span>
+
+        <span class="c1"># Get top token choices for each forward pass</span>
+        <span class="n">token_choices_all_passes</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">choices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">logprobs</span><span class="o">.</span><span class="n">content</span>
+
+        <span class="c1"># Construct dictionary of token to linear token probability for each forward pass</span>
+        <span class="n">token_probs_all_passes</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="n">token_metadata</span><span class="o">.</span><span class="n">token</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">token_metadata</span><span class="o">.</span><span class="n">logprob</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">token_metadata</span> <span class="ow">in</span> <span class="n">top_token_logprobs</span><span class="o">.</span><span class="n">top_logprobs</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">top_token_logprobs</span> <span class="ow">in</span> <span class="n">token_choices_all_passes</span>
+        <span class="p">]</span>
+
+        <span class="c1"># Decode model output into risk estimates</span>
+        <span class="c1"># 1. Construct vocabulary dict for this response</span>
+        <span class="n">vocab_tokens</span> <span class="o">=</span> <span class="p">{</span><span class="n">tok</span> <span class="k">for</span> <span class="n">forward_pass</span> <span class="ow">in</span> <span class="n">token_probs_all_passes</span> <span class="k">for</span> <span class="n">tok</span> <span class="ow">in</span> <span class="n">forward_pass</span><span class="p">}</span>
+
+        <span class="n">token_to_id</span> <span class="o">=</span> <span class="p">{</span><span class="n">tok</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">tok</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">vocab_tokens</span><span class="p">)}</span>
+        <span class="n">id_to_token</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="n">tok</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">tok</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">vocab_tokens</span><span class="p">)}</span>
+
+        <span class="c1"># 2. Parse `token_probs_all_passes` into an array of shape (num_passes, vocab_size)</span>
+        <span class="n">token_probs_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+            <span class="p">[</span>
+                <span class="n">forward_pass</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">id_to_token</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">vocab_tokens</span><span class="p">))</span>
+            <span class="p">]</span>
+            <span class="k">for</span> <span class="n">forward_pass</span> <span class="ow">in</span> <span class="n">token_probs_all_passes</span>
+        <span class="p">])</span>
+        <span class="c1"># NOTE: token_probs.shape = (num_passes, vocab_size)</span>
+
+        <span class="c1"># Get risk estimate</span>
+        <span class="n">risk_estimate</span> <span class="o">=</span> <span class="n">question</span><span class="o">.</span><span class="n">get_answer_from_model_output</span><span class="p">(</span>
+            <span class="n">token_probs_array</span><span class="p">,</span>
+            <span class="n">tokenizer_vocab</span><span class="o">=</span><span class="n">token_to_id</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Sanity check numeric answers based on global model response:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">question</span><span class="p">,</span> <span class="n">DirectNumericQA</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">numeric_response</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;[-+]?\d*\.\d+|\d+&quot;</span><span class="p">,</span> <span class="n">response_message</span><span class="p">)</span><span class="o">.</span><span class="n">group</span><span class="p">()</span>
+                <span class="n">risk_estimate_full_text</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">numeric_response</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">risk_estimate</span><span class="p">,</span> <span class="n">risk_estimate_full_text</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">):</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Numeric answer mismatch: </span><span class="si">{</span><span class="n">risk_estimate</span><span class="si">}</span><span class="s2"> != </span><span class="si">{</span><span class="n">risk_estimate_full_text</span><span class="si">}</span><span class="s2"> &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;from response &#39;</span><span class="si">{</span><span class="n">response_message</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+                    <span class="p">)</span>
+
+                    <span class="c1"># Using full text answer as it more tightly relates to the ChatGPT web answer</span>
+                    <span class="n">risk_estimate</span> <span class="o">=</span> <span class="n">risk_estimate_full_text</span>
+
+                    <span class="k">if</span> <span class="n">risk_estimate</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;Got risk estimate &gt; 1: </span><span class="si">{</span><span class="n">risk_estimate</span><span class="si">}</span><span class="s2">. Using &quot;</span>
+                            <span class="sa">f</span><span class="s2">&quot;output as a percentage: </span><span class="si">{</span><span class="n">risk_estimate</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">100.0</span><span class="si">}</span><span class="s2"> instead.&quot;</span>
+                        <span class="p">)</span>
+                        <span class="n">risk_estimate</span> <span class="o">=</span> <span class="n">risk_estimate</span> <span class="o">/</span> <span class="mf">100.0</span>
+
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Failed to extract numeric response from message=&#39;</span><span class="si">{</span><span class="n">response_message</span><span class="si">}</span><span class="s2">&#39;;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Falling back on standard risk estimate of </span><span class="si">{</span><span class="n">risk_estimate</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">risk_estimate</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_query_prompt_risk_estimates_batch</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">prompts_batch</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">question</span><span class="p">:</span> <span class="n">MultipleChoiceQA</span> <span class="o">|</span> <span class="n">DirectNumericQA</span><span class="p">,</span>
+        <span class="n">context_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Query model with a batch of prompts and return risk estimates.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        prompts_batch : list[str]</span>
+<span class="sd">            A batch of string prompts to query the model with.</span>
+<span class="sd">        question : MultipleChoiceQA | DirectNumericQA</span>
+<span class="sd">            The question (`QAInterface`) object to use for querying the model.</span>
+<span class="sd">        context_size : int, optional</span>
+<span class="sd">            The maximum context size to consider for each input (in tokens).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        risk_estimates : np.ndarray</span>
+<span class="sd">            The risk estimates for each prompt in the batch.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        RuntimeError</span>
+<span class="sd">            Raised when web API call is unsuccessful.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Query model through web API</span>
+        <span class="n">api_responses_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_query_webapi_batch</span><span class="p">(</span>
+            <span class="n">prompts_batch</span><span class="o">=</span><span class="n">prompts_batch</span><span class="p">,</span>
+            <span class="n">question</span><span class="o">=</span><span class="n">question</span><span class="p">,</span>
+            <span class="n">context_size</span><span class="o">=</span><span class="n">context_size</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Parse API responses and decode model output</span>
+        <span class="n">risk_estimates_batch</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_decode_risk_estimate_from_api_response</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">question</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">response</span> <span class="ow">in</span> <span class="n">api_responses_batch</span>
+        <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">risk_estimates_batch</span>
+
+<div class="viewcode-block" id="WebAPILLMClassifier.track_cost_callback">
+<a class="viewcode-back" href="../../../source/folktexts.classifier.html#folktexts.classifier.web_api_classifier.WebAPILLMClassifier.track_cost_callback">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">track_cost_callback</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="p">,</span>
+        <span class="n">completion_response</span><span class="p">,</span>
+        <span class="n">start_time</span><span class="p">,</span>
+        <span class="n">end_time</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Callback function to cost of API calls.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">response_cost</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;response_cost&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_total_cost</span> <span class="o">+=</span> <span class="n">response_cost</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to track cost of API calls: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Destructor to report total cost of API calls.&quot;&quot;&quot;</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Total cost of API calls: $</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_total_cost</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

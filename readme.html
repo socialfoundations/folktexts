@@ -1,0 +1,429 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>README.md &mdash; folktexts 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=d2d258e8" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="_static/custom.js?v=882eb7ae"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="folktexts" href="source/modules.html" />
+    <link rel="prev" title="Welcome to folktexts’ documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            folktexts
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Readme file</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#table-of-contents">Table of contents   <!-- omit in toc --></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#getting-started">Getting started</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#installing">Installing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#basic-setup">Basic setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ready-to-use-datasets">Ready-to-use datasets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-usage">Example usage</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#benchmark-features-and-options">Benchmark features and options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#evaluating-feature-importance">Evaluating feature importance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#faq">FAQ</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#citation">Citation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#license-and-terms-of-use">License and terms of use</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="source/modules.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebooks.html">Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">README.md</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/readme.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="readme-md">
+<h1>README.md<a class="headerlink" href="#readme-md" title="Link to this heading"></a></h1>
+ <!-- # Folktexts   <!-- omit in toc -->
+<p><img alt="Tests status" src="https://github.com/socialfoundations/folktexts/actions/workflows/python-tests.yml/badge.svg" />
+<img alt="PyPI status" src="https://github.com/socialfoundations/folktexts/actions/workflows/python-publish.yml/badge.svg" />
+<img alt="Documentation status" src="https://github.com/socialfoundations/folktexts/actions/workflows/python-docs.yml/badge.svg" />
+<img alt="PyPI version" src="https://badgen.net/pypi/v/folktexts" />
+<img alt="PyPI - License" src="https://img.shields.io/pypi/l/folktexts" />
+<img alt="Python compatibility" src="https://badgen.net/pypi/python/folktexts" />
+<a class="reference external" href="https://huggingface.co/datasets/acruz/folktexts"><img alt="Huggingface dataset" src="https://img.shields.io/badge/HuggingFace-FDEE21?style=flat&amp;logo=huggingface&amp;logoColor=black&amp;color=%23FFD21E" /></a></p>
+<img src="docs/_static/logo-wider.png">
+<h2>A toolbox for evaluating statistical properties of LLMs</h2>
+<p>Folktexts provides a suite of Q&amp;A datasets for evaluating <strong>uncertainty</strong>, <strong>calibration</strong>, <strong>accuracy</strong> and <strong>fairness</strong> of LLMs on individual outcome prediction tasks. It provides a flexible framework to derive prediction <strong>tasks from survey data</strong>, translates them into natural text prompts, extracts LLM-generated <em>risk scores</em>, and computes statistical properties of these risk scores by comparing them to the ground truth outcomes.</p>
+<p><strong>Use folktexts to benchmark your LLM:</strong></p>
+<ul class="simple">
+<li><p>Pre-defined Q&amp;A benchmark tasks are provided based on data from the American Community Survey (<a href="https://www.census.gov/programs-surveys/acs/microdata/documentation.html">ACS</a>). Each tabular prediction task from the popular
+<a class="reference external" href="https://github.com/socialfoundations/folktables">folktables</a> package is made available
+as a natural-language Q&amp;A task.</p></li>
+<li><p>Parsed and ready-to-use versions of each <em>folktexts</em> dataset can be found on
+<a href="https://huggingface.co/datasets/acruz/folktexts"> Huggingface</a>.</p></li>
+<li><p>The package can be used to customize your tasks. Select a feature to define your prediciton target. Specify subsets of input features to vary outcome uncertainty. Modify prompting templates to evaluate mappings from tabular data to natural text prompts. Compare different methods to extract uncertainty values from LLM responses. Extract raw risk scores and outcomes to perform custom statistical evaluations. Package documentation can be found <a class="reference external" href="https://socialfoundations.github.io/folktexts/">here</a>.</p></li>
+</ul>
+<!-- ![folktexts-diagram](docs/_static/folktexts-loop-diagram.png) -->
+<p align="center">
+    <img src="docs/_static/folktexts-loop-diagram.png" alt="folktexts-diagram" width="700px">
+</p>
+<section id="table-of-contents">
+<h2>Table of contents   <!-- omit in toc --><a class="headerlink" href="#table-of-contents" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="#getting-started"><span class="xref myst">Getting started</span></a></p>
+<ul>
+<li><p><a class="reference internal" href="#installing"><span class="std std-ref">Installing</span></a></p></li>
+<li><p><a class="reference internal" href="#basic-setup"><span class="xref myst">Basic setup</span></a></p></li>
+<li><p><a class="reference internal" href="#ready-to-use-datasets"><span class="xref myst">Ready-to-use datasets</span></a></p></li>
+<li><p><a class="reference internal" href="#example-usage"><span class="xref myst">Example usage</span></a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#benchmark-features-and-options"><span class="xref myst">Benchmark features and options</span></a></p></li>
+<li><p><a class="reference internal" href="#evaluating-feature-importance"><span class="xref myst">Evaluating feature importance</span></a></p></li>
+<li><p><a class="reference internal" href="#faq"><span class="std std-ref">FAQ</span></a></p></li>
+<li><p><a class="reference internal" href="#citation"><span class="std std-ref">Citation</span></a></p></li>
+<li><p><a class="reference internal" href="#license-and-terms-of-use"><span class="xref myst">License and terms of use</span></a></p></li>
+</ul>
+</section>
+<section id="getting-started">
+<h2>Getting started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h2>
+<section id="installing">
+<h3>Installing<a class="headerlink" href="#installing" title="Link to this heading"></a></h3>
+<p>Install package from <a class="reference external" href="https://pypi.org/project/folktexts/">PyPI</a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">folktexts</span>
+</pre></div>
+</div>
+</section>
+<section id="basic-setup">
+<h3>Basic setup<a class="headerlink" href="#basic-setup" title="Link to this heading"></a></h3>
+<blockquote>
+<div><p>Go through the following steps to run the benchmark tasks.
+Alternatively, if you only want ready-to-use datasets, see <a class="reference internal" href="#ready-to-use-datasets"><span class="xref myst">this section</span></a>.</p>
+</div></blockquote>
+<ol class="arabic simple">
+<li><p>Create conda environment</p></li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">-</span><span class="n">n</span> <span class="n">folktexts</span> <span class="n">python</span><span class="o">=</span><span class="mf">3.11</span>
+<span class="n">conda</span> <span class="n">activate</span> <span class="n">folktexts</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>Install folktexts package</p></li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">folktexts</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="3">
+<li><p>Create models dataset and results folder</p></li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mkdir</span> <span class="n">results</span>
+<span class="n">mkdir</span> <span class="n">models</span>
+<span class="n">mkdir</span> <span class="n">data</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="4">
+<li><p>Download transformers model and tokenizer</p></li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">download_models</span> <span class="o">--</span><span class="n">model</span> <span class="s1">&#39;google/gemma-2b&#39;</span> <span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="nb">dir</span> <span class="n">models</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="5">
+<li><p>Run benchmark on a given task</p></li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">run_acs_benchmark</span> <span class="o">--</span><span class="n">results</span><span class="o">-</span><span class="nb">dir</span> <span class="n">results</span> <span class="o">--</span><span class="n">data</span><span class="o">-</span><span class="nb">dir</span> <span class="n">data</span> <span class="o">--</span><span class="n">task</span> <span class="s1">&#39;ACSIncome&#39;</span> <span class="o">--</span><span class="n">model</span> <span class="n">models</span><span class="o">/</span><span class="n">google</span><span class="o">--</span><span class="n">gemma</span><span class="o">-</span><span class="mi">2</span><span class="n">b</span>
+</pre></div>
+</div>
+<p>Run <code class="docutils literal notranslate"><span class="pre">run_acs_benchmark</span> <span class="pre">--help</span></code> to get a list of all available benchmark flags.</p>
+</section>
+<section id="ready-to-use-datasets">
+<h3>Ready-to-use datasets<a class="headerlink" href="#ready-to-use-datasets" title="Link to this heading"></a></h3>
+<p>Ready-to-use Q&amp;A datasets generated from the 2018 American Community Survey are available via
+<a href="https://huggingface.co/datasets/acruz/folktexts">
+<span style="display: inline-block; vertical-align: middle;">
+<img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" alt="Logo" style="height: 1em; vertical-align: text-bottom;">
+</span>
+datasets</a>.</p>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">datasets</span>
+<span class="n">acs_task_qa</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">load_dataset</span><span class="p">(</span>
+    <span class="n">path</span><span class="o">=</span><span class="s2">&quot;acruz/folktexts&quot;</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ACSIncome&quot;</span><span class="p">,</span>   <span class="c1"># Choose which task you want to load</span>
+    <span class="n">split</span><span class="o">=</span><span class="s2">&quot;test&quot;</span><span class="p">)</span>       <span class="c1"># Choose split according to your intended use case</span>
+</pre></div>
+</div>
+</section>
+<section id="example-usage">
+<h3>Example usage<a class="headerlink" href="#example-usage" title="Link to this heading"></a></h3>
+<p>Example code snippet that loads a pre-trained model, collects and parses Q&amp;A data
+for the income-prediction task, and computes risk scores on the test split.</p>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="c1"># Load transformers model</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.llm_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_model_tokenizer</span>
+<span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">load_model_tokenizer</span><span class="p">(</span><span class="s2">&quot;gpt2&quot;</span><span class="p">)</span>   <span class="c1"># using tiny model as an example</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.acs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ACSDataset</span>
+<span class="n">acs_task_name</span> <span class="o">=</span> <span class="s2">&quot;ACSIncome&quot;</span>     <span class="c1"># Name of the benchmark ACS task to use</span>
+
+<span class="c1"># Create an object that classifies data using an LLM</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransformersLLMClassifier</span>
+<span class="n">clf</span> <span class="o">=</span> <span class="n">TransformersLLMClassifier</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+    <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+    <span class="n">task</span><span class="o">=</span><span class="n">acs_task_name</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="c1"># NOTE: You can also use a web-hosted model like GPT4 using the `WebAPILLMClassifier` class</span>
+
+<span class="c1"># Use a dataset or feed in your own data</span>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">ACSDataset</span><span class="o">.</span><span class="n">make_from_task</span><span class="p">(</span><span class="n">acs_task_name</span><span class="p">)</span>   <span class="c1"># use `.subsample(0.01)` to get faster approximate results</span>
+
+<span class="c1"># You can compute risk score predictions using an sklearn-style interface</span>
+<span class="n">X_test</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">get_test</span><span class="p">()</span>
+<span class="n">test_scores</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If you only care about the overall benchmark results and not individual predictions,
+you can simply run the following code instead of using <code class="docutils literal notranslate"><span class="pre">.predict_proba()</span></code> directly:</p>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.benchmark</span><span class="w"> </span><span class="kn">import</span> <span class="n">Benchmark</span><span class="p">,</span> <span class="n">BenchmarkConfig</span>
+<span class="n">bench</span> <span class="o">=</span> <span class="n">Benchmark</span><span class="o">.</span><span class="n">make_benchmark</span><span class="p">(</span>
+    <span class="n">task</span><span class="o">=</span><span class="n">acs_task_name</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span>  <span class="c1"># These vars are defined in the snippet above</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+    <span class="n">numeric_risk_prompting</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>    <span class="c1"># See the full list of configs below in the README</span>
+<span class="p">)</span>
+<span class="n">bench_results</span> <span class="o">=</span> <span class="n">bench</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">results_root_dir</span><span class="o">=</span><span class="s2">&quot;results&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Example snippet showcasing how to fit the binarization threshold on a few training samples
+(note that this is <em>not fine-tuning</em>), and obtaining discretized predictions using <code class="docutils literal notranslate"><span class="pre">.predict()</span></code>.</p>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="c1"># Optionally, you can fit the threshold based on a few samples</span>
+<span class="n">clf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="o">*</span><span class="n">dataset</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">100</span><span class="p">])</span>    <span class="c1"># (`dataset[...]` will access training data)</span>
+
+<span class="c1"># ...in order to get more accurate binary predictions with `.predict`</span>
+<span class="n">test_preds</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="benchmark-features-and-options">
+<h2>Benchmark features and options<a class="headerlink" href="#benchmark-features-and-options" title="Link to this heading"></a></h2>
+<p>Here’s a summary list of the most important benchmark options/flags used in
+conjunction with the <code class="docutils literal notranslate"><span class="pre">run_acs_benchmark</span></code> command line script, or with the
+<code class="docutils literal notranslate"><span class="pre">Benchmark</span></code> class.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Option</p></th>
+<th class="head text-left"><p>Description</p></th>
+<th class="head text-center"><p>Examples</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--model</span></code></p></td>
+<td class="text-left"><p>Name of the model on huggingface transformers, or local path to folder with pretrained model and tokenizer. Can also use web-hosted models with <code class="docutils literal notranslate"><span class="pre">&quot;[provider]/[model-name]&quot;</span></code>.</p></td>
+<td class="text-center"><p><code class="docutils literal notranslate"><span class="pre">meta-llama/Meta-Llama-3-8B</span></code>, <code class="docutils literal notranslate"><span class="pre">openai/gpt-4o-mini</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--task</span></code></p></td>
+<td class="text-left"><p>Name of the ACS task to run benchmark on.</p></td>
+<td class="text-center"><p><code class="docutils literal notranslate"><span class="pre">ACSIncome</span></code>, <code class="docutils literal notranslate"><span class="pre">ACSEmployment</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--results-dir</span></code></p></td>
+<td class="text-left"><p>Path to directory under which benchmark results will be saved.</p></td>
+<td class="text-center"><p><code class="docutils literal notranslate"><span class="pre">results</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--data-dir</span></code></p></td>
+<td class="text-left"><p>Root folder to find datasets in (or download ACS data to).</p></td>
+<td class="text-center"><p><code class="docutils literal notranslate"><span class="pre">~/data</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--numeric-risk-prompting</span></code></p></td>
+<td class="text-left"><p>Whether to use verbalized numeric risk prompting, i.e., directly query model for a probability estimate. <strong>By default</strong> will use standard multiple-choice Q&amp;A, and extract risk scores from internal token probabilities.</p></td>
+<td class="text-center"><p>Boolean flag (<code class="docutils literal notranslate"><span class="pre">True</span></code> if present, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise)</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--use-web-api-model</span></code></p></td>
+<td class="text-left"><p>Whether the given <code class="docutils literal notranslate"><span class="pre">--model</span></code> name corresponds to a web-hosted model or not. <strong>By default</strong> this is False (assumes a huggingface transformers model). If this flag is provided, <code class="docutils literal notranslate"><span class="pre">--model</span></code> must contain a <a class="reference external" href="https://docs.litellm.ai">litellm</a> model identifier (<a class="reference external" href="https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models">examples here</a>).</p></td>
+<td class="text-center"><p>Boolean flag (<code class="docutils literal notranslate"><span class="pre">True</span></code> if present, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise)</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--subsampling</span></code></p></td>
+<td class="text-left"><p>Which fraction of the dataset to use for the benchmark. <strong>By default</strong> will use the whole test set.</p></td>
+<td class="text-center"><p><code class="docutils literal notranslate"><span class="pre">0.01</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--fit-threshold</span></code></p></td>
+<td class="text-left"><p>Whether to use the given number of samples to fit the binarization threshold. <strong>By default</strong> will use a fixed $t=0.5$ threshold instead of fitting on data.</p></td>
+<td class="text-center"><p><code class="docutils literal notranslate"><span class="pre">100</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--batch-size</span></code></p></td>
+<td class="text-left"><p>The number of samples to process in each inference batch. Choose according to your available VRAM.</p></td>
+<td class="text-center"><p><code class="docutils literal notranslate"><span class="pre">10</span></code>, <code class="docutils literal notranslate"><span class="pre">32</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>Full list of options:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">run_acs_benchmark</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="o">--</span><span class="n">model</span> <span class="n">MODEL</span> <span class="o">--</span><span class="n">results</span><span class="o">-</span><span class="nb">dir</span> <span class="n">RESULTS_DIR</span> <span class="o">--</span><span class="n">data</span><span class="o">-</span><span class="nb">dir</span> <span class="n">DATA_DIR</span> <span class="p">[</span><span class="o">--</span><span class="n">task</span> <span class="n">TASK</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">few</span><span class="o">-</span><span class="n">shot</span> <span class="n">FEW_SHOT</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">batch</span><span class="o">-</span><span class="n">size</span> <span class="n">BATCH_SIZE</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">context</span><span class="o">-</span><span class="n">size</span> <span class="n">CONTEXT_SIZE</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">threshold</span> <span class="n">FIT_THRESHOLD</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">subsampling</span> <span class="n">SUBSAMPLING</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">seed</span> <span class="n">SEED</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">web</span><span class="o">-</span><span class="n">api</span><span class="o">-</span><span class="n">model</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">dont</span><span class="o">-</span><span class="n">correct</span><span class="o">-</span><span class="n">order</span><span class="o">-</span><span class="n">bias</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">numeric</span><span class="o">-</span><span class="n">risk</span><span class="o">-</span><span class="n">prompting</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">reuse</span><span class="o">-</span><span class="n">few</span><span class="o">-</span><span class="n">shot</span><span class="o">-</span><span class="n">examples</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">feature</span><span class="o">-</span><span class="n">subset</span> <span class="n">USE_FEATURE_SUBSET</span><span class="p">]</span>
+                         <span class="p">[</span><span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">population</span><span class="o">-</span><span class="nb">filter</span> <span class="n">USE_POPULATION_FILTER</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">logger</span><span class="o">-</span><span class="n">level</span> <span class="p">{</span><span class="n">DEBUG</span><span class="p">,</span><span class="n">INFO</span><span class="p">,</span><span class="n">WARNING</span><span class="p">,</span><span class="n">ERROR</span><span class="p">,</span><span class="n">CRITICAL</span><span class="p">}]</span>
+
+<span class="n">Benchmark</span> <span class="n">risk</span> <span class="n">scores</span> <span class="n">produced</span> <span class="n">by</span> <span class="n">a</span> <span class="n">language</span> <span class="n">model</span> <span class="n">on</span> <span class="n">ACS</span> <span class="n">data</span><span class="o">.</span>
+
+<span class="n">options</span><span class="p">:</span>
+  <span class="o">-</span><span class="n">h</span><span class="p">,</span> <span class="o">--</span><span class="n">help</span>            <span class="n">show</span> <span class="n">this</span> <span class="n">help</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span>
+  <span class="o">--</span><span class="n">model</span> <span class="n">MODEL</span>         <span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">Model</span> <span class="n">name</span> <span class="ow">or</span> <span class="n">path</span> <span class="n">to</span> <span class="n">model</span> <span class="n">saved</span> <span class="n">on</span> <span class="n">disk</span>
+  <span class="o">--</span><span class="n">results</span><span class="o">-</span><span class="nb">dir</span> <span class="n">RESULTS_DIR</span>
+                        <span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">Directory</span> <span class="n">under</span> <span class="n">which</span> <span class="n">this</span> <span class="n">experiment</span><span class="s1">&#39;s results will be saved</span>
+  <span class="o">--</span><span class="n">data</span><span class="o">-</span><span class="nb">dir</span> <span class="n">DATA_DIR</span>   <span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">Root</span> <span class="n">folder</span> <span class="n">to</span> <span class="n">find</span> <span class="n">datasets</span> <span class="n">on</span>
+  <span class="o">--</span><span class="n">task</span> <span class="n">TASK</span>           <span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">Name</span> <span class="n">of</span> <span class="n">the</span> <span class="n">ACS</span> <span class="n">task</span> <span class="n">to</span> <span class="n">run</span> <span class="n">the</span> <span class="n">experiment</span> <span class="n">on</span>
+  <span class="o">--</span><span class="n">few</span><span class="o">-</span><span class="n">shot</span> <span class="n">FEW_SHOT</span>   <span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="n">Use</span> <span class="n">few</span><span class="o">-</span><span class="n">shot</span> <span class="n">prompting</span> <span class="k">with</span> <span class="n">the</span> <span class="n">given</span> <span class="n">number</span> <span class="n">of</span> <span class="n">shots</span>
+  <span class="o">--</span><span class="n">batch</span><span class="o">-</span><span class="n">size</span> <span class="n">BATCH_SIZE</span>
+                        <span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="n">The</span> <span class="n">batch</span> <span class="n">size</span> <span class="n">to</span> <span class="n">use</span> <span class="k">for</span> <span class="n">inference</span>
+  <span class="o">--</span><span class="n">context</span><span class="o">-</span><span class="n">size</span> <span class="n">CONTEXT_SIZE</span>
+                        <span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="n">The</span> <span class="n">maximum</span> <span class="n">context</span> <span class="n">size</span> <span class="n">when</span> <span class="n">prompting</span> <span class="n">the</span> <span class="n">LLM</span>
+  <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">threshold</span> <span class="n">FIT_THRESHOLD</span>
+                        <span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="n">Whether</span> <span class="n">to</span> <span class="n">fit</span> <span class="n">the</span> <span class="n">prediction</span> <span class="n">threshold</span><span class="p">,</span> <span class="ow">and</span> <span class="n">on</span> <span class="n">how</span> <span class="n">many</span> <span class="n">samples</span>
+  <span class="o">--</span><span class="n">subsampling</span> <span class="n">SUBSAMPLING</span>
+                        <span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="n">Which</span> <span class="n">fraction</span> <span class="n">of</span> <span class="n">the</span> <span class="n">dataset</span> <span class="n">to</span> <span class="n">use</span> <span class="p">(</span><span class="k">if</span> <span class="n">omitted</span> <span class="n">will</span> <span class="n">use</span> <span class="nb">all</span> <span class="n">data</span><span class="p">)</span>
+  <span class="o">--</span><span class="n">seed</span> <span class="n">SEED</span>           <span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="n">Random</span> <span class="n">seed</span> <span class="o">--</span> <span class="n">to</span> <span class="nb">set</span> <span class="k">for</span> <span class="n">reproducibility</span>
+  <span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">web</span><span class="o">-</span><span class="n">api</span><span class="o">-</span><span class="n">model</span>   <span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="n">Whether</span> <span class="n">use</span> <span class="n">a</span> <span class="n">model</span> <span class="n">hosted</span> <span class="n">on</span> <span class="n">a</span> <span class="n">web</span> <span class="n">API</span> <span class="p">(</span><span class="n">instead</span> <span class="n">of</span> <span class="n">a</span> <span class="n">local</span> <span class="n">model</span><span class="p">)</span>
+  <span class="o">--</span><span class="n">dont</span><span class="o">-</span><span class="n">correct</span><span class="o">-</span><span class="n">order</span><span class="o">-</span><span class="n">bias</span>
+                        <span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="n">Whether</span> <span class="n">to</span> <span class="n">avoid</span> <span class="n">correcting</span> <span class="n">ordering</span> <span class="n">bias</span><span class="p">,</span> <span class="n">by</span> <span class="n">default</span> <span class="n">will</span> <span class="n">correct</span> <span class="n">it</span>
+  <span class="o">--</span><span class="n">numeric</span><span class="o">-</span><span class="n">risk</span><span class="o">-</span><span class="n">prompting</span>
+                        <span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="n">Whether</span> <span class="n">to</span> <span class="n">prompt</span> <span class="k">for</span> <span class="n">numeric</span> <span class="n">risk</span><span class="o">-</span><span class="n">estimates</span> <span class="n">instead</span> <span class="n">of</span> <span class="n">multiple</span><span class="o">-</span><span class="n">choice</span> <span class="n">Q</span><span class="o">&amp;</span><span class="n">A</span>
+  <span class="o">--</span><span class="n">reuse</span><span class="o">-</span><span class="n">few</span><span class="o">-</span><span class="n">shot</span><span class="o">-</span><span class="n">examples</span>
+                        <span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="n">Whether</span> <span class="n">to</span> <span class="n">reuse</span> <span class="n">the</span> <span class="n">same</span> <span class="n">samples</span> <span class="k">for</span> <span class="n">few</span><span class="o">-</span><span class="n">shot</span> <span class="n">prompting</span> <span class="p">(</span><span class="ow">or</span> <span class="n">sample</span> <span class="n">new</span> <span class="n">ones</span> <span class="n">every</span> <span class="n">time</span><span class="p">)</span>
+  <span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">feature</span><span class="o">-</span><span class="n">subset</span> <span class="n">USE_FEATURE_SUBSET</span>
+                        <span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">Optional</span> <span class="n">subset</span> <span class="n">of</span> <span class="n">features</span> <span class="n">to</span> <span class="n">use</span> <span class="k">for</span> <span class="n">prediction</span><span class="p">,</span> <span class="n">comma</span> <span class="n">separated</span>
+  <span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">population</span><span class="o">-</span><span class="nb">filter</span> <span class="n">USE_POPULATION_FILTER</span>
+                        <span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">Optional</span> <span class="n">population</span> <span class="nb">filter</span> <span class="k">for</span> <span class="n">this</span> <span class="n">benchmark</span><span class="p">;</span> <span class="n">must</span> <span class="n">follow</span> <span class="n">the</span> <span class="nb">format</span> <span class="s1">&#39;column_name=value&#39;</span> <span class="n">to</span> <span class="nb">filter</span> <span class="n">the</span> <span class="n">dataset</span> <span class="n">by</span> <span class="n">a</span> <span class="n">specific</span> <span class="n">value</span><span class="o">.</span>
+  <span class="o">--</span><span class="n">logger</span><span class="o">-</span><span class="n">level</span> <span class="p">{</span><span class="n">DEBUG</span><span class="p">,</span><span class="n">INFO</span><span class="p">,</span><span class="n">WARNING</span><span class="p">,</span><span class="n">ERROR</span><span class="p">,</span><span class="n">CRITICAL</span><span class="p">}</span>
+                        <span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">The</span> <span class="n">logging</span> <span class="n">level</span> <span class="n">to</span> <span class="n">use</span> <span class="k">for</span> <span class="n">the</span> <span class="n">experiment</span>
+</pre></div>
+</div>
+</section>
+<section id="evaluating-feature-importance">
+<h2>Evaluating feature importance<a class="headerlink" href="#evaluating-feature-importance" title="Link to this heading"></a></h2>
+<p>By evaluating LLMs on tabular classification tasks, we can use standard feature importance methods to assess which features the model uses to compute risk scores.</p>
+<p>You can do so yourself by calling <code class="docutils literal notranslate"><span class="pre">folktexts.cli.eval_feature_importance</span></code> (add <code class="docutils literal notranslate"><span class="pre">--help</span></code> for a full list of options).</p>
+<p>Here’s an example for the Llama3-70B-Instruct model on the ACSIncome task (<em>warning: takes 24h on an Nvidia H100</em>):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">folktexts</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">eval_feature_importance</span> <span class="o">--</span><span class="n">model</span> <span class="s1">&#39;meta-llama/Meta-Llama-3-70B-Instruct&#39;</span> <span class="o">--</span><span class="n">task</span> <span class="n">ACSIncome</span> <span class="o">--</span><span class="n">subsampling</span> <span class="mf">0.1</span>
+</pre></div>
+</div>
+<div style="text-align: center;">
+<img src="docs/_static/feat-imp_meta-llama--Meta-Llama-3-70B-Instruct.png" alt="feature importance on llama3 70b it" width="50%">
+</div>
+<p>This script uses sklearn’s <a class="reference external" href="https://scikit-learn.org/stable/modules/generated/sklearn.inspection.permutation_importance.html#sklearn.inspection.permutation_importance"><code class="docutils literal notranslate"><span class="pre">permutation_importance</span></code></a> to assess which features contribute the most for the ROC AUC metric (other metrics can be assessed using the <code class="docutils literal notranslate"><span class="pre">--scorer</span> <span class="pre">[scorer]</span></code> parameter).</p>
+</section>
+<section id="faq">
+<h2>FAQ<a class="headerlink" href="#faq" title="Link to this heading"></a></h2>
+<ol class="arabic">
+<li><p><strong>Q:</strong> Can I use <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> with a different dataset?</p>
+<p><strong>A:</strong> <strong>Yes!</strong> Folktexts provides the whole ML pipeline needed to produce risk scores using LLMs, together with a few example ACS datasets. You can easily apply these same utilities to a different dataset following the <a class="reference internal" href="notebooks/custom-dataset-example.html"><span class="std std-doc">example jupyter notebook</span></a>.</p>
+</li>
+<li><p><strong>Q:</strong> How do I create a custom prediction task based on American Community Survey data?</p>
+<p><strong>A:</strong> Simply create a new <code class="docutils literal notranslate"><span class="pre">TaskMetadata</span></code> object with the parameters you want. Follow the <a class="reference internal" href="notebooks/custom-acs-task-example.html"><span class="std std-doc">example jupyter notebook</span></a> for more details.</p>
+</li>
+<li><p><strong>Q:</strong> Can I use <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> with closed-source models?</p>
+<p><strong>A:</strong> <strong>Yes!</strong> We provide compatibility with local LLMs via <a class="reference external" href="https://github.com/huggingface/transformers">🤗 transformers</a> and compatibility with web-hosted LLMs via <a class="reference external" href="https://github.com/BerriAI/litellm">litellm</a>. For example, you can use <code class="docutils literal notranslate"><span class="pre">--model='gpt-4o'</span> <span class="pre">--use-web-api-model</span></code> to use GPT-4o when calling the <code class="docutils literal notranslate"><span class="pre">run_acs_benchmark</span></code> script. <a class="reference external" href="https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models">Here’s a complete list</a> of compatible OpenAI models. Note that some models are not compatible as they don’t enable access to log-probabilities.
+Using models through a web API requires installing extra optional dependencies with <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">'folktexts[apis]'</span></code>.</p>
+</li>
+<li><p><strong>Q:</strong> Can I use <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> to fine-tune LLMs on survey prediction tasks?</p>
+<p><strong>A:</strong> The package does not feature specific fine-tuning functionality, but you can use the data and Q&amp;A prompts generated by <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> to fine-tune an LLM for a specific prediction task.</p>
+ <!-- **A:** Yes. Although the package does not feature specific fine-tuning functionality, you can use the data and Q&A prompts generated by `folktexts` to fine-tune an LLM for a specific prediction task. Follow the [example jupyter notebook](notebooks/finetuning-llms-example.ipynb) for more details. In the future we may bring this functionality into the main package implementation. -->
+</li>
+</ol>
+</section>
+<section id="citation">
+<h2>Citation<a class="headerlink" href="#citation" title="Link to this heading"></a></h2>
+<div class="highlight-bib notranslate"><div class="highlight"><pre><span></span><span class="nc">@inproceedings</span><span class="p">{</span><span class="nl">cruz2024evaluating</span><span class="p">,</span>
+<span class="w">    </span><span class="na">title</span><span class="p">=</span><span class="s">{Evaluating language models as risk scores}</span><span class="p">,</span>
+<span class="w">    </span><span class="na">author</span><span class="p">=</span><span class="s">{Andr\&#39;{e} F. Cruz and Moritz Hardt and Celestine Mendler-D\&quot;{u}nner}</span><span class="p">,</span>
+<span class="w">    </span><span class="na">booktitle</span><span class="p">=</span><span class="s">{The Thirty-eight Conference on Neural Information Processing Systems Datasets and Benchmarks Track}</span><span class="p">,</span>
+<span class="w">    </span><span class="na">year</span><span class="p">=</span><span class="s">{2024}</span><span class="p">,</span>
+<span class="w">    </span><span class="na">url</span><span class="p">=</span><span class="s">{https://openreview.net/forum?id=qrZxL3Bto9}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="license-and-terms-of-use">
+<h2>License and terms of use<a class="headerlink" href="#license-and-terms-of-use" title="Link to this heading"></a></h2>
+<p>Code licensed under the <a class="reference internal" href="#LICENSE"><span class="xref myst">MIT license</span></a>.</p>
+<p>The American Community Survey (ACS) Public Use Microdata Sample (PUMS) is
+governed by the U.S. Census Bureau <a class="reference external" href="https://www.census.gov/data/developers/about/terms-of-service.html">terms of service</a>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to folktexts’ documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="source/modules.html" class="btn btn-neutral float-right" title="folktexts" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

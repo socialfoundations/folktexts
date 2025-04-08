@@ -1,0 +1,560 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Run folktexts benchmark with a custom ACS task &mdash; folktexts 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+      <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      <script src="../_static/custom.js?v=882eb7ae"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Render paper plots and tables" href="paper-plots-and-tables.html" />
+    <link rel="prev" title="Run folktexts benchmark with a different data source" href="custom-dataset-example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            folktexts
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../readme.html">Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../source/modules.html">API reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../notebooks.html">Example notebooks</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="minimal-example.html">Evaluate model calibration using folktexts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="detailed-example.html">Example: Run ACS benchmark task</a></li>
+<li class="toctree-l2"><a class="reference internal" href="custom-dataset-example.html">Run <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> benchmark with a different data source</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Run <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> benchmark with a custom ACS task</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Define-custom-task-objects-appropriately:">Define custom task objects appropriately:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Load-LLM-from-huggingface-or-from-local-disk">Load LLM from huggingface or from local disk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Run-benchmark-on-the-custom-task">Run benchmark on the custom task</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="paper-plots-and-tables.html">Render paper plots and tables</a></li>
+<li class="toctree-l2"><a class="reference internal" href="paper-plots-and-tables.html#Plots-comparing-different-prompting-schemes">Plots comparing different prompting schemes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="minimal-example_web-API-model.html">Evaluate model calibration using folktexts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="parse-acs-results.html">Fetch and parse ACS benchmark results under a given directory</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../notebooks.html">Notebooks Gallery</a></li>
+      <li class="breadcrumb-item active">Run <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> benchmark with a custom ACS task</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/notebooks/custom-acs-task-example.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Run-folktexts-benchmark-with-a-custom-ACS-task">
+<h1>Run <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> benchmark with a custom ACS task<a class="headerlink" href="#Run-folktexts-benchmark-with-a-custom-ACS-task" title="Link to this heading"></a></h1>
+<p>This notebook describes how to define a custom prediction task based on American Community Survey (ACS) data.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">folktexts</span>
+<span class="n">folktexts</span><span class="o">.</span><span class="n">__version__</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&#39;0.0.22&#39;
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+</pre></div>
+</div>
+</div>
+<p><strong>Note:</strong> Change the <code class="docutils literal notranslate"><span class="pre">DATA_DIR</span></code> variable to the ACS data path on your file system (if any, otherwise will attempt to download data).</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">DATA_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/fast/groups/sf&quot;</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;data&quot;</span>
+</pre></div>
+</div>
+</div>
+<section id="Define-custom-task-objects-appropriately:">
+<h2>Define custom task objects appropriately:<a class="headerlink" href="#Define-custom-task-objects-appropriately:" title="Link to this heading"></a></h2>
+<p>In this example, we’ll try to predict whether someone is or ever was part of the Military, based on a series of demographic features.</p>
+<p>We must define objects of the following classes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Threshold</span></code>: Used to binarize the target column (not needed if target is already binary);</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MultipleChoiceQA</span></code>: Defines a question and answer scheme for the target column;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TaskMetadata</span></code>: Defines which columns to use as features, and which to use as the prediction target;</p></li>
+</ul>
+<p>Select the target column (among those defined in <code class="docutils literal notranslate"><span class="pre">folktexts.acs.acs_columns</span></code>):</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">TARGET_COLUMN</span> <span class="o">=</span> <span class="s2">&quot;MIL&quot;</span>
+</pre></div>
+</div>
+</div>
+<p>Define threshold to be applied to target column:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.threshold</span><span class="w"> </span><span class="kn">import</span> <span class="n">Threshold</span>
+<span class="n">target_threshold</span> <span class="o">=</span> <span class="n">Threshold</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;!=&quot;</span><span class="p">)</span>
+
+<span class="c1"># data[&quot;MIL&quot;] != 4 means &quot;Is on active duty in the military or was in the past&quot;</span>
+<span class="c1"># data[&quot;MIL&quot;] == 4 means &quot;Never served in the military&quot;</span>
+</pre></div>
+</div>
+</div>
+<p>Define question and answer interface used for prompting:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.qa_interface</span><span class="w"> </span><span class="kn">import</span> <span class="n">MultipleChoiceQA</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.qa_interface</span><span class="w"> </span><span class="kn">import</span> <span class="n">Choice</span>
+
+<span class="n">target_column_qa</span> <span class="o">=</span> <span class="n">MultipleChoiceQA</span><span class="p">(</span>
+    <span class="n">column</span><span class="o">=</span><span class="n">target_threshold</span><span class="o">.</span><span class="n">apply_to_column_name</span><span class="p">(</span><span class="n">TARGET_COLUMN</span><span class="p">),</span>
+    <span class="n">text</span><span class="o">=</span><span class="s2">&quot;Has this person ever served in the military?&quot;</span><span class="p">,</span>
+    <span class="n">choices</span><span class="o">=</span><span class="p">(</span>
+        <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;Yes, this person is now on active duty or was in the past&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;No, this person has never served in the military&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>Define task metadata:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.acs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ACSTaskMetadata</span>
+
+<span class="n">task</span> <span class="o">=</span> <span class="n">ACSTaskMetadata</span><span class="o">.</span><span class="n">make_task</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ACSMilitary&quot;</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;predict if a person has ever served in the military&quot;</span><span class="p">,</span>
+    <span class="n">features</span><span class="o">=</span><span class="p">[</span>
+        <span class="s2">&quot;AGEP&quot;</span><span class="p">,</span> <span class="s2">&quot;SCHL&quot;</span><span class="p">,</span> <span class="s2">&quot;MAR&quot;</span><span class="p">,</span> <span class="s2">&quot;POBP&quot;</span><span class="p">,</span> <span class="s2">&quot;WKHP&quot;</span><span class="p">,</span> <span class="s2">&quot;SEX&quot;</span><span class="p">,</span> <span class="s2">&quot;RAC1P&quot;</span><span class="p">,</span> <span class="s2">&quot;ST&quot;</span><span class="p">,</span> <span class="s2">&quot;CIT&quot;</span><span class="p">,</span> <span class="s2">&quot;DIS&quot;</span><span class="p">,</span> <span class="s2">&quot;PINCP&quot;</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="n">target</span><span class="o">=</span><span class="n">TARGET_COLUMN</span><span class="p">,</span>
+    <span class="n">target_threshold</span><span class="o">=</span><span class="n">target_threshold</span><span class="p">,</span>
+    <span class="n">sensitive_attribute</span><span class="o">=</span><span class="s2">&quot;RAC1P&quot;</span><span class="p">,</span>
+    <span class="n">multiple_choice_qa</span><span class="o">=</span><span class="n">target_column_qa</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>Load ACS dataset for the custom task:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.acs.acs_dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">ACSDataset</span>
+<span class="n">acs_dataset</span> <span class="o">=</span> <span class="n">ACSDataset</span><span class="o">.</span><span class="n">make_from_task</span><span class="p">(</span>
+    <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span>
+    <span class="n">cache_dir</span><span class="o">=</span><span class="n">DATA_DIR</span><span class="p">,)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Loading ACS data...
+CPU times: user 38 s, sys: 19.3 s, total: 57.3 s
+Wall time: 57.4 s
+</pre></div></div>
+</div>
+<p><strong>Note:</strong> This dataset will contain all samples in the ACS PUMS file, you can now filter the <code class="docutils literal notranslate"><span class="pre">acs_dataset.data</span></code> if you want to use only a portion of the data (e.g, only people in California, or only people above 18 years old).</p>
+<p>As an example, we’ll filter the ACS data to contain only people above 18 years old.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Original number of samples: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">acs_dataset</span><span class="o">.</span><span class="n">data</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="n">acs_dataset</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">acs_dataset</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">acs_dataset</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;AGEP&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">18</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Parsed number of samples: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">acs_dataset</span><span class="o">.</span><span class="n">data</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Original number of samples: 3236107
+Parsed number of samples: 2580544
+</pre></div></div>
+</div>
+<p><strong>Optionally,</strong> you can subsample the dataset to have faster but noisier results.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">acs_dataset</span><span class="o">.</span><span class="n">subsample</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;folktexts.acs.acs_dataset.ACSDataset at 0x14584395d510&gt;
+</pre></div></div>
+</div>
+</section>
+<section id="Load-LLM-from-huggingface-or-from-local-disk">
+<h2>Load LLM from huggingface or from local disk<a class="headerlink" href="#Load-LLM-from-huggingface-or-from-local-disk" title="Link to this heading"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">MODEL_NAME_OR_PATH</span> <span class="o">=</span> <span class="s2">&quot;meta-llama/Meta-Llama-3-8B&quot;</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.llm_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_model_tokenizer</span>
+<span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">load_model_tokenizer</span><span class="p">(</span><span class="n">MODEL_NAME_OR_PATH</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "e9adceb50efa487fa02fd702a7ef8bb1", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 4.39 s, sys: 6.29 s, total: 10.7 s
+Wall time: 13.1 s
+</pre></div></div>
+</div>
+<p>Create <code class="docutils literal notranslate"><span class="pre">LLMClassifier</span></code> object.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.classifier</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransformersLLMClassifier</span>
+
+<span class="n">llm_clf</span> <span class="o">=</span> <span class="n">TransformersLLMClassifier</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+    <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+    <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">context_size</span><span class="o">=</span><span class="mi">600</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p><strong>Validation:</strong> Check that model prompts with the custom task make sense, or if anything needs to be adjusted.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">X_sample</span><span class="p">,</span> <span class="n">_y_sample</span> <span class="o">=</span> <span class="n">acs_dataset</span><span class="o">.</span><span class="n">sample_n_train_examples</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">llm_clf</span><span class="o">.</span><span class="n">encode_row</span><span class="p">(</span><span class="n">X_sample</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">question</span><span class="o">=</span><span class="n">llm_clf</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">question</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+The following data corresponds to a survey respondent. The survey was conducted among US residents in 2018. Please answer the question based on the information provided. The data provided is enough to reach an approximate answer.
+
+Information:
+- The age is: 50 years old.
+- The highest educational attainment is: Regular high school diploma.
+- The marital status is: Married.
+- The place of birth is: Nevada.
+- The usual number of hours worked per week is: 50 hours.
+- The sex is: Male.
+- The race is: White.
+- The resident state is: Nevada.
+- The citizenship status is: Born in the United States.
+- The disability status is: No disability.
+- The yearly income is: $70,000.
+
+Question: Has this person ever served in the military?
+A. Yes, this person is now on active duty or was in the past.
+B. No, this person has never served in the military.
+Answer:
+</pre></div></div>
+</div>
+</section>
+<section id="Run-benchmark-on-the-custom-task">
+<h2>Run benchmark on the custom task<a class="headerlink" href="#Run-benchmark-on-the-custom-task" title="Link to this heading"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.benchmark</span><span class="w"> </span><span class="kn">import</span> <span class="n">Benchmark</span>
+<span class="n">bench</span> <span class="o">=</span> <span class="n">Benchmark</span><span class="p">(</span><span class="n">llm_clf</span><span class="o">=</span><span class="n">llm_clf</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="n">acs_dataset</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
+<span class="n">bench</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">results_root_dir</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "f1f553e570e043d0aa2567237fafc552", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+We detected that you are passing `past_key_values` as a tuple and this is deprecated and will be removed in v4.43. Please use an appropriate `Cache` class (https://huggingface.co/docs/transformers/v4.41.3/en/internal/generation_utils#transformers.Cache)
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 4min 25s, sys: 5.32 s, total: 4min 31s
+Wall time: 4min 30s
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;threshold&#39;: 0.5,
+ &#39;n_samples&#39;: 2581,
+ &#39;n_positives&#39;: 259,
+ &#39;n_negatives&#39;: 2322,
+ &#39;model_name&#39;: &#39;Meta-Llama-3-8B&#39;,
+ &#39;accuracy&#39;: 0.8082138705927935,
+ &#39;tpr&#39;: 0.305019305019305,
+ &#39;fnr&#39;: 0.694980694980695,
+ &#39;fpr&#39;: 0.13565891472868216,
+ &#39;tnr&#39;: 0.8643410852713178,
+ &#39;balanced_accuracy&#39;: 0.5846801951453114,
+ &#39;precision&#39;: 0.20050761421319796,
+ &#39;ppr&#39;: 0.15265401007361487,
+ &#39;log_loss&#39;: 0.6253456831680403,
+ &#39;brier_score_loss&#39;: 0.21635791438469001,
+ &#39;accuracy_ratio&#39;: 0.79638671875,
+ &#39;accuracy_diff&#39;: 0.20361328125,
+ &#39;fpr_ratio&#39;: 0.0,
+ &#39;fpr_diff&#39;: 1.0,
+ &#39;fnr_ratio&#39;: 0.0,
+ &#39;fnr_diff&#39;: 1.0,
+ &#39;precision_ratio&#39;: 0.0,
+ &#39;precision_diff&#39;: 1.0,
+ &#39;balanced_accuracy_ratio&#39;: 0.4435516271595018,
+ &#39;balanced_accuracy_diff&#39;: 0.5282227307398932,
+ &#39;tpr_ratio&#39;: 0.0,
+ &#39;tpr_diff&#39;: 1.0,
+ &#39;ppr_ratio&#39;: 0.0,
+ &#39;ppr_diff&#39;: 1.0,
+ &#39;tnr_ratio&#39;: 0.0,
+ &#39;tnr_diff&#39;: 1.0,
+ &#39;equalized_odds_ratio&#39;: 0.0,
+ &#39;equalized_odds_diff&#39;: 1.0,
+ &#39;roc_auc&#39;: 0.6900338877083063,
+ &#39;ece&#39;: 0.3593739652181054,
+ &#39;ece_quantile&#39;: 0.3593739652181053,
+ &#39;predictions_path&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-190963433/ACSMilitary_subsampled-0.01_seed-42_hash-1434010626.test_predictions.csv&#39;,
+ &#39;config&#39;: {&#39;numeric_risk_prompting&#39;: False,
+  &#39;few_shot&#39;: None,
+  &#39;reuse_few_shot_examples&#39;: False,
+  &#39;batch_size&#39;: None,
+  &#39;context_size&#39;: None,
+  &#39;correct_order_bias&#39;: True,
+  &#39;feature_subset&#39;: None,
+  &#39;population_filter&#39;: None,
+  &#39;seed&#39;: 42,
+  &#39;model_name&#39;: &#39;Meta-Llama-3-8B&#39;,
+  &#39;model_hash&#39;: 1160994164,
+  &#39;task_name&#39;: &#39;ACSMilitary&#39;,
+  &#39;task_hash&#39;: 4147552870,
+  &#39;dataset_name&#39;: &#39;ACSMilitary_subsampled-0.01_seed-42_hash-1434010626&#39;,
+  &#39;dataset_subsampling&#39;: 0.01,
+  &#39;dataset_hash&#39;: 1434010626},
+ &#39;benchmark_hash&#39;: 190963433,
+ &#39;results_dir&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-190963433&#39;,
+ &#39;results_root_dir&#39;: &#39;/lustre/home/acruz/folktexts/notebooks&#39;,
+ &#39;current_time&#39;: &#39;2024.08.30-14.57.43&#39;,
+ &#39;plots&#39;: {&#39;roc_curve_path&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-190963433/imgs/roc_curve.pdf&#39;,
+  &#39;calibration_curve_path&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-190963433/imgs/calibration_curve.pdf&#39;,
+  &#39;score_distribution_path&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-190963433/imgs/score_distribution.pdf&#39;,
+  &#39;score_distribution_per_label_path&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-190963433/imgs/score_distribution_per_label.pdf&#39;,
+  &#39;roc_curve_per_subgroup_path&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-190963433/imgs/roc_curve_per_subgroup.pdf&#39;,
+  &#39;calibration_curve_per_subgroup_path&#39;: &#39;/lustre/home/acruz/folktexts/notebooks/Meta-Llama-3-8B_bench-190963433/imgs/calibration_curve_per_subgroup.pdf&#39;}}
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">bench</span><span class="o">.</span><span class="n">plot_results</span><span class="p">();</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_custom-acs-task-example_30_0.png" src="../_images/notebooks_custom-acs-task-example_30_0.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_custom-acs-task-example_30_1.png" src="../_images/notebooks_custom-acs-task-example_30_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_custom-acs-task-example_30_2.png" src="../_images/notebooks_custom-acs-task-example_30_2.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_custom-acs-task-example_30_3.png" src="../_images/notebooks_custom-acs-task-example_30_3.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_custom-acs-task-example_30_4.png" src="../_images/notebooks_custom-acs-task-example_30_4.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_custom-acs-task-example_30_5.png" src="../_images/notebooks_custom-acs-task-example_30_5.png" />
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="custom-dataset-example.html" class="btn btn-neutral float-left" title="Run folktexts benchmark with a different data source" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="paper-plots-and-tables.html" class="btn btn-neutral float-right" title="Render paper plots and tables" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

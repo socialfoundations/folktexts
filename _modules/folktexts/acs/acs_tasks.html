@@ -1,0 +1,283 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>folktexts.acs.acs_tasks &mdash; folktexts 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../../../_static/custom.js?v=882eb7ae"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            folktexts
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/modules.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">folktexts.acs.acs_tasks</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for folktexts.acs.acs_tasks</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;A collection of ACS prediction tasks based on the folktables package.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">asdict</span><span class="p">,</span> <span class="n">dataclass</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">folktables</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktables</span><span class="w"> </span><span class="kn">import</span> <span class="n">BasicProblem</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">hash_dict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..col_to_text</span><span class="w"> </span><span class="kn">import</span> <span class="n">ColumnToText</span> <span class="k">as</span> <span class="n">_ColumnToText</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..qa_interface</span><span class="w"> </span><span class="kn">import</span> <span class="n">DirectNumericQA</span><span class="p">,</span> <span class="n">MultipleChoiceQA</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..task</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskMetadata</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..threshold</span><span class="w"> </span><span class="kn">import</span> <span class="n">Threshold</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">acs_columns</span><span class="p">,</span> <span class="n">acs_questions</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.acs_thresholds</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">acs_employment_threshold</span><span class="p">,</span>
+    <span class="n">acs_health_insurance_threshold</span><span class="p">,</span>
+    <span class="n">acs_income_threshold</span><span class="p">,</span>
+    <span class="n">acs_mobility_threshold</span><span class="p">,</span>
+    <span class="n">acs_poverty_ratio_threshold</span><span class="p">,</span>
+    <span class="n">acs_public_coverage_threshold</span><span class="p">,</span>
+    <span class="n">acs_travel_time_threshold</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Map of ACS column names to ColumnToText objects</span>
+<span class="n">acs_columns_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">col_mapper</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">col_mapper</span>
+    <span class="k">for</span> <span class="n">col_mapper</span> <span class="ow">in</span> <span class="n">acs_columns</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col_mapper</span><span class="p">,</span> <span class="n">_ColumnToText</span><span class="p">)</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="ACSTaskMetadata">
+<a class="viewcode-back" href="../../../source/folktexts.acs.html#folktexts.acs.acs_tasks.ACSTaskMetadata">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ACSTaskMetadata</span><span class="p">(</span><span class="n">TaskMetadata</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A class to hold information on an ACS prediction task.&quot;&quot;&quot;</span>
+
+    <span class="c1"># The ACS task object from the folktables package</span>
+    <span class="n">folktables_obj</span><span class="p">:</span> <span class="n">BasicProblem</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="ACSTaskMetadata.make_task">
+<a class="viewcode-back" href="../../../source/folktexts.acs.html#folktexts.acs.acs_tasks.ACSTaskMetadata.make_task">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">make_task</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">features</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">target</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">sensitive_attribute</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">target_threshold</span><span class="p">:</span> <span class="n">Threshold</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">multiple_choice_qa</span><span class="p">:</span> <span class="n">MultipleChoiceQA</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">direct_numeric_qa</span><span class="p">:</span> <span class="n">DirectNumericQA</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">folktables_obj</span><span class="p">:</span> <span class="n">BasicProblem</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ACSTaskMetadata</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create an ACS task object from the given parameters.&quot;&quot;&quot;</span>
+        <span class="c1"># Resolve target column name</span>
+        <span class="n">target_col_name</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">target_threshold</span><span class="o">.</span><span class="n">apply_to_column_name</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">target_threshold</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">target</span><span class="p">)</span>
+
+        <span class="c1"># Get default Q&amp;A interfaces for this task&#39;s target column</span>
+        <span class="k">if</span> <span class="n">multiple_choice_qa</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">multiple_choice_qa</span> <span class="o">=</span> <span class="n">acs_questions</span><span class="o">.</span><span class="n">acs_multiple_choice_qa_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">target_col_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">direct_numeric_qa</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">direct_numeric_qa</span> <span class="o">=</span> <span class="n">acs_questions</span><span class="o">.</span><span class="n">acs_numeric_qa_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">target_col_name</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">features</span><span class="o">=</span><span class="n">features</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
+            <span class="n">cols_to_text</span><span class="o">=</span><span class="n">acs_columns_map</span><span class="p">,</span>
+            <span class="n">sensitive_attribute</span><span class="o">=</span><span class="n">sensitive_attribute</span><span class="p">,</span>
+            <span class="n">target_threshold</span><span class="o">=</span><span class="n">target_threshold</span><span class="p">,</span>
+            <span class="n">multiple_choice_qa</span><span class="o">=</span><span class="n">multiple_choice_qa</span><span class="p">,</span>
+            <span class="n">direct_numeric_qa</span><span class="o">=</span><span class="n">direct_numeric_qa</span><span class="p">,</span>
+            <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">,</span>
+            <span class="n">folktables_obj</span><span class="o">=</span><span class="n">folktables_obj</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ACSTaskMetadata.make_folktables_task">
+<a class="viewcode-back" href="../../../source/folktexts.acs.html#folktexts.acs.acs_tasks.ACSTaskMetadata.make_folktables_task">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">make_folktables_task</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">target_threshold</span><span class="p">:</span> <span class="n">Threshold</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ACSTaskMetadata</span><span class="p">:</span>
+
+        <span class="c1"># Get the task object from the folktables package</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">folktables_task</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">folktables</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not find task &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; in folktables package.&quot;</span><span class="p">)</span>
+
+        <span class="n">acs_task</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">make_task</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">features</span><span class="o">=</span><span class="n">folktables_task</span><span class="o">.</span><span class="n">features</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">=</span><span class="n">folktables_task</span><span class="o">.</span><span class="n">target</span><span class="p">,</span>
+            <span class="n">sensitive_attribute</span><span class="o">=</span><span class="n">folktables_task</span><span class="o">.</span><span class="n">group</span><span class="p">,</span>
+            <span class="n">target_threshold</span><span class="o">=</span><span class="n">target_threshold</span><span class="p">,</span>
+            <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">,</span>
+            <span class="n">folktables_obj</span><span class="o">=</span><span class="n">folktables_task</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">acs_task</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="n">hashable_params</span> <span class="o">=</span> <span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">hashable_params</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;cols_to_text&quot;</span><span class="p">)</span>
+        <span class="n">hashable_params</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;folktables_obj&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">hash_dict</span><span class="p">(</span><span class="n">hashable_params</span><span class="p">),</span> <span class="mi">16</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># Instantiate folktables tasks</span>
+<span class="n">acs_income_task</span> <span class="o">=</span> <span class="n">ACSTaskMetadata</span><span class="o">.</span><span class="n">make_folktables_task</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ACSIncome&quot;</span><span class="p">,</span>
+    <span class="n">target_threshold</span><span class="o">=</span><span class="n">acs_income_threshold</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;predict whether an individual&#39;s income is above $50,000&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">acs_public_coverage_task</span> <span class="o">=</span> <span class="n">ACSTaskMetadata</span><span class="o">.</span><span class="n">make_folktables_task</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ACSPublicCoverage&quot;</span><span class="p">,</span>
+    <span class="n">target_threshold</span><span class="o">=</span><span class="n">acs_public_coverage_threshold</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;predict whether an individual is covered by public health insurance&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">acs_mobility_task</span> <span class="o">=</span> <span class="n">ACSTaskMetadata</span><span class="o">.</span><span class="n">make_folktables_task</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ACSMobility&quot;</span><span class="p">,</span>
+    <span class="n">target_threshold</span><span class="o">=</span><span class="n">acs_mobility_threshold</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;predict whether an individual had the same residential address one year ago&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">acs_employment_task</span> <span class="o">=</span> <span class="n">ACSTaskMetadata</span><span class="o">.</span><span class="n">make_folktables_task</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ACSEmployment&quot;</span><span class="p">,</span>
+    <span class="n">target_threshold</span><span class="o">=</span><span class="n">acs_employment_threshold</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;predict whether an individual is employed&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">acs_travel_time_task</span> <span class="o">=</span> <span class="n">ACSTaskMetadata</span><span class="o">.</span><span class="n">make_folktables_task</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ACSTravelTime&quot;</span><span class="p">,</span>
+    <span class="n">target_threshold</span><span class="o">=</span><span class="n">acs_travel_time_threshold</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;predict whether an individual has a commute to work that is longer than 20 minutes&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">acs_income_poverty_ratio_task</span> <span class="o">=</span> <span class="n">ACSTaskMetadata</span><span class="o">.</span><span class="n">make_folktables_task</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ACSIncomePovertyRatio&quot;</span><span class="p">,</span>
+    <span class="n">target_threshold</span><span class="o">=</span><span class="n">acs_poverty_ratio_threshold</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;predict whether an individual&#39;s income-to-poverty ratio is below 2.5&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Dummy/test ACS task to predict health insurance coverage using all other available features</span>
+<span class="n">acs_full_task</span> <span class="o">=</span> <span class="n">ACSTaskMetadata</span><span class="o">.</span><span class="n">make_task</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ACSHealthInsurance-test&quot;</span><span class="p">,</span>
+    <span class="n">features</span><span class="o">=</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">({</span>
+        <span class="o">*</span><span class="n">acs_income_task</span><span class="o">.</span><span class="n">features</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">acs_public_coverage_task</span><span class="o">.</span><span class="n">features</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">acs_mobility_task</span><span class="o">.</span><span class="n">features</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">acs_employment_task</span><span class="o">.</span><span class="n">features</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">acs_travel_time_task</span><span class="o">.</span><span class="n">features</span><span class="p">,</span>
+    <span class="p">})),</span>
+    <span class="n">target</span><span class="o">=</span><span class="s2">&quot;HINS2&quot;</span><span class="p">,</span>
+    <span class="n">target_threshold</span><span class="o">=</span><span class="n">acs_health_insurance_threshold</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="p">(</span>
+        <span class="s2">&quot;predict whether an individual has purchased health insurance directly &quot;</span>
+        <span class="s2">&quot;from an insurance company (as opposed to being insured through an &quot;</span>
+        <span class="s2">&quot;employer, Medicare, Medicaid, or any other source)&quot;</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

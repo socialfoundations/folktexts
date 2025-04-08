@@ -1,0 +1,351 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>folktexts.cli.eval_feature_importance &mdash; folktexts 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=d2d258e8" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../../../_static/custom.js?v=882eb7ae"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            folktexts
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/modules.html">API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">folktexts.cli.eval_feature_importance</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for folktexts.cli.eval_feature_importance</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">argparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">ArgumentParser</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.inspection</span><span class="w"> </span><span class="kn">import</span> <span class="n">permutation_importance</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts._io</span><span class="w"> </span><span class="kn">import</span> <span class="n">save_json</span><span class="p">,</span> <span class="n">save_pickle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.classifier</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMClassifier</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.llm_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_model_folder_path</span><span class="p">,</span> <span class="n">load_model_tokenizer</span>
+
+<span class="c1"># Local paths</span>
+<span class="c1"># DEFAULT_ROOT_DIR = Path(&quot;/fast/groups/sf&quot;)            # CLUSTER dir</span>
+<span class="n">DEFAULT_ROOT_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;~&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>     <span class="c1"># LOCAL dir</span>
+
+<span class="n">DEFAULT_MODELS_DIR</span> <span class="o">=</span> <span class="n">DEFAULT_ROOT_DIR</span> <span class="o">/</span> <span class="s2">&quot;huggingface-models&quot;</span>
+<span class="n">DEFAULT_DATA_DIR</span> <span class="o">=</span> <span class="n">DEFAULT_ROOT_DIR</span> <span class="o">/</span> <span class="s2">&quot;data&quot;</span>
+<span class="n">DEFAULT_RESULTS_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+
+<span class="n">DEFAULT_TASK_NAME</span> <span class="o">=</span> <span class="s2">&quot;ACSIncome&quot;</span>
+
+<span class="n">DEFAULT_CONTEXT_SIZE</span> <span class="o">=</span> <span class="mi">600</span>
+<span class="n">DEFAULT_BATCH_SIZE</span> <span class="o">=</span> <span class="mi">16</span>
+<span class="n">DEFAULT_SEED</span> <span class="o">=</span> <span class="mi">42</span>
+
+<span class="n">DEFAULT_SUBSAMPLING</span> <span class="o">=</span> <span class="mf">0.1</span>           <span class="c1"># NOTE: by default, uses 10% of the dataset</span>
+<span class="n">DEFAULT_PERMUTATION_REPEATS</span> <span class="o">=</span> <span class="mi">5</span>
+
+
+<div class="viewcode-block" id="setup_arg_parser">
+<a class="viewcode-back" href="../../../source/folktexts.cli.html#folktexts.cli.eval_feature_importance.setup_arg_parser">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">setup_arg_parser</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">ArgumentParser</span><span class="p">:</span>
+
+    <span class="c1"># Init parser</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Evaluate LLM feature importance on a given ACS task.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># List of command-line arguments, with type and helper string</span>
+    <span class="n">cli_args</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s2">&quot;--model&quot;</span><span class="p">,</span>
+         <span class="nb">str</span><span class="p">,</span>
+         <span class="s2">&quot;[str] Model name or path to model saved on disk&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;--task&quot;</span><span class="p">,</span>
+         <span class="nb">str</span><span class="p">,</span>
+         <span class="s2">&quot;[str] Name of the ACS task to run the experiment on&quot;</span><span class="p">,</span>
+         <span class="kc">False</span><span class="p">,</span>
+         <span class="n">DEFAULT_TASK_NAME</span><span class="p">,</span>
+         <span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;--results-dir&quot;</span><span class="p">,</span>
+         <span class="nb">str</span><span class="p">,</span>
+         <span class="s2">&quot;[str] Directory under which this experiment&#39;s results will be saved&quot;</span><span class="p">,</span>
+         <span class="kc">False</span><span class="p">,</span>
+         <span class="n">DEFAULT_RESULTS_DIR</span><span class="p">,</span>
+         <span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;--data-dir&quot;</span><span class="p">,</span>
+         <span class="nb">str</span><span class="p">,</span>
+         <span class="s2">&quot;[str] Root folder to find datasets on&quot;</span><span class="p">,</span>
+         <span class="kc">False</span><span class="p">,</span>
+         <span class="n">DEFAULT_DATA_DIR</span><span class="p">,</span>
+         <span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;--models-dir&quot;</span><span class="p">,</span>
+         <span class="nb">str</span><span class="p">,</span>
+         <span class="s2">&quot;[str] Root folder to find huggingface models on&quot;</span><span class="p">,</span>
+         <span class="kc">False</span><span class="p">,</span>
+         <span class="n">DEFAULT_MODELS_DIR</span><span class="p">,</span>
+         <span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;--scorer&quot;</span><span class="p">,</span>
+         <span class="nb">str</span><span class="p">,</span>
+         <span class="s2">&quot;[str] Name of the scorer to use for evaluation&quot;</span><span class="p">,</span>
+         <span class="kc">False</span><span class="p">,</span>
+         <span class="s2">&quot;roc_auc&quot;</span><span class="p">,</span>
+         <span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;--batch-size&quot;</span><span class="p">,</span>
+         <span class="nb">int</span><span class="p">,</span>
+         <span class="s2">&quot;[int] The batch size to use for inference&quot;</span><span class="p">,</span>
+         <span class="kc">False</span><span class="p">,</span>
+         <span class="n">DEFAULT_BATCH_SIZE</span><span class="p">,</span>
+         <span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;--context-size&quot;</span><span class="p">,</span>
+         <span class="nb">int</span><span class="p">,</span>
+         <span class="s2">&quot;[int] The maximum context size when prompting the LLM&quot;</span><span class="p">,</span>
+         <span class="kc">False</span><span class="p">,</span>
+         <span class="n">DEFAULT_CONTEXT_SIZE</span><span class="p">,</span>
+         <span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;--subsampling&quot;</span><span class="p">,</span>
+         <span class="nb">float</span><span class="p">,</span>
+         <span class="s2">&quot;[float] Which fraction of the dataset to use (if omitted will use all data)&quot;</span><span class="p">,</span>
+         <span class="kc">False</span><span class="p">,</span>
+         <span class="n">DEFAULT_SUBSAMPLING</span><span class="p">,</span>
+         <span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;--fit-threshold&quot;</span><span class="p">,</span>
+         <span class="nb">int</span><span class="p">,</span>
+         <span class="s2">&quot;[int] Whether to fit the prediction threshold, and on how many samples&quot;</span><span class="p">,</span>
+         <span class="kc">False</span><span class="p">,</span>
+         <span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;--seed&quot;</span><span class="p">,</span>
+         <span class="nb">int</span><span class="p">,</span>
+         <span class="s2">&quot;[int] Random seed -- to set for reproducibility&quot;</span><span class="p">,</span>
+         <span class="kc">False</span><span class="p">,</span>
+         <span class="n">DEFAULT_SEED</span><span class="p">,</span>
+         <span class="p">),</span>
+    <span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">cli_args</span><span class="p">:</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="n">arg</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">arg</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">help</span><span class="o">=</span><span class="n">arg</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+            <span class="n">required</span><span class="o">=</span><span class="p">(</span><span class="n">arg</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">3</span> <span class="k">else</span> <span class="kc">True</span><span class="p">),</span>    <span class="c1"># NOTE: required by default</span>
+            <span class="n">default</span><span class="o">=</span><span class="p">(</span><span class="n">arg</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">4</span> <span class="k">else</span> <span class="kc">None</span><span class="p">),</span>     <span class="c1"># default value if provided</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">parser</span></div>
+
+
+
+<div class="viewcode-block" id="parse_feature_importance">
+<a class="viewcode-back" href="../../../source/folktexts.cli.html#folktexts.cli.eval_feature_importance.parse_feature_importance">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_feature_importance</span><span class="p">(</span><span class="n">results</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">columns</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parse the results dictionary of sklearn&#39;s permutation_importance.&quot;&quot;&quot;</span>
+    <span class="n">parsed_r</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">columns</span><span class="p">):</span>
+        <span class="n">parsed_r</span><span class="p">[</span><span class="n">col</span><span class="p">][</span><span class="s2">&quot;imp_mean&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">importances_mean</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">parsed_r</span><span class="p">[</span><span class="n">col</span><span class="p">][</span><span class="s2">&quot;imp_std&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">importances_std</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">parsed_r</span></div>
+
+
+
+<div class="viewcode-block" id="compute_feature_importance">
+<a class="viewcode-back" href="../../../source/folktexts.cli.html#folktexts.cli.eval_feature_importance.compute_feature_importance">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_feature_importance</span><span class="p">(</span>
+    <span class="n">llm_clf</span><span class="p">:</span> <span class="n">LLMClassifier</span><span class="p">,</span>
+    <span class="n">dataset</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span>
+    <span class="n">scorer</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">results_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="n">fit_threshold</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">seed</span><span class="o">=</span><span class="n">DEFAULT_SEED</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+
+    <span class="c1"># Get train and test data</span>
+    <span class="n">X_test</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">get_test</span><span class="p">()</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">X_test</span><span class="o">.</span><span class="n">shape</span><span class="si">=}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">permutation_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">X</span><span class="o">=</span><span class="n">X_test</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_test</span><span class="p">,</span>
+        <span class="n">scoring</span><span class="o">=</span><span class="n">scorer</span><span class="p">,</span>
+        <span class="n">n_repeats</span><span class="o">=</span><span class="n">DEFAULT_PERMUTATION_REPEATS</span><span class="p">,</span>
+        <span class="n">random_state</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Optionally, fit the LLM classifier&#39;s threshold on a few data samples.</span>
+    <span class="k">if</span> <span class="n">fit_threshold</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fit_threshold</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">X_train_sample</span><span class="p">,</span> <span class="n">y_train_sample</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">sample_n_train_examples</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">fit_threshold</span><span class="p">)</span>
+        <span class="n">llm_clf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train_sample</span><span class="p">,</span> <span class="n">y_train_sample</span><span class="p">)</span>
+
+    <span class="c1"># LLM feature importance</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">permutation_importance</span><span class="p">(</span><span class="n">llm_clf</span><span class="p">,</span> <span class="o">**</span><span class="n">permutation_kwargs</span><span class="p">)</span>
+    <span class="n">llm_imp_file_path</span> <span class="o">=</span> <span class="n">results_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;feature-importance.</span><span class="si">{</span><span class="n">llm_clf</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">llm_clf</span><span class="o">.</span><span class="n">model_name</span><span class="si">}</span><span class="s2">.pkl&quot;</span>
+    <span class="n">save_pickle</span><span class="p">(</span><span class="n">obj</span><span class="o">=</span><span class="n">r</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">llm_imp_file_path</span><span class="p">)</span>
+    <span class="n">save_json</span><span class="p">(</span>
+        <span class="n">parse_feature_importance</span><span class="p">(</span><span class="n">results</span><span class="o">=</span><span class="n">r</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">X_test</span><span class="o">.</span><span class="n">columns</span><span class="p">),</span>
+        <span class="n">path</span><span class="o">=</span><span class="n">llm_imp_file_path</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.json&quot;</span><span class="p">))</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;LLM feature importance:&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">importances_mean</span><span class="o">.</span><span class="n">argsort</span><span class="p">()[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">X_test</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">:</span><span class="s2">&lt;8</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">importances_mean</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot; +/- </span><span class="si">{</span><span class="n">r</span><span class="o">.</span><span class="n">importances_std</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="n">X_test</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span></div>
+
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../../source/folktexts.cli.html#folktexts.cli.eval_feature_importance.main">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="c1"># Parse arguments from command line</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">setup_arg_parser</span><span class="p">()</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="c1"># Set logging level</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+
+    <span class="c1"># Resolve model folder path</span>
+    <span class="n">model_folder_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">get_model_folder_path</span><span class="p">(</span><span class="n">model_name</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">root_dir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">models_dir</span><span class="p">))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">model_folder_path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">model_folder_path</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+        <span class="n">model_folder_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+
+    <span class="c1"># Load model and tokenizer</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loading model from </span><span class="si">{</span><span class="n">model_folder_path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">load_model_tokenizer</span><span class="p">(</span><span class="n">model_folder_path</span><span class="p">)</span>
+
+    <span class="c1"># Create results directory if needed</span>
+    <span class="c1"># Set-up results directory</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.cli._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_or_create_results_dir</span>
+    <span class="n">results_dir</span> <span class="o">=</span> <span class="n">get_or_create_results_dir</span><span class="p">(</span>
+        <span class="n">model_name</span><span class="o">=</span><span class="n">Path</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">task_name</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">task</span><span class="p">,</span>
+        <span class="n">results_root_dir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">results_dir</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saving results to </span><span class="si">{</span><span class="n">results_dir</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Load Task and Dataset</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.acs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ACSTaskMetadata</span>
+    <span class="n">task</span> <span class="o">=</span> <span class="n">ACSTaskMetadata</span><span class="o">.</span><span class="n">get_task</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">task</span><span class="p">)</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.acs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ACSDataset</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">ACSDataset</span><span class="o">.</span><span class="n">make_from_task</span><span class="p">(</span>
+        <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span>
+        <span class="n">cache_dir</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">data_dir</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Optionally, subsample dataset</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">subsampling</span><span class="p">:</span>
+        <span class="n">dataset</span><span class="o">.</span><span class="n">subsample</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">subsampling</span><span class="p">)</span>      <span class="c1"># subsample in-place</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dataset</span><span class="o">.</span><span class="n">subsampling</span><span class="si">=}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Construct LLM Classifier</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.classifier</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransformersLLMClassifier</span>
+    <span class="n">llm_clf</span> <span class="o">=</span> <span class="n">TransformersLLMClassifier</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+        <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+        <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span>
+        <span class="n">context_size</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">context_size</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Compute feature importance</span>
+    <span class="n">compute_feature_importance</span><span class="p">(</span>
+        <span class="n">llm_clf</span><span class="p">,</span>
+        <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span>
+        <span class="n">scorer</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">scorer</span><span class="p">,</span>
+        <span class="n">results_dir</span><span class="o">=</span><span class="n">results_dir</span><span class="p">,</span>
+        <span class="n">fit_threshold</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">fit_threshold</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

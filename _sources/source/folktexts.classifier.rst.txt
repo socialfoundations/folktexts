@@ -1,0 +1,37 @@
+folktexts.classifier package
+============================
+
+Submodules
+----------
+
+folktexts.classifier.base module
+--------------------------------
+
+.. automodule:: folktexts.classifier.base
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+folktexts.classifier.transformers\_classifier module
+----------------------------------------------------
+
+.. automodule:: folktexts.classifier.transformers_classifier
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+folktexts.classifier.web\_api\_classifier module
+------------------------------------------------
+
+.. automodule:: folktexts.classifier.web_api_classifier
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: folktexts.classifier
+   :members:
+   :undoc-members:
+   :show-inheritance:

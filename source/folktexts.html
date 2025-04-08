@@ -1,0 +1,1869 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>folktexts package &mdash; folktexts 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=d2d258e8" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../_static/custom.js?v=882eb7ae"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="folktexts.acs package" href="folktexts.acs.html" />
+    <link rel="prev" title="folktexts" href="modules.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            folktexts
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../readme.html">Readme file</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">API reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">folktexts package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#subpackages">Subpackages</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.acs.html">folktexts.acs package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html">folktexts.classifier package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.cli.html">folktexts.cli package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-folktexts.benchmark">folktexts.benchmark module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.benchmark.Benchmark"><code class="docutils literal notranslate"><span class="pre">Benchmark</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.benchmark.BenchmarkConfig"><code class="docutils literal notranslate"><span class="pre">BenchmarkConfig</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-folktexts.col_to_text">folktexts.col_to_text module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.col_to_text.ColumnToText"><code class="docutils literal notranslate"><span class="pre">ColumnToText</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-folktexts.dataset">folktexts.dataset module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.dataset.Dataset"><code class="docutils literal notranslate"><span class="pre">Dataset</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-folktexts.evaluation">folktexts.evaluation module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.evaluation.bootstrap_estimate"><code class="docutils literal notranslate"><span class="pre">bootstrap_estimate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.evaluation.compute_best_threshold"><code class="docutils literal notranslate"><span class="pre">compute_best_threshold()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.evaluation.evaluate_binary_predictions"><code class="docutils literal notranslate"><span class="pre">evaluate_binary_predictions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.evaluation.evaluate_binary_predictions_fairness"><code class="docutils literal notranslate"><span class="pre">evaluate_binary_predictions_fairness()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.evaluation.evaluate_predictions"><code class="docutils literal notranslate"><span class="pre">evaluate_predictions()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.evaluation.evaluate_predictions_bootstrap"><code class="docutils literal notranslate"><span class="pre">evaluate_predictions_bootstrap()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-folktexts.llm_utils">folktexts.llm_utils module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.llm_utils.add_pad_token"><code class="docutils literal notranslate"><span class="pre">add_pad_token()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.llm_utils.get_model_folder_path"><code class="docutils literal notranslate"><span class="pre">get_model_folder_path()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.llm_utils.get_model_size_B"><code class="docutils literal notranslate"><span class="pre">get_model_size_B()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.llm_utils.is_bf16_compatible"><code class="docutils literal notranslate"><span class="pre">is_bf16_compatible()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.llm_utils.load_model_tokenizer"><code class="docutils literal notranslate"><span class="pre">load_model_tokenizer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.llm_utils.query_model_batch"><code class="docutils literal notranslate"><span class="pre">query_model_batch()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.llm_utils.query_model_batch_multiple_passes"><code class="docutils literal notranslate"><span class="pre">query_model_batch_multiple_passes()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-folktexts.plotting">folktexts.plotting module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.plotting.render_evaluation_plots"><code class="docutils literal notranslate"><span class="pre">render_evaluation_plots()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.plotting.render_fairness_plots"><code class="docutils literal notranslate"><span class="pre">render_fairness_plots()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.plotting.save_fig"><code class="docutils literal notranslate"><span class="pre">save_fig()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-folktexts.prompting">folktexts.prompting module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.prompting.apply_chat_template"><code class="docutils literal notranslate"><span class="pre">apply_chat_template()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.prompting.encode_row_prompt"><code class="docutils literal notranslate"><span class="pre">encode_row_prompt()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.prompting.encode_row_prompt_chat"><code class="docutils literal notranslate"><span class="pre">encode_row_prompt_chat()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.prompting.encode_row_prompt_few_shot"><code class="docutils literal notranslate"><span class="pre">encode_row_prompt_few_shot()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-folktexts.qa_interface">folktexts.qa_interface module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.qa_interface.Choice"><code class="docutils literal notranslate"><span class="pre">Choice</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.qa_interface.DirectNumericQA"><code class="docutils literal notranslate"><span class="pre">DirectNumericQA</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.qa_interface.MultipleChoiceQA"><code class="docutils literal notranslate"><span class="pre">MultipleChoiceQA</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.qa_interface.QAInterface"><code class="docutils literal notranslate"><span class="pre">QAInterface</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-folktexts.task">folktexts.task module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.task.TaskMetadata"><code class="docutils literal notranslate"><span class="pre">TaskMetadata</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-folktexts.threshold">folktexts.threshold module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#folktexts.threshold.Threshold"><code class="docutils literal notranslate"><span class="pre">Threshold</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-folktexts">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../notebooks.html">Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">folktexts</a></li>
+      <li class="breadcrumb-item active">folktexts package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/source/folktexts.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="folktexts-package">
+<h1>folktexts package<a class="headerlink" href="#folktexts-package" title="Link to this heading"></a></h1>
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="folktexts.acs.html">folktexts.acs package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="folktexts.acs.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="folktexts.acs.html#module-folktexts.acs.acs_columns">folktexts.acs.acs_columns module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.acs.html#folktexts.acs.acs_columns.describe_income_to_poverty_ratio_pct"><code class="docutils literal notranslate"><span class="pre">describe_income_to_poverty_ratio_pct()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="folktexts.acs.html#module-folktexts.acs.acs_dataset">folktexts.acs.acs_dataset module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.acs.html#folktexts.acs.acs_dataset.ACSDataset"><code class="docutils literal notranslate"><span class="pre">ACSDataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.acs.html#folktexts.acs.acs_dataset.ACSDataset.make_from_task"><code class="docutils literal notranslate"><span class="pre">ACSDataset.make_from_task()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.acs.html#folktexts.acs.acs_dataset.ACSDataset.task"><code class="docutils literal notranslate"><span class="pre">ACSDataset.task</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="folktexts.acs.html#module-folktexts.acs.acs_questions">folktexts.acs.acs_questions module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="folktexts.acs.html#module-folktexts.acs.acs_tasks">folktexts.acs.acs_tasks module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.acs.html#folktexts.acs.acs_tasks.ACSTaskMetadata"><code class="docutils literal notranslate"><span class="pre">ACSTaskMetadata</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.acs.html#folktexts.acs.acs_tasks.ACSTaskMetadata.folktables_obj"><code class="docutils literal notranslate"><span class="pre">ACSTaskMetadata.folktables_obj</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.acs.html#folktexts.acs.acs_tasks.ACSTaskMetadata.make_folktables_task"><code class="docutils literal notranslate"><span class="pre">ACSTaskMetadata.make_folktables_task()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.acs.html#folktexts.acs.acs_tasks.ACSTaskMetadata.make_task"><code class="docutils literal notranslate"><span class="pre">ACSTaskMetadata.make_task()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="folktexts.acs.html#module-folktexts.acs.acs_thresholds">folktexts.acs.acs_thresholds module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="folktexts.acs.html#module-folktexts.acs">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="folktexts.classifier.html">folktexts.classifier package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="folktexts.classifier.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="folktexts.classifier.html#module-folktexts.classifier.base">folktexts.classifier.base module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.base.LLMClassifier"><code class="docutils literal notranslate"><span class="pre">LLMClassifier</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.DEFAULT_INFERENCE_KWARGS"><code class="docutils literal notranslate"><span class="pre">LLMClassifier.DEFAULT_INFERENCE_KWARGS</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.compute_risk_estimates_for_dataframe"><code class="docutils literal notranslate"><span class="pre">LLMClassifier.compute_risk_estimates_for_dataframe()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.compute_risk_estimates_for_dataset"><code class="docutils literal notranslate"><span class="pre">LLMClassifier.compute_risk_estimates_for_dataset()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.correct_order_bias"><code class="docutils literal notranslate"><span class="pre">LLMClassifier.correct_order_bias</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.custom_prompt_prefix"><code class="docutils literal notranslate"><span class="pre">LLMClassifier.custom_prompt_prefix</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.encode_row"><code class="docutils literal notranslate"><span class="pre">LLMClassifier.encode_row</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.fit"><code class="docutils literal notranslate"><span class="pre">LLMClassifier.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.inference_kwargs"><code class="docutils literal notranslate"><span class="pre">LLMClassifier.inference_kwargs</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.model_name"><code class="docutils literal notranslate"><span class="pre">LLMClassifier.model_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.predict"><code class="docutils literal notranslate"><span class="pre">LLMClassifier.predict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.predict_proba"><code class="docutils literal notranslate"><span class="pre">LLMClassifier.predict_proba()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.seed"><code class="docutils literal notranslate"><span class="pre">LLMClassifier.seed</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.set_fit_request"><code class="docutils literal notranslate"><span class="pre">LLMClassifier.set_fit_request()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.set_inference_kwargs"><code class="docutils literal notranslate"><span class="pre">LLMClassifier.set_inference_kwargs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.set_predict_proba_request"><code class="docutils literal notranslate"><span class="pre">LLMClassifier.set_predict_proba_request()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.set_predict_request"><code class="docutils literal notranslate"><span class="pre">LLMClassifier.set_predict_request()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.set_score_request"><code class="docutils literal notranslate"><span class="pre">LLMClassifier.set_score_request()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.task"><code class="docutils literal notranslate"><span class="pre">LLMClassifier.task</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.base.LLMClassifier.threshold"><code class="docutils literal notranslate"><span class="pre">LLMClassifier.threshold</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="folktexts.classifier.html#module-folktexts.classifier.transformers_classifier">folktexts.classifier.transformers_classifier module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.transformers_classifier.TransformersLLMClassifier"><code class="docutils literal notranslate"><span class="pre">TransformersLLMClassifier</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.transformers_classifier.TransformersLLMClassifier.model"><code class="docutils literal notranslate"><span class="pre">TransformersLLMClassifier.model</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.transformers_classifier.TransformersLLMClassifier.set_fit_request"><code class="docutils literal notranslate"><span class="pre">TransformersLLMClassifier.set_fit_request()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.transformers_classifier.TransformersLLMClassifier.set_predict_proba_request"><code class="docutils literal notranslate"><span class="pre">TransformersLLMClassifier.set_predict_proba_request()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.transformers_classifier.TransformersLLMClassifier.set_predict_request"><code class="docutils literal notranslate"><span class="pre">TransformersLLMClassifier.set_predict_request()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.transformers_classifier.TransformersLLMClassifier.set_score_request"><code class="docutils literal notranslate"><span class="pre">TransformersLLMClassifier.set_score_request()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.transformers_classifier.TransformersLLMClassifier.tokenizer"><code class="docutils literal notranslate"><span class="pre">TransformersLLMClassifier.tokenizer</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="folktexts.classifier.html#module-folktexts.classifier.web_api_classifier">folktexts.classifier.web_api_classifier module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.web_api_classifier.WebAPILLMClassifier"><code class="docutils literal notranslate"><span class="pre">WebAPILLMClassifier</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.web_api_classifier.WebAPILLMClassifier.check_webAPI_deps"><code class="docutils literal notranslate"><span class="pre">WebAPILLMClassifier.check_webAPI_deps()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.web_api_classifier.WebAPILLMClassifier.set_fit_request"><code class="docutils literal notranslate"><span class="pre">WebAPILLMClassifier.set_fit_request()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.web_api_classifier.WebAPILLMClassifier.set_predict_proba_request"><code class="docutils literal notranslate"><span class="pre">WebAPILLMClassifier.set_predict_proba_request()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.web_api_classifier.WebAPILLMClassifier.set_predict_request"><code class="docutils literal notranslate"><span class="pre">WebAPILLMClassifier.set_predict_request()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.web_api_classifier.WebAPILLMClassifier.set_score_request"><code class="docutils literal notranslate"><span class="pre">WebAPILLMClassifier.set_score_request()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.web_api_classifier.WebAPILLMClassifier.track_cost_callback"><code class="docutils literal notranslate"><span class="pre">WebAPILLMClassifier.track_cost_callback()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="folktexts.classifier.html#module-folktexts.classifier">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="folktexts.cli.html">folktexts.cli package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="folktexts.cli.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="folktexts.cli.html#module-folktexts.cli.download_models">folktexts.cli.download_models module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.download_models.is_bf16_compatible"><code class="docutils literal notranslate"><span class="pre">is_bf16_compatible()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.download_models.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.download_models.setup_arg_parser"><code class="docutils literal notranslate"><span class="pre">setup_arg_parser()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="folktexts.cli.html#module-folktexts.cli.eval_feature_importance">folktexts.cli.eval_feature_importance module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.eval_feature_importance.compute_feature_importance"><code class="docutils literal notranslate"><span class="pre">compute_feature_importance()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.eval_feature_importance.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.eval_feature_importance.parse_feature_importance"><code class="docutils literal notranslate"><span class="pre">parse_feature_importance()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.eval_feature_importance.setup_arg_parser"><code class="docutils literal notranslate"><span class="pre">setup_arg_parser()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="folktexts.cli.html#module-folktexts.cli.experiments">folktexts.cli.experiments module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.experiments.Experiment"><code class="docutils literal notranslate"><span class="pre">Experiment</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.experiments.Experiment.env_vars"><code class="docutils literal notranslate"><span class="pre">Experiment.env_vars</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.experiments.Experiment.executable_path"><code class="docutils literal notranslate"><span class="pre">Experiment.executable_path</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.experiments.Experiment.get_all_experiments"><code class="docutils literal notranslate"><span class="pre">Experiment.get_all_experiments()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.experiments.Experiment.hash"><code class="docutils literal notranslate"><span class="pre">Experiment.hash()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.experiments.Experiment.job_bid"><code class="docutils literal notranslate"><span class="pre">Experiment.job_bid</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.experiments.Experiment.job_cpus"><code class="docutils literal notranslate"><span class="pre">Experiment.job_cpus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.experiments.Experiment.job_gpu_memory_gb"><code class="docutils literal notranslate"><span class="pre">Experiment.job_gpu_memory_gb</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.experiments.Experiment.job_gpus"><code class="docutils literal notranslate"><span class="pre">Experiment.job_gpus</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.experiments.Experiment.job_memory_gb"><code class="docutils literal notranslate"><span class="pre">Experiment.job_memory_gb</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.experiments.Experiment.kwargs"><code class="docutils literal notranslate"><span class="pre">Experiment.kwargs</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.experiments.Experiment.to_dict"><code class="docutils literal notranslate"><span class="pre">Experiment.to_dict()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.experiments.launch_experiment_job"><code class="docutils literal notranslate"><span class="pre">launch_experiment_job()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="folktexts.cli.html#module-folktexts.cli.launch_experiments_htcondor">folktexts.cli.launch_experiments_htcondor module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.launch_experiments_htcondor.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.launch_experiments_htcondor.make_llm_clf_experiment"><code class="docutils literal notranslate"><span class="pre">make_llm_clf_experiment()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.launch_experiments_htcondor.setup_arg_parser"><code class="docutils literal notranslate"><span class="pre">setup_arg_parser()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="folktexts.cli.html#module-folktexts.cli.rerun_experiment">folktexts.cli.rerun_experiment module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.rerun_experiment.setup_arg_parser"><code class="docutils literal notranslate"><span class="pre">setup_arg_parser()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="folktexts.cli.html#module-folktexts.cli.run_acs_benchmark">folktexts.cli.run_acs_benchmark module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.run_acs_benchmark.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="folktexts.cli.html#folktexts.cli.run_acs_benchmark.setup_arg_parser"><code class="docutils literal notranslate"><span class="pre">setup_arg_parser()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="folktexts.cli.html#module-folktexts.cli">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-folktexts.benchmark">
+<span id="folktexts-benchmark-module"></span><h2>folktexts.benchmark module<a class="headerlink" href="#module-folktexts.benchmark" title="Link to this heading"></a></h2>
+<p>A benchmark class for measuring and evaluating LLM calibration.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="folktexts.benchmark.Benchmark">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">folktexts.benchmark.</span></span><span class="sig-name descname"><span class="pre">Benchmark</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">llm_clf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">BenchmarkConfig(numeric_risk_prompting=False,</span> <span class="pre">few_shot=None,</span> <span class="pre">reuse_few_shot_examples=False,</span> <span class="pre">balance_few_shot_examples=False,</span> <span class="pre">batch_size=None,</span> <span class="pre">context_size=None,</span> <span class="pre">correct_order_bias=True,</span> <span class="pre">feature_subset=None,</span> <span class="pre">population_filter=None,</span> <span class="pre">seed=42)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/benchmark.html#Benchmark"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.benchmark.Benchmark" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Measures and evaluates risk scores produced by an LLM.</p>
+<p>A benchmark object to measure and evaluate risk scores produced by an LLM.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>llm_clf</strong> (<a class="reference internal" href="folktexts.classifier.html#folktexts.classifier.base.LLMClassifier" title="folktexts.classifier.base.LLMClassifier"><em>LLMClassifier</em></a>) – A language model classifier object (can be local or web-hosted).</p></li>
+<li><p><strong>dataset</strong> (<a class="reference internal" href="#folktexts.dataset.Dataset" title="folktexts.dataset.Dataset"><em>Dataset</em></a>) – The dataset object to use for the benchmark.÷</p></li>
+<li><p><strong>config</strong> (<a class="reference internal" href="#folktexts.benchmark.BenchmarkConfig" title="folktexts.benchmark.BenchmarkConfig"><em>BenchmarkConfig</em></a><em>, </em><em>optional</em>) – The configuration object used to create the benchmark parameters.
+<strong>NOTE</strong>: This is used to uniquely identify the benchmark object for
+reproducibility; it <strong>will not be used to change the benchmark
+behavior</strong>. To configure the benchmark, pass a configuration object
+to the Benchmark.make_benchmark method.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.benchmark.Benchmark.ACS_DATASET_CONFIGS">
+<span class="sig-name descname"><span class="pre">ACS_DATASET_CONFIGS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'horizon':</span> <span class="pre">'1-Year',</span> <span class="pre">'seed':</span> <span class="pre">42,</span> <span class="pre">'subsampling':</span> <span class="pre">None,</span> <span class="pre">'survey':</span> <span class="pre">'person',</span> <span class="pre">'survey_year':</span> <span class="pre">'2018',</span> <span class="pre">'test_size':</span> <span class="pre">0.1,</span> <span class="pre">'val_size':</span> <span class="pre">0.1}</span></em><a class="headerlink" href="#folktexts.benchmark.Benchmark.ACS_DATASET_CONFIGS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.benchmark.Benchmark.configs_dict">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">configs_dict</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span></em><a class="headerlink" href="#folktexts.benchmark.Benchmark.configs_dict" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.benchmark.Benchmark.make_acs_benchmark">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">make_acs_benchmark</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">task_name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_api_rpm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">BenchmarkConfig(numeric_risk_prompting=False,</span> <span class="pre">few_shot=None,</span> <span class="pre">reuse_few_shot_examples=False,</span> <span class="pre">balance_few_shot_examples=False,</span> <span class="pre">batch_size=None,</span> <span class="pre">context_size=None,</span> <span class="pre">correct_order_bias=True,</span> <span class="pre">feature_subset=None,</span> <span class="pre">population_filter=None,</span> <span class="pre">seed=42)</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/benchmark.html#Benchmark.make_acs_benchmark"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.benchmark.Benchmark.make_acs_benchmark" title="Link to this definition"></a></dt>
+<dd><p>Create a standardized calibration benchmark on ACS data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>task_name</strong> (<em>str</em>) – The name of the ACS task to use.</p></li>
+<li><p><strong>model</strong> (<em>AutoModelForCausalLM</em><em> | </em><em>str</em>) – The transformers language model to use, or the model ID for a webAPI
+hosted model (e.g., “openai/gpt-4o-mini”).</p></li>
+<li><p><strong>tokenizer</strong> (<em>AutoTokenizer</em><em>, </em><em>optional</em>) – The tokenizer used to train the model (if using a transformers
+model). Not required for webAPI models.</p></li>
+<li><p><strong>data_dir</strong> (<em>str</em><em> | </em><em>Path</em><em>, </em><em>optional</em>) – Path to the directory to load data from and save data in.</p></li>
+<li><p><strong>max_api_rpm</strong> (<em>int</em><em>, </em><em>optional</em>) – The maximum number of API requests per minute for webAPI models.</p></li>
+<li><p><strong>config</strong> (<a class="reference internal" href="#folktexts.benchmark.BenchmarkConfig" title="folktexts.benchmark.BenchmarkConfig"><em>BenchmarkConfig</em></a><em>, </em><em>optional</em>) – Extra benchmark configurations, by default will use
+<cite>BenchmarkConfig.default_config()</cite>.</p></li>
+<li><p><strong>**kwargs</strong> – Additional arguments passed to <cite>ACSDataset</cite> and <cite>BenchmarkConfig</cite>.
+By default will use a set of standardized configurations for
+reproducibility.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>bench</strong> – The ACS calibration benchmark object.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#folktexts.benchmark.Benchmark" title="folktexts.benchmark.Benchmark">Benchmark</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.benchmark.Benchmark.make_benchmark">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">make_benchmark</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_api_rpm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">BenchmarkConfig(numeric_risk_prompting=False,</span> <span class="pre">few_shot=None,</span> <span class="pre">reuse_few_shot_examples=False,</span> <span class="pre">balance_few_shot_examples=False,</span> <span class="pre">batch_size=None,</span> <span class="pre">context_size=None,</span> <span class="pre">correct_order_bias=True,</span> <span class="pre">feature_subset=None,</span> <span class="pre">population_filter=None,</span> <span class="pre">seed=42)</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/benchmark.html#Benchmark.make_benchmark"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.benchmark.Benchmark.make_benchmark" title="Link to this definition"></a></dt>
+<dd><p>Create a calibration benchmark from a given configuration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>task</strong> (<a class="reference internal" href="#folktexts.task.TaskMetadata" title="folktexts.task.TaskMetadata"><em>TaskMetadata</em></a><em> | </em><em>str</em>) – The task metadata object or name of the task to use.</p></li>
+<li><p><strong>dataset</strong> (<a class="reference internal" href="#folktexts.dataset.Dataset" title="folktexts.dataset.Dataset"><em>Dataset</em></a>) – The dataset to use for the benchmark.</p></li>
+<li><p><strong>model</strong> (<em>AutoModelForCausalLM</em><em> | </em><em>str</em>) – The transformers language model to use, or the model ID for a webAPI
+hosted model (e.g., “openai/gpt-4o-mini”).</p></li>
+<li><p><strong>tokenizer</strong> (<em>AutoTokenizer</em><em>, </em><em>optional</em>) – The tokenizer used to train the model (if using a transformers
+model). Not required for webAPI models.</p></li>
+<li><p><strong>max_api_rpm</strong> (<em>int</em><em>, </em><em>optional</em>) – The maximum number of API requests per minute for webAPI models.</p></li>
+<li><p><strong>config</strong> (<a class="reference internal" href="#folktexts.benchmark.BenchmarkConfig" title="folktexts.benchmark.BenchmarkConfig"><em>BenchmarkConfig</em></a><em>, </em><em>optional</em>) – Extra benchmark configurations, by default will use
+<cite>BenchmarkConfig.default_config()</cite>.</p></li>
+<li><p><strong>**kwargs</strong> – Additional arguments for easier configuration of the benchmark.
+Will simply use these values to update the <cite>config</cite> object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>bench</strong> – The calibration benchmark object.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#folktexts.benchmark.Benchmark" title="folktexts.benchmark.Benchmark">Benchmark</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.benchmark.Benchmark.model_name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">model_name</span></span><a class="headerlink" href="#folktexts.benchmark.Benchmark.model_name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.benchmark.Benchmark.plot_results">
+<span class="sig-name descname"><span class="pre">plot_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_plots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/benchmark.html#Benchmark.plot_results"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.benchmark.Benchmark.plot_results" title="Link to this definition"></a></dt>
+<dd><p>Render evaluation plots and save to disk.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>show_plots</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to show plots, by default True.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>plots_paths</strong> – The paths to the saved plots.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.benchmark.Benchmark.results">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">results</span></span><a class="headerlink" href="#folktexts.benchmark.Benchmark.results" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.benchmark.Benchmark.results_dir">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">results_dir</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Path</span></em><a class="headerlink" href="#folktexts.benchmark.Benchmark.results_dir" title="Link to this definition"></a></dt>
+<dd><p>Get the results directory for this benchmark.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.benchmark.Benchmark.results_root_dir">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">results_root_dir</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Path</span></em><a class="headerlink" href="#folktexts.benchmark.Benchmark.results_root_dir" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.benchmark.Benchmark.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results_root_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fit_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/benchmark.html#Benchmark.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.benchmark.Benchmark.run" title="Link to this definition"></a></dt>
+<dd><p>Run the calibration benchmark experiment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>results_root_dir</strong> (<em>str</em><em> | </em><em>Path</em>) – Path to root directory under which results will be saved.</p></li>
+<li><p><strong>fit_threshold</strong> (<em>int</em><em> | </em><em>bool</em><em>, </em><em>optional</em>) – Whether to fit the binarization threshold on a given number of
+training samples, by default 0 (will not fit the threshold).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The benchmark metric value. By default this is the ECE score.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.benchmark.Benchmark.save_results">
+<span class="sig-name descname"><span class="pre">save_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results_root_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/benchmark.html#Benchmark.save_results"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.benchmark.Benchmark.save_results" title="Link to this definition"></a></dt>
+<dd><p>Save the benchmark results to disk.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>results_root_dir</strong> (<em>str</em><em> | </em><em>Path</em><em>, </em><em>optional</em>) – Path to root directory under which results will be saved. By default
+will use <cite>self.results_root_dir</cite>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.benchmark.Benchmark.task">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">task</span></span><a class="headerlink" href="#folktexts.benchmark.Benchmark.task" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="folktexts.benchmark.BenchmarkConfig">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">folktexts.benchmark.</span></span><span class="sig-name descname"><span class="pre">BenchmarkConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">numeric_risk_prompting</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">few_shot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reuse_few_shot_examples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">balance_few_shot_examples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">correct_order_bias</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_subset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">population_filter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/benchmark.html#BenchmarkConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.benchmark.BenchmarkConfig" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A dataclass to hold the configuration for risk-score benchmark.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.benchmark.BenchmarkConfig.numeric_risk_prompting">
+<span class="sig-name descname"><span class="pre">numeric_risk_prompting</span></span><a class="headerlink" href="#folktexts.benchmark.BenchmarkConfig.numeric_risk_prompting" title="Link to this definition"></a></dt>
+<dd><p>Whether to prompt for numeric risk-estimates instead of multiple-choice
+Q&amp;A, by default False.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.benchmark.BenchmarkConfig.few_shot">
+<span class="sig-name descname"><span class="pre">few_shot</span></span><a class="headerlink" href="#folktexts.benchmark.BenchmarkConfig.few_shot" title="Link to this definition"></a></dt>
+<dd><p>Whether to use few-shot prompting with a given number of examples, by
+default None.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int | None, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.benchmark.BenchmarkConfig.reuse_few_shot_examples">
+<span class="sig-name descname"><span class="pre">reuse_few_shot_examples</span></span><a class="headerlink" href="#folktexts.benchmark.BenchmarkConfig.reuse_few_shot_examples" title="Link to this definition"></a></dt>
+<dd><p>Whether to reuse the same samples for few-shot prompting (or sample new
+ones every time), by default False.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.benchmark.BenchmarkConfig.balance_few_shot_examples">
+<span class="sig-name descname"><span class="pre">balance_few_shot_examples</span></span><a class="headerlink" href="#folktexts.benchmark.BenchmarkConfig.balance_few_shot_examples" title="Link to this definition"></a></dt>
+<dd><p>Whether to balance the samples for few-shot prompting with respect to
+their labels, by default False.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.benchmark.BenchmarkConfig.batch_size">
+<span class="sig-name descname"><span class="pre">batch_size</span></span><a class="headerlink" href="#folktexts.benchmark.BenchmarkConfig.batch_size" title="Link to this definition"></a></dt>
+<dd><p>The batch size to use for inference.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int | None, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.benchmark.BenchmarkConfig.context_size">
+<span class="sig-name descname"><span class="pre">context_size</span></span><a class="headerlink" href="#folktexts.benchmark.BenchmarkConfig.context_size" title="Link to this definition"></a></dt>
+<dd><p>The maximum context size when prompting the LLM.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int | None, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.benchmark.BenchmarkConfig.correct_order_bias">
+<span class="sig-name descname"><span class="pre">correct_order_bias</span></span><a class="headerlink" href="#folktexts.benchmark.BenchmarkConfig.correct_order_bias" title="Link to this definition"></a></dt>
+<dd><p>Whether to correct the ordering bias in multiple-choice Q&amp;A when
+prompting the LLM, by default True.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.benchmark.BenchmarkConfig.feature_subset">
+<span class="sig-name descname"><span class="pre">feature_subset</span></span><a class="headerlink" href="#folktexts.benchmark.BenchmarkConfig.feature_subset" title="Link to this definition"></a></dt>
+<dd><p>Whether to use a subset of the standard feature set for the task. The
+list should contain the names of the columns of features to use.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[str] | None, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.benchmark.BenchmarkConfig.population_filter">
+<span class="sig-name descname"><span class="pre">population_filter</span></span><a class="headerlink" href="#folktexts.benchmark.BenchmarkConfig.population_filter" title="Link to this definition"></a></dt>
+<dd><p>Optional population filter for this benchmark; must follow the format
+<cite>{“column_name”: “value”}</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict | None, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.benchmark.BenchmarkConfig.seed">
+<span class="sig-name descname"><span class="pre">seed</span></span><a class="headerlink" href="#folktexts.benchmark.BenchmarkConfig.seed" title="Link to this definition"></a></dt>
+<dd><p>Random seed – to set for reproducibility.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-name descname"><span class="pre">balance_few_shot_examples</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id1">
+<span class="sig-name descname"><span class="pre">batch_size</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> <span class="pre">|</span> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#id1" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id2">
+<span class="sig-name descname"><span class="pre">context_size</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> <span class="pre">|</span> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#id2" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id3">
+<span class="sig-name descname"><span class="pre">correct_order_bias</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#id3" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.benchmark.BenchmarkConfig.default_config">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">default_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">changes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/benchmark.html#BenchmarkConfig.default_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.benchmark.BenchmarkConfig.default_config" title="Link to this definition"></a></dt>
+<dd><p>Returns the default configuration with optional changes.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id4">
+<span class="sig-name descname"><span class="pre">feature_subset</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code><span class="pre">[</span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code><span class="pre">]</span> <span class="pre">|</span> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#id4" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id5">
+<span class="sig-name descname"><span class="pre">few_shot</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> <span class="pre">|</span> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#id5" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.benchmark.BenchmarkConfig.load_from_disk">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load_from_disk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/benchmark.html#BenchmarkConfig.load_from_disk"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.benchmark.BenchmarkConfig.load_from_disk" title="Link to this definition"></a></dt>
+<dd><p>Load the configuration from disk.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id6">
+<span class="sig-name descname"><span class="pre">numeric_risk_prompting</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#id6" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id7">
+<span class="sig-name descname"><span class="pre">population_filter</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code> <span class="pre">|</span> <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#id7" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id8">
+<span class="sig-name descname"><span class="pre">reuse_few_shot_examples</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#id8" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.benchmark.BenchmarkConfig.save_to_disk">
+<span class="sig-name descname"><span class="pre">save_to_disk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/benchmark.html#BenchmarkConfig.save_to_disk"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.benchmark.BenchmarkConfig.save_to_disk" title="Link to this definition"></a></dt>
+<dd><p>Save the configuration to disk.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id9">
+<span class="sig-name descname"><span class="pre">seed</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">42</span></em><a class="headerlink" href="#id9" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.benchmark.BenchmarkConfig.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">changes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/benchmark.html#BenchmarkConfig.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.benchmark.BenchmarkConfig.update" title="Link to this definition"></a></dt>
+<dd><p>Update the configuration with new values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#folktexts.benchmark.BenchmarkConfig" title="folktexts.benchmark.BenchmarkConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">BenchmarkConfig</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-folktexts.col_to_text">
+<span id="folktexts-col-to-text-module"></span><h2>folktexts.col_to_text module<a class="headerlink" href="#module-folktexts.col_to_text" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="folktexts.col_to_text.ColumnToText">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">folktexts.col_to_text.</span></span><span class="sig-name descname"><span class="pre">ColumnToText</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">short_description</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value_map</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">question</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connector_verb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'is:'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missing_value_fill</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'N/A'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_value_map_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/col_to_text.html#ColumnToText"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.col_to_text.ColumnToText" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Maps a single column’s values to natural text.</p>
+<p>Constructs a <cite>ColumnToText</cite> object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – The column’s name.</p></li>
+<li><p><strong>short_description</strong> (<em>str</em>) – A short description of the column to be used before different
+values. For example, short_description=”yearly income” will result
+in “The yearly income is […]”.</p></li>
+<li><p><strong>value_map</strong> (<em>dict</em><em>[</em><em>int</em><em> | </em><em>str</em><em>, </em><em>str</em><em>] </em><em>| </em><em>Callable</em><em>, </em><em>optional</em>) – A map between column values and their textual meaning. If not
+provided, will try to infer a mapping from the <cite>question</cite>.</p></li>
+<li><p><strong>question</strong> (<a class="reference internal" href="#folktexts.qa_interface.QAInterface" title="folktexts.qa_interface.QAInterface"><em>QAInterface</em></a><em>, </em><em>optional</em>) – A question associated with the column. If not provided, will try to
+infer a multiple-choice question from the <cite>value_map</cite>.</p></li>
+<li><p><strong>connector_verb</strong> (<em>str</em><em>, </em><em>optional</em>) – Which verb to use when connecting the column’s description to its
+value; by default “is”.</p></li>
+<li><p><strong>missing_value_fill</strong> (<em>str</em><em>, </em><em>optional</em>) – The value to use when the column’s value is not found in the
+<cite>value_map</cite>, by default “N/A”.</p></li>
+<li><p><strong>use_value_map_only</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to only use the <cite>value_map</cite> for mapping values to text,
+or whether natural language representation should be generated using
+the <cite>connector_verb</cite> and <cite>short_description</cite> as well.
+By default (False) will construct a natural language representation
+of the form:
+<cite>“The [short_description] [connector_verb] [value_map.get(val)]”.</cite></p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.col_to_text.ColumnToText.get_text">
+<span class="sig-name descname"><span class="pre">get_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/col_to_text.html#ColumnToText.get_text"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.col_to_text.ColumnToText.get_text" title="Link to this definition"></a></dt>
+<dd><p>Returns the natural text representation of the given data value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.col_to_text.ColumnToText.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#folktexts.col_to_text.ColumnToText.name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.col_to_text.ColumnToText.question">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">question</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#folktexts.qa_interface.QAInterface" title="folktexts.qa_interface.QAInterface"><span class="pre">QAInterface</span></a></em><a class="headerlink" href="#folktexts.col_to_text.ColumnToText.question" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.col_to_text.ColumnToText.short_description">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">short_description</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#folktexts.col_to_text.ColumnToText.short_description" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.col_to_text.ColumnToText.value_map">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">value_map</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span></em><a class="headerlink" href="#folktexts.col_to_text.ColumnToText.value_map" title="Link to this definition"></a></dt>
+<dd><p>Returns the value map function for this column.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-folktexts.dataset">
+<span id="folktexts-dataset-module"></span><h2>folktexts.dataset module<a class="headerlink" href="#module-folktexts.dataset" title="Link to this heading"></a></h2>
+<p>General Dataset functionality for text-based datasets.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="folktexts.dataset.Dataset">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">folktexts.dataset.</span></span><span class="sig-name descname"><span class="pre">Dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subsampling</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/dataset.html#Dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.dataset.Dataset" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Construct a Dataset object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>pd.DataFrame</em>) – The dataset’s data in pandas DataFrame format.</p></li>
+<li><p><strong>task</strong> (<a class="reference internal" href="#folktexts.task.TaskMetadata" title="folktexts.task.TaskMetadata"><em>TaskMetadata</em></a>) – The metadata for the prediction task.</p></li>
+<li><p><strong>test_size</strong> (<em>float</em><em>, </em><em>optional</em>) – The size of the test set, as a fraction of the total dataset size,
+by default 0.1.</p></li>
+<li><p><strong>val_size</strong> (<em>float</em><em>, </em><em>optional</em>) – The size of the validation set, as a fraction of the total dataset
+size, by default 0.1.</p></li>
+<li><p><strong>subsampling</strong> (<em>float</em><em>, </em><em>optional</em>) – Whether to use sub-sampling, and which fraction of the data to keep.
+By default will not use sub-sampling (<cite>subsampling=None</cite>).</p></li>
+<li><p><strong>seed</strong> (<em>int</em><em>, </em><em>optional</em>) – The random state seed, by default 42.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.dataset.Dataset.data">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">DataFrame</span></em><a class="headerlink" href="#folktexts.dataset.Dataset.data" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.dataset.Dataset.filter">
+<span class="sig-name descname"><span class="pre">filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">population_feature_values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/dataset.html#Dataset.filter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.dataset.Dataset.filter" title="Link to this definition"></a></dt>
+<dd><p>Filter dataset rows in-place.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.dataset.Dataset.get_data_split">
+<span class="sig-name descname"><span class="pre">get_data_split</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">split</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/dataset.html#Dataset.get_data_split"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.dataset.Dataset.get_data_split" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Series</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.dataset.Dataset.get_features_data">
+<span class="sig-name descname"><span class="pre">get_features_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/dataset.html#Dataset.get_features_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.dataset.Dataset.get_features_data" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.dataset.Dataset.get_sensitive_attribute_data">
+<span class="sig-name descname"><span class="pre">get_sensitive_attribute_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/dataset.html#Dataset.get_sensitive_attribute_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.dataset.Dataset.get_sensitive_attribute_data" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Series</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.dataset.Dataset.get_target_data">
+<span class="sig-name descname"><span class="pre">get_target_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/dataset.html#Dataset.get_target_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.dataset.Dataset.get_target_data" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Series</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.dataset.Dataset.get_test">
+<span class="sig-name descname"><span class="pre">get_test</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/dataset.html#Dataset.get_test"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.dataset.Dataset.get_test" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.dataset.Dataset.get_train">
+<span class="sig-name descname"><span class="pre">get_train</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/dataset.html#Dataset.get_train"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.dataset.Dataset.get_train" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.dataset.Dataset.get_val">
+<span class="sig-name descname"><span class="pre">get_val</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/dataset.html#Dataset.get_val"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.dataset.Dataset.get_val" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.dataset.Dataset.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#folktexts.dataset.Dataset.name" title="Link to this definition"></a></dt>
+<dd><p>A unique name for this dataset.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.dataset.Dataset.sample_n_train_examples">
+<span class="sig-name descname"><span class="pre">sample_n_train_examples</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reuse_examples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_balancing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/dataset.html#Dataset.sample_n_train_examples"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.dataset.Dataset.sample_n_train_examples" title="Link to this definition"></a></dt>
+<dd><p>Return a set of samples from the training set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>n</strong> (<em>int</em>) – The number of example rows to return.</p></li>
+<li><p><strong>reuse_examples</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to reuse the same examples for consistency. By default will
+sample new examples each time (<cite>reuse_examples=False</cite>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>X, y</strong> – The features and target data for the sampled examples.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[pd.DataFrame, pd.Series]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.dataset.Dataset.seed">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">seed</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#folktexts.dataset.Dataset.seed" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.dataset.Dataset.subsample">
+<span class="sig-name descname"><span class="pre">subsample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subsampling</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/dataset.html#Dataset.subsample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.dataset.Dataset.subsample" title="Link to this definition"></a></dt>
+<dd><p>Subsamples this dataset in-place.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.dataset.Dataset.subsampling">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">subsampling</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#folktexts.dataset.Dataset.subsampling" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.dataset.Dataset.task">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">task</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#folktexts.task.TaskMetadata" title="folktexts.task.TaskMetadata"><span class="pre">TaskMetadata</span></a></em><a class="headerlink" href="#folktexts.dataset.Dataset.task" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.dataset.Dataset.test_size">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">test_size</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#folktexts.dataset.Dataset.test_size" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.dataset.Dataset.train_size">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">train_size</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#folktexts.dataset.Dataset.train_size" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.dataset.Dataset.val_size">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">val_size</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#folktexts.dataset.Dataset.val_size" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-folktexts.evaluation">
+<span id="folktexts-evaluation-module"></span><h2>folktexts.evaluation module<a class="headerlink" href="#module-folktexts.evaluation" title="Link to this heading"></a></h2>
+<p>Module to map risk-estimates to a variety of evaluation metrics.</p>
+<p class="rubric">Notes</p>
+<p>Code based on the <cite>error_parity.evaluation</cite> module,
+at: <a class="reference external" href="https://github.com/socialfoundations/error-parity/blob/main/error_parity/evaluation.py">https://github.com/socialfoundations/error-parity/blob/main/error_parity/evaluation.py</a></p>
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.evaluation.bootstrap_estimate">
+<span class="sig-prename descclassname"><span class="pre">folktexts.evaluation.</span></span><span class="sig-name descname"><span class="pre">bootstrap_estimate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">eval_func</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_true</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pred_scores</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sensitive_attribute</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">confidence_pct</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/evaluation.html#bootstrap_estimate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.evaluation.bootstrap_estimate" title="Link to this definition"></a></dt>
+<dd><p>Computes bootstrap estimates of the given evaluation function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>eval_func</strong> (<em>Callable</em><em>[</em><em>[</em><em>np.ndarray</em><em>, </em><em>np.ndarray</em><em>, </em><em>np.ndarray</em><em>]</em><em>, </em><em>dict</em><em>[</em><em>str</em><em>, </em><em>float</em><em>]</em><em>]</em>) – The evaluation function to run for each bootstrap sample. Must follow
+the signature <cite>eval_func(y_true, y_pred_scores, sensitive_attribute)</cite>.</p></li>
+<li><p><strong>y_true</strong> (<em>np.ndarray</em>) – The true labels.</p></li>
+<li><p><strong>y_pred_scores</strong> (<em>np.ndarray</em>) – The predicted scores.</p></li>
+<li><p><strong>sensitive_attribute</strong> (<em>np.ndarray</em><em>, </em><em>optional</em>) – Optionally, provide the sensitive attribute data to compute fairness
+metrics, by default None.</p></li>
+<li><p><strong>k</strong> (<em>int</em><em>, </em><em>optional</em>) – How many bootstrap samples to draw, by default 200.</p></li>
+<li><p><strong>confidence_pct</strong> (<em>float</em><em>, </em><em>optional</em>) – The confidence interval to use, in percentage, by default 95.</p></li>
+<li><p><strong>seed</strong> (<em>int</em><em>, </em><em>optional</em>) – The random seed, by default 42.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>results</strong> – A dictionary containing bootstrap estimates for a variety of metrics.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, float]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.evaluation.compute_best_threshold">
+<span class="sig-prename descclassname"><span class="pre">folktexts.evaluation.</span></span><span class="sig-name descname"><span class="pre">compute_best_threshold</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y_true</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pred_scores</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">false_pos_cost</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">false_neg_cost</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/evaluation.html#compute_best_threshold"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.evaluation.compute_best_threshold" title="Link to this definition"></a></dt>
+<dd><p>Computes the binarization threshold that maximizes accuracy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y_true</strong> (<em>np.ndarray</em>) – The true class labels.</p></li>
+<li><p><strong>y_pred_scores</strong> (<em>np.ndarray</em>) – The predicted risk scores.</p></li>
+<li><p><strong>false_pos_cost</strong> (<em>float</em><em>, </em><em>optional</em>) – The cost of a false positive error, by default 1.0</p></li>
+<li><p><strong>false_neg_cost</strong> (<em>float</em><em>, </em><em>optional</em>) – The cost of a false negative error, by default 1.0</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>best_threshold</strong> – The threshold value that maximizes accuracy for the given predictions.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.evaluation.evaluate_binary_predictions">
+<span class="sig-prename descclassname"><span class="pre">folktexts.evaluation.</span></span><span class="sig-name descname"><span class="pre">evaluate_binary_predictions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y_true</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pred</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/evaluation.html#evaluate_binary_predictions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.evaluation.evaluate_binary_predictions" title="Link to this definition"></a></dt>
+<dd><p>Evaluates the provided binary predictions on common performance metrics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y_true</strong> (<em>np.ndarray</em>) – The true class labels.</p></li>
+<li><p><strong>y_pred</strong> (<em>np.ndarray</em>) – The binary predictions.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary with key-value pairs of (metric name, metric value).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.evaluation.evaluate_binary_predictions_fairness">
+<span class="sig-prename descclassname"><span class="pre">folktexts.evaluation.</span></span><span class="sig-name descname"><span class="pre">evaluate_binary_predictions_fairness</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y_true</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sensitive_attribute</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_groupwise_metrics</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_group_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.04</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/evaluation.html#evaluate_binary_predictions_fairness"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.evaluation.evaluate_binary_predictions_fairness" title="Link to this definition"></a></dt>
+<dd><p>Evaluates fairness of the given predictions.</p>
+<p>Fairness metrics are computed as the ratios between group-wise performance
+metrics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y_true</strong> (<em>np.ndarray</em>) – The true class labels.</p></li>
+<li><p><strong>y_pred</strong> (<em>np.ndarray</em>) – The discretized predictions.</p></li>
+<li><p><strong>sensitive_attribute</strong> (<em>np.ndarray</em>) – The sensitive attribute (protected group membership).</p></li>
+<li><p><strong>return_groupwise_metrics</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to return group-wise performance metrics (bool: True) or only
+the ratios between these metrics (bool: False), by default False.</p></li>
+<li><p><strong>min_group_size</strong> (<em>float</em><em>, </em><em>optional</em>) – The minimum fraction of samples (as a fraction of the total number of
+samples) that a group must have to be considered for fairness
+evaluation, by default 0.04. This is meant to avoid evaluating metrics
+on very small groups which leads to noisy and inconsistent results.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary with key-value pairs of (metric name, metric value).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.evaluation.evaluate_predictions">
+<span class="sig-prename descclassname"><span class="pre">folktexts.evaluation.</span></span><span class="sig-name descname"><span class="pre">evaluate_predictions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y_true</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pred_scores</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sensitive_attribute</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'best'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/evaluation.html#evaluate_predictions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.evaluation.evaluate_predictions" title="Link to this definition"></a></dt>
+<dd><p>Evaluates predictions on common performance and fairness metrics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y_true</strong> (<em>np.ndarray</em>) – The true class labels.</p></li>
+<li><p><strong>y_pred_scores</strong> (<em>np.ndarray</em>) – The predicted scores.</p></li>
+<li><p><strong>sensitive_attribute</strong> (<em>np.ndarray</em><em>, </em><em>optional</em>) – The sensitive attribute data. Will compute fairness metrics if provided.</p></li>
+<li><p><strong>threshold</strong> (<em>float</em><em> | </em><em>str</em><em>, </em><em>optional</em>) – The threshold to use for binarizing the predictions, or “best” to infer
+which threshold maximizes accuracy.</p></li>
+<li><p><strong>model_name</strong> (<em>str</em><em>, </em><em>optional</em>) – The name of the model to be used on the plots, by default None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>results</strong> – A dictionary with key-value pairs of (metric name, metric value).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.evaluation.evaluate_predictions_bootstrap">
+<span class="sig-prename descclassname"><span class="pre">folktexts.evaluation.</span></span><span class="sig-name descname"><span class="pre">evaluate_predictions_bootstrap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y_true</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pred_scores</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sensitive_attribute</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'best'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">confidence_pct</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/evaluation.html#evaluate_predictions_bootstrap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.evaluation.evaluate_predictions_bootstrap" title="Link to this definition"></a></dt>
+<dd><p>Computes bootstrap estimates of classification metrics for the given predictions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y_true</strong> (<em>np.ndarray</em>) – The true labels.</p></li>
+<li><p><strong>y_pred_scores</strong> (<em>np.ndarray</em>) – The score predictions.</p></li>
+<li><p><strong>sensitive_attribute</strong> (<em>np.ndarray</em><em>, </em><em>optional</em>) – The sensitive attribute data. Will compute fairness metrics if provided.</p></li>
+<li><p><strong>threshold</strong> (<em>float</em><em> | </em><em>str</em><em>, </em><em>optional</em>) – The threshold to use for binarizing the predictions, or “best” to infer
+which threshold maximizes accuracy, by default “best”.</p></li>
+<li><p><strong>k</strong> (<em>int</em><em>, </em><em>optional</em>) – How many bootstrap samples to draw, by default 200.</p></li>
+<li><p><strong>confidence_pct</strong> (<em>float</em><em>, </em><em>optional</em>) – How large of a confidence interval to use when reporting lower and upper
+bounds, by default 95 (i.e., 2.5 to 97.5 percentile of results).</p></li>
+<li><p><strong>seed</strong> (<em>int</em><em>, </em><em>optional</em>) – The random seed, by default 42.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>results</strong> – A dictionary containing bootstrap estimates for a variety of metrics.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, float]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-folktexts.llm_utils">
+<span id="folktexts-llm-utils-module"></span><h2>folktexts.llm_utils module<a class="headerlink" href="#module-folktexts.llm_utils" title="Link to this heading"></a></h2>
+<p>Common functions to use with transformer LLMs.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.llm_utils.add_pad_token">
+<span class="sig-prename descclassname"><span class="pre">folktexts.llm_utils.</span></span><span class="sig-name descname"><span class="pre">add_pad_token</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/llm_utils.html#add_pad_token"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.llm_utils.add_pad_token" title="Link to this definition"></a></dt>
+<dd><p>Add a pad token to the model and tokenizer if it doesn’t already exist.</p>
+<p>Here we’re using the end-of-sentence token as the pad token. Both the model
+weights and tokenizer vocabulary are untouched.</p>
+<p>Another possible way would be to add a new token <cite>[PAD]</cite> to the tokenizer
+and update the tokenizer vocabulary and model weight embeddings accordingly.
+The embedding for the new pad token would be the average of all other
+embeddings.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.llm_utils.get_model_folder_path">
+<span class="sig-prename descclassname"><span class="pre">folktexts.llm_utils.</span></span><span class="sig-name descname"><span class="pre">get_model_folder_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">root_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'/tmp'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/llm_utils.html#get_model_folder_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.llm_utils.get_model_folder_path" title="Link to this definition"></a></dt>
+<dd><p>Returns the folder where the model is saved.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.llm_utils.get_model_size_B">
+<span class="sig-prename descclassname"><span class="pre">folktexts.llm_utils.</span></span><span class="sig-name descname"><span class="pre">get_model_size_B</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/llm_utils.html#get_model_size_B"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.llm_utils.get_model_size_B" title="Link to this definition"></a></dt>
+<dd><p>Get the model size from the model name, in Billions of parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.llm_utils.is_bf16_compatible">
+<span class="sig-prename descclassname"><span class="pre">folktexts.llm_utils.</span></span><span class="sig-name descname"><span class="pre">is_bf16_compatible</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/llm_utils.html#is_bf16_compatible"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.llm_utils.is_bf16_compatible" title="Link to this definition"></a></dt>
+<dd><p>Checks if the current environment is bfloat16 compatible.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.llm_utils.load_model_tokenizer">
+<span class="sig-prename descclassname"><span class="pre">folktexts.llm_utils.</span></span><span class="sig-name descname"><span class="pre">load_model_tokenizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name_or_path</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/llm_utils.html#load_model_tokenizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.llm_utils.load_model_tokenizer" title="Link to this definition"></a></dt>
+<dd><p>Load a model and tokenizer from the given local path (or using the model name).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model_name_or_path</strong> (<em>str</em><em> | </em><em>Path</em>) – Model name or local path to the model folder.</p></li>
+<li><p><strong>kwargs</strong> (<em>dict</em>) – Additional keyword arguments to pass to the model <cite>from_pretrained</cite> call.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The loaded model and tokenizer, respectively.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[AutoModelForCausalLM, AutoTokenizer]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.llm_utils.query_model_batch">
+<span class="sig-prename descclassname"><span class="pre">folktexts.llm_utils.</span></span><span class="sig-name descname"><span class="pre">query_model_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/llm_utils.html#query_model_batch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.llm_utils.query_model_batch" title="Link to this definition"></a></dt>
+<dd><p>Queries the model with a batch of text inputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text_inputs</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – The inputs to the model as a list of strings.</p></li>
+<li><p><strong>model</strong> (<em>AutoModelForCausalLM</em>) – The model to query.</p></li>
+<li><p><strong>tokenizer</strong> (<em>AutoTokenizer</em>) – The tokenizer used to encode the text inputs.</p></li>
+<li><p><strong>context_size</strong> (<em>int</em>) – The maximum context size to consider for each input (in tokens).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>last_token_probs</strong> – Model’s last token <em>linear</em> probabilities for each input as an
+np.array of shape (batch_size, vocab_size).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.llm_utils.query_model_batch_multiple_passes">
+<span class="sig-prename descclassname"><span class="pre">folktexts.llm_utils.</span></span><span class="sig-name descname"><span class="pre">query_model_batch_multiple_passes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_passes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">digits_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/llm_utils.html#query_model_batch_multiple_passes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.llm_utils.query_model_batch_multiple_passes" title="Link to this definition"></a></dt>
+<dd><p>Queries an LM for multiple forward passes.</p>
+<p>Greedy token search over multiple forward passes: Each forward pass takes
+the highest likelihood token from the previous pass.</p>
+<p>NOTE: could use model.generate in the future!</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text_inputs</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – The batch inputs to the model as a list of strings.</p></li>
+<li><p><strong>model</strong> (<em>AutoModelForCausalLM</em>) – The model to query.</p></li>
+<li><p><strong>tokenizer</strong> (<em>AutoTokenizer</em>) – The tokenizer used to encode the text inputs.</p></li>
+<li><p><strong>context_size</strong> (<em>int</em>) – The maximum context size to consider for each input (in tokens).</p></li>
+<li><p><strong>n_passes</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of forward passes to run.</p></li>
+<li><p><strong>digits_only</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to only sample for digit tokens.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>last_token_probs</strong> – Last token <em>linear</em> probabilities for each forward pass, for each text
+in the input batch. The output has shape (batch_size, n_passes, vocab_size).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-folktexts.plotting">
+<span id="folktexts-plotting-module"></span><h2>folktexts.plotting module<a class="headerlink" href="#module-folktexts.plotting" title="Link to this heading"></a></h2>
+<p>Module to plot evaluation results.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.plotting.render_evaluation_plots">
+<span class="sig-prename descclassname"><span class="pre">folktexts.plotting.</span></span><span class="sig-name descname"><span class="pre">render_evaluation_plots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y_true</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pred_scores</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_results</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imgs_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_plots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/plotting.html#render_evaluation_plots"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.plotting.render_evaluation_plots" title="Link to this definition"></a></dt>
+<dd><p>Renders evaluation plots for the given predictions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.plotting.render_fairness_plots">
+<span class="sig-prename descclassname"><span class="pre">folktexts.plotting.</span></span><span class="sig-name descname"><span class="pre">render_fairness_plots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y_true</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pred_scores</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sensitive_attribute</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_results</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_value_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_size_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.04</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imgs_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_plots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/plotting.html#render_fairness_plots"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.plotting.render_fairness_plots" title="Link to this definition"></a></dt>
+<dd><p>Renders fairness plots for the given predictions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.plotting.save_fig">
+<span class="sig-prename descclassname"><span class="pre">folktexts.plotting.</span></span><span class="sig-name descname"><span class="pre">save_fig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fig_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imgs_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'pdf'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/plotting.html#save_fig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.plotting.save_fig" title="Link to this definition"></a></dt>
+<dd><p>Helper to save a matplotlib figure to disk.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-folktexts.prompting">
+<span id="folktexts-prompting-module"></span><h2>folktexts.prompting module<a class="headerlink" href="#module-folktexts.prompting" title="Link to this heading"></a></h2>
+<p>Module to map risk-estimation questions to different prompting techniques.</p>
+<p>e.g.,
+- multiple-choice Q&amp;A vs direct numeric Q&amp;A;
+- zero-shot vs few-shot vs CoT;</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.prompting.apply_chat_template">
+<span class="sig-prename descclassname"><span class="pre">folktexts.prompting.</span></span><span class="sig-name descname"><span class="pre">apply_chat_template</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_prompt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_prompt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chat_prompt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'If</span> <span class="pre">had</span> <span class="pre">to</span> <span class="pre">select</span> <span class="pre">one</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">options,</span> <span class="pre">my</span> <span class="pre">answer</span> <span class="pre">would</span> <span class="pre">be'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/prompting.html#apply_chat_template"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.prompting.apply_chat_template" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.prompting.encode_row_prompt">
+<span class="sig-prename descclassname"><span class="pre">folktexts.prompting.</span></span><span class="sig-name descname"><span class="pre">encode_row_prompt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">question</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_prompt_prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_task_description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/prompting.html#encode_row_prompt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.prompting.encode_row_prompt" title="Link to this definition"></a></dt>
+<dd><p>Encode a question regarding a given row.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.prompting.encode_row_prompt_chat">
+<span class="sig-prename descclassname"><span class="pre">folktexts.prompting.</span></span><span class="sig-name descname"><span class="pre">encode_row_prompt_chat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">question</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">chat_template_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/prompting.html#encode_row_prompt_chat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.prompting.encode_row_prompt_chat" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="folktexts.prompting.encode_row_prompt_few_shot">
+<span class="sig-prename descclassname"><span class="pre">folktexts.prompting.</span></span><span class="sig-name descname"><span class="pre">encode_row_prompt_few_shot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_shots</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">question</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reuse_examples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_balancing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_prompt_prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/prompting.html#encode_row_prompt_few_shot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.prompting.encode_row_prompt_few_shot" title="Link to this definition"></a></dt>
+<dd><p>Encode a question regarding a given row using few-shot prompting.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>row</strong> (<em>pd.Series</em>) – The row that the question will be about.</p></li>
+<li><p><strong>task</strong> (<a class="reference internal" href="#folktexts.task.TaskMetadata" title="folktexts.task.TaskMetadata"><em>TaskMetadata</em></a>) – The task that the row belongs to.</p></li>
+<li><p><strong>n_shots</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of example questions and answers to use before prompting
+about the given row, by default 3.</p></li>
+<li><p><strong>reuse_examples</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to reuse the same examples for consistency. By default will
+resample new examples each time (<cite>reuse_examples=False</cite>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>prompt</strong> – The encoded few-shot prompt.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-folktexts.qa_interface">
+<span id="folktexts-qa-interface-module"></span><h2>folktexts.qa_interface module<a class="headerlink" href="#module-folktexts.qa_interface" title="Link to this heading"></a></h2>
+<p>Interface for question-answering with LLMs.</p>
+<ul class="simple">
+<li><p>Create different types of questions (direct numeric, multiple-choice).</p></li>
+<li><p>Encode questions and decode model outputs.</p></li>
+<li><p>Compute risk-estimate from model outputs.</p></li>
+</ul>
+<dl class="py class">
+<dt class="sig sig-object py" id="folktexts.qa_interface.Choice">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">folktexts.qa_interface.</span></span><span class="sig-name descname"><span class="pre">Choice</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numeric_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/qa_interface.html#Choice"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.qa_interface.Choice" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Represents a choice in multiple-choice Q&amp;A.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.qa_interface.Choice.text">
+<span class="sig-name descname"><span class="pre">text</span></span><a class="headerlink" href="#folktexts.qa_interface.Choice.text" title="Link to this definition"></a></dt>
+<dd><p>The text of the choice. E.g., “25-34 years old”.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.qa_interface.Choice.data_value">
+<span class="sig-name descname"><span class="pre">data_value</span></span><a class="headerlink" href="#folktexts.qa_interface.Choice.data_value" title="Link to this definition"></a></dt>
+<dd><p>The categorical value corresponding to this choice in the data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>object</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.qa_interface.Choice.numeric_value">
+<span class="sig-name descname"><span class="pre">numeric_value</span></span><a class="headerlink" href="#folktexts.qa_interface.Choice.numeric_value" title="Link to this definition"></a></dt>
+<dd><p>A meaningful numeric value for the choice. E.g., if the choice is “25-34
+years old”, the numeric value could be 30. The choice with the highest
+numeric value can be used as a proxy for the positive class. If not
+provided, will try to use the <cite>choice.value</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id10">
+<span class="sig-name descname"><span class="pre">data_value</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></em><a class="headerlink" href="#id10" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.qa_interface.Choice.get_numeric_value">
+<span class="sig-name descname"><span class="pre">get_numeric_value</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/qa_interface.html#Choice.get_numeric_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.qa_interface.Choice.get_numeric_value" title="Link to this definition"></a></dt>
+<dd><p>Returns the numeric value of the choice.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id11">
+<span class="sig-name descname"><span class="pre">numeric_value</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#id11" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id12">
+<span class="sig-name descname"><span class="pre">text</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></em><a class="headerlink" href="#id12" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="folktexts.qa_interface.DirectNumericQA">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">folktexts.qa_interface.</span></span><span class="sig-name descname"><span class="pre">DirectNumericQA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">column</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_forward_passes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">answer_probability</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/qa_interface.html#DirectNumericQA"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.qa_interface.DirectNumericQA" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#folktexts.qa_interface.QAInterface" title="folktexts.qa_interface.QAInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">QAInterface</span></code></a></p>
+<p>Represents a direct numeric question.</p>
+<p class="rubric">Notes</p>
+<p>For example, the prompt could be ”
+Q: What is 2 + 2?
+A: ”
+With the expected answer being “4”.</p>
+<p>If looking for a direct numeric probability, the answer prompt will be
+framed as so: ”
+Q: What is the probability, between 0 and 1, of getting heads on a coin flip?
+A: 0.”
+So that we can extract a numeric answer with at most 2 forward passes.
+This is done automatically by passing the kwarg <cite>answer_probability=True</cite>.</p>
+<p>Note that some models have multi-digit tokens in their vocabulary, so we
+need to correctly assess which tokens in the vocabulary correspond to valid
+numeric answers.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.qa_interface.DirectNumericQA.answer_probability">
+<span class="sig-name descname"><span class="pre">answer_probability</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#folktexts.qa_interface.DirectNumericQA.answer_probability" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.qa_interface.DirectNumericQA.get_answer_from_model_output">
+<span class="sig-name descname"><span class="pre">get_answer_from_model_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">last_token_probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tokenizer_vocab</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/qa_interface.html#DirectNumericQA.get_answer_from_model_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.qa_interface.DirectNumericQA.get_answer_from_model_output" title="Link to this definition"></a></dt>
+<dd><p>Outputs a numeric answer inferred from the model’s output.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>last_token_probs</strong> (<em>np.ndarray</em>) – The last token probabilities of the model for the question.
+The first dimension must correspond to the number for forward passes
+as specified by <cite>num_forward_passes</cite>.</p></li>
+<li><p><strong>tokenizer_vocab</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>int</em><em>]</em><em>,</em>) – The tokenizer’s vocabulary.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>answer</strong> – The numeric answer to the question.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float | int</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Eventually we could run a search algorithm to find the most likely
+answer over multiple forward passes, but for now we’ll just take the
+argmax on each forward pass.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.qa_interface.DirectNumericQA.get_question_prompt">
+<span class="sig-name descname"><span class="pre">get_question_prompt</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/qa_interface.html#DirectNumericQA.get_question_prompt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.qa_interface.DirectNumericQA.get_question_prompt" title="Link to this definition"></a></dt>
+<dd><p>Returns a question and answer key.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.qa_interface.DirectNumericQA.num_forward_passes">
+<span class="sig-name descname"><span class="pre">num_forward_passes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#folktexts.qa_interface.DirectNumericQA.num_forward_passes" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="folktexts.qa_interface.MultipleChoiceQA">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">folktexts.qa_interface.</span></span><span class="sig-name descname"><span class="pre">MultipleChoiceQA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">column</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_forward_passes=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">choices=&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_answer_keys_source=&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/qa_interface.html#MultipleChoiceQA"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.qa_interface.MultipleChoiceQA" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#folktexts.qa_interface.QAInterface" title="folktexts.qa_interface.QAInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">QAInterface</span></code></a></p>
+<p>Represents a multiple-choice question and its answer keys.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.qa_interface.MultipleChoiceQA.answer_keys">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">answer_keys</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#folktexts.qa_interface.MultipleChoiceQA.answer_keys" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.qa_interface.MultipleChoiceQA.choice_to_key">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">choice_to_key</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#folktexts.qa_interface.Choice" title="folktexts.qa_interface.Choice"><span class="pre">Choice</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#folktexts.qa_interface.MultipleChoiceQA.choice_to_key" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.qa_interface.MultipleChoiceQA.choices">
+<span class="sig-name descname"><span class="pre">choices</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code><span class="pre">[</span><a class="reference internal" href="#folktexts.qa_interface.Choice" title="folktexts.qa_interface.Choice"><code class="xref py py-class docutils literal notranslate"><span class="pre">Choice</span></code></a><span class="pre">]</span></em><a class="headerlink" href="#folktexts.qa_interface.MultipleChoiceQA.choices" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.qa_interface.MultipleChoiceQA.create_answer_keys_permutations">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_answer_keys_permutations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">question</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/qa_interface.html#MultipleChoiceQA.create_answer_keys_permutations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.qa_interface.MultipleChoiceQA.create_answer_keys_permutations" title="Link to this definition"></a></dt>
+<dd><p>Yield questions with all permutations of answer keys.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>question</strong> (<em>Question</em>) – The template question whose answer keys will be permuted.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>permutations</strong> – A generator of questions with all permutations of answer keys.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Iterator[Question]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.qa_interface.MultipleChoiceQA.create_question_from_value_map">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_question_from_value_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">column</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value_map</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attribute</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/qa_interface.html#MultipleChoiceQA.create_question_from_value_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.qa_interface.MultipleChoiceQA.create_question_from_value_map" title="Link to this definition"></a></dt>
+<dd><p>Constructs a question from a value map.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#folktexts.qa_interface.MultipleChoiceQA" title="folktexts.qa_interface.MultipleChoiceQA"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultipleChoiceQA</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.qa_interface.MultipleChoiceQA.get_answer_from_model_output">
+<span class="sig-name descname"><span class="pre">get_answer_from_model_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">last_token_probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tokenizer_vocab</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/qa_interface.html#MultipleChoiceQA.get_answer_from_model_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.qa_interface.MultipleChoiceQA.get_answer_from_model_output" title="Link to this definition"></a></dt>
+<dd><p>Decodes the model’s output into an answer for the given question.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>last_token_probs</strong> (<em>np.ndarray</em>) – The model’s last token probabilities for the question. The first
+dimension corresponds to the number of forward passes as specified
+by <cite>self.num_forward_passes</cite>.</p></li>
+<li><p><strong>tokenizer_vocab</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>int</em><em>]</em><em>,</em>) – The tokenizer’s vocabulary.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>answer</strong> – The answer to the question.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.qa_interface.MultipleChoiceQA.get_answer_from_text">
+<span class="sig-name descname"><span class="pre">get_answer_from_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/qa_interface.html#MultipleChoiceQA.get_answer_from_text"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.qa_interface.MultipleChoiceQA.get_answer_from_text" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#folktexts.qa_interface.Choice" title="folktexts.qa_interface.Choice"><code class="xref py py-class docutils literal notranslate"><span class="pre">Choice</span></code></a></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.qa_interface.MultipleChoiceQA.get_answer_key_from_value">
+<span class="sig-name descname"><span class="pre">get_answer_key_from_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/qa_interface.html#MultipleChoiceQA.get_answer_key_from_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.qa_interface.MultipleChoiceQA.get_answer_key_from_value" title="Link to this definition"></a></dt>
+<dd><p>Returns the answer key corresponding to the given data value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.qa_interface.MultipleChoiceQA.get_question_prompt">
+<span class="sig-name descname"><span class="pre">get_question_prompt</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/qa_interface.html#MultipleChoiceQA.get_question_prompt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.qa_interface.MultipleChoiceQA.get_question_prompt" title="Link to this definition"></a></dt>
+<dd><p>Returns a question and answer key.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.qa_interface.MultipleChoiceQA.get_value_to_text_map">
+<span class="sig-name descname"><span class="pre">get_value_to_text_map</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/qa_interface.html#MultipleChoiceQA.get_value_to_text_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.qa_interface.MultipleChoiceQA.get_value_to_text_map" title="Link to this definition"></a></dt>
+<dd><p>Returns the map from choice data value to choice textual representation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.qa_interface.MultipleChoiceQA.key_to_choice">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">key_to_choice</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#folktexts.qa_interface.Choice" title="folktexts.qa_interface.Choice"><span class="pre">Choice</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#folktexts.qa_interface.MultipleChoiceQA.key_to_choice" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.qa_interface.MultipleChoiceQA.num_forward_passes">
+<span class="sig-name descname"><span class="pre">num_forward_passes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#folktexts.qa_interface.MultipleChoiceQA.num_forward_passes" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="folktexts.qa_interface.QAInterface">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">folktexts.qa_interface.</span></span><span class="sig-name descname"><span class="pre">QAInterface</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">column</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_forward_passes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/qa_interface.html#QAInterface"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.qa_interface.QAInterface" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>An interface for a question-answering system.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.qa_interface.QAInterface.column">
+<span class="sig-name descname"><span class="pre">column</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></em><a class="headerlink" href="#folktexts.qa_interface.QAInterface.column" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.qa_interface.QAInterface.get_answer_from_model_output">
+<span class="sig-name descname"><span class="pre">get_answer_from_model_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">last_token_probs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tokenizer_vocab</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/qa_interface.html#QAInterface.get_answer_from_model_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.qa_interface.QAInterface.get_answer_from_model_output" title="Link to this definition"></a></dt>
+<dd><p>Decodes the model’s output into an answer for the given question.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>last_token_probs</strong> (<em>np.ndarray</em>) – The model’s last token probabilities for the question. The first
+dimension corresponds to the number of forward passes as specified
+by <cite>self.num_forward_passes</cite>.</p></li>
+<li><p><strong>tokenizer</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>int</em><em>]</em>) – The tokenizer’s vocabulary.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>answer</strong> – The answer to the question.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.qa_interface.QAInterface.get_question_prompt">
+<span class="sig-name descname"><span class="pre">get_question_prompt</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/qa_interface.html#QAInterface.get_question_prompt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.qa_interface.QAInterface.get_question_prompt" title="Link to this definition"></a></dt>
+<dd><p>Returns a question and answer key.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.qa_interface.QAInterface.num_forward_passes">
+<span class="sig-name descname"><span class="pre">num_forward_passes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></em><a class="headerlink" href="#folktexts.qa_interface.QAInterface.num_forward_passes" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.qa_interface.QAInterface.text">
+<span class="sig-name descname"><span class="pre">text</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></em><a class="headerlink" href="#folktexts.qa_interface.QAInterface.text" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-folktexts.task">
+<span id="folktexts-task-module"></span><h2>folktexts.task module<a class="headerlink" href="#module-folktexts.task" title="Link to this heading"></a></h2>
+<p>Definition of a generic TaskMetadata class.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="folktexts.task.TaskMetadata">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">folktexts.task.</span></span><span class="sig-name descname"><span class="pre">TaskMetadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">features</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cols_to_text</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sensitive_attribute</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multiple_choice_qa</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direct_numeric_qa</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_use_numeric_qa</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/task.html#TaskMetadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.task.TaskMetadata" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A base class to hold information on a prediction task.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.task.TaskMetadata.check_task_columns_are_available">
+<span class="sig-name descname"><span class="pre">check_task_columns_are_available</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">available_cols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raise_</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/task.html#TaskMetadata.check_task_columns_are_available"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.task.TaskMetadata.check_task_columns_are_available" title="Link to this definition"></a></dt>
+<dd><p>Checks if all columns required by this task are available.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>available_cols</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – The list of column names available in the dataset.</p></li>
+<li><p><strong>raise</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to raise an error if some columns are missing, by default True.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>all_available</strong> – True if all required columns are present in the given list of
+available columns, False otherwise.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.task.TaskMetadata.cols_to_text">
+<span class="sig-name descname"><span class="pre">cols_to_text</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code><span class="pre">[</span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code><span class="pre">,</span> <a class="reference internal" href="#folktexts.col_to_text.ColumnToText" title="folktexts.col_to_text.ColumnToText"><code class="xref py py-class docutils literal notranslate"><span class="pre">ColumnToText</span></code></a><span class="pre">]</span></em><a class="headerlink" href="#folktexts.task.TaskMetadata.cols_to_text" title="Link to this definition"></a></dt>
+<dd><p>A mapping between column names and their textual descriptions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.task.TaskMetadata.create_task_with_feature_subset">
+<span class="sig-name descname"><span class="pre">create_task_with_feature_subset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">feature_subset</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/task.html#TaskMetadata.create_task_with_feature_subset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.task.TaskMetadata.create_task_with_feature_subset" title="Link to this definition"></a></dt>
+<dd><p>Creates a new task with a subset of the original features.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.task.TaskMetadata.description">
+<span class="sig-name descname"><span class="pre">description</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#folktexts.task.TaskMetadata.description" title="Link to this definition"></a></dt>
+<dd><p>A description of the task, including the population to which the task pertains to.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.task.TaskMetadata.direct_numeric_qa">
+<span class="sig-name descname"><span class="pre">direct_numeric_qa</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#folktexts.qa_interface.DirectNumericQA" title="folktexts.qa_interface.DirectNumericQA"><code class="xref py py-class docutils literal notranslate"><span class="pre">DirectNumericQA</span></code></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#folktexts.task.TaskMetadata.direct_numeric_qa" title="Link to this definition"></a></dt>
+<dd><p>The direct numeric question and answer interface for this task.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.task.TaskMetadata.features">
+<span class="sig-name descname"><span class="pre">features</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code><span class="pre">[</span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code><span class="pre">]</span></em><a class="headerlink" href="#folktexts.task.TaskMetadata.features" title="Link to this definition"></a></dt>
+<dd><p>The names of the features used in the task.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.task.TaskMetadata.get_row_description">
+<span class="sig-name descname"><span class="pre">get_row_description</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">row</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/task.html#TaskMetadata.get_row_description"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.task.TaskMetadata.get_row_description" title="Link to this definition"></a></dt>
+<dd><p>Encode a description of a given data row in textual form.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.task.TaskMetadata.get_target">
+<span class="sig-name descname"><span class="pre">get_target</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/task.html#TaskMetadata.get_target"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.task.TaskMetadata.get_target" title="Link to this definition"></a></dt>
+<dd><p>Resolves the name of the target column depending on <cite>self.target_threshold</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.task.TaskMetadata.get_task">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_task</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_numeric_qa</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/task.html#TaskMetadata.get_task"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.task.TaskMetadata.get_task" title="Link to this definition"></a></dt>
+<dd><p>Fetches a previously created task by its name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – The name of the task to fetch.</p></li>
+<li><p><strong>use_numeric_qa</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to set the retrieved task to use verbalized numeric Q&amp;A
+instead of the default multiple-choice Q&amp;A prompts. Default is False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>task</strong> – The task object with the given name.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#folktexts.task.TaskMetadata" title="folktexts.task.TaskMetadata">TaskMetadata</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – Raised if the task with the given name has not been created yet.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.task.TaskMetadata.multiple_choice_qa">
+<span class="sig-name descname"><span class="pre">multiple_choice_qa</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#folktexts.qa_interface.MultipleChoiceQA" title="folktexts.qa_interface.MultipleChoiceQA"><code class="xref py py-class docutils literal notranslate"><span class="pre">MultipleChoiceQA</span></code></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#folktexts.task.TaskMetadata.multiple_choice_qa" title="Link to this definition"></a></dt>
+<dd><p>The multiple-choice question and answer interface for this task.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.task.TaskMetadata.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></em><a class="headerlink" href="#folktexts.task.TaskMetadata.name" title="Link to this definition"></a></dt>
+<dd><p>The name of the task.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.task.TaskMetadata.question">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">question</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#folktexts.qa_interface.QAInterface" title="folktexts.qa_interface.QAInterface"><span class="pre">QAInterface</span></a></em><a class="headerlink" href="#folktexts.task.TaskMetadata.question" title="Link to this definition"></a></dt>
+<dd><p>Getter for the Q&amp;A interface for this task.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.task.TaskMetadata.sensitive_attribute">
+<span class="sig-name descname"><span class="pre">sensitive_attribute</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#folktexts.task.TaskMetadata.sensitive_attribute" title="Link to this definition"></a></dt>
+<dd><p>The name of the column used as the sensitive attribute data (if provided).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.task.TaskMetadata.sensitive_attribute_value_map">
+<span class="sig-name descname"><span class="pre">sensitive_attribute_value_map</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/task.html#TaskMetadata.sensitive_attribute_value_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.task.TaskMetadata.sensitive_attribute_value_map" title="Link to this definition"></a></dt>
+<dd><p>Returns a mapping between sensitive attribute values and their descriptions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.task.TaskMetadata.set_question">
+<span class="sig-name descname"><span class="pre">set_question</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">question</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/task.html#TaskMetadata.set_question"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.task.TaskMetadata.set_question" title="Link to this definition"></a></dt>
+<dd><p>Sets the Q&amp;A interface for this task.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.task.TaskMetadata.target">
+<span class="sig-name descname"><span class="pre">target</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></em><a class="headerlink" href="#folktexts.task.TaskMetadata.target" title="Link to this definition"></a></dt>
+<dd><p>The name of the target column.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.task.TaskMetadata.target_threshold">
+<span class="sig-name descname"><span class="pre">target_threshold</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#folktexts.threshold.Threshold" title="folktexts.threshold.Threshold"><code class="xref py py-class docutils literal notranslate"><span class="pre">Threshold</span></code></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#folktexts.task.TaskMetadata.target_threshold" title="Link to this definition"></a></dt>
+<dd><p>The threshold used to binarize the target column (if provided).</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="folktexts.task.TaskMetadata.use_numeric_qa">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">use_numeric_qa</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#folktexts.task.TaskMetadata.use_numeric_qa" title="Link to this definition"></a></dt>
+<dd><p>Getter for whether to use numeric Q&amp;A instead of multiple-choice Q&amp;A prompts.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-folktexts.threshold">
+<span id="folktexts-threshold-module"></span><h2>folktexts.threshold module<a class="headerlink" href="#module-folktexts.threshold" title="Link to this heading"></a></h2>
+<p>Helper function for defining binarization thresholds.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="folktexts.threshold.Threshold">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">folktexts.threshold.</span></span><span class="sig-name descname"><span class="pre">Threshold</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">op</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/threshold.html#Threshold"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.threshold.Threshold" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A class to represent a threshold value and its comparison operator.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.threshold.Threshold.value">
+<span class="sig-name descname"><span class="pre">value</span></span><a class="headerlink" href="#folktexts.threshold.Threshold.value" title="Link to this definition"></a></dt>
+<dd><p>The threshold value to compare against.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float | int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.threshold.Threshold.op">
+<span class="sig-name descname"><span class="pre">op</span></span><a class="headerlink" href="#folktexts.threshold.Threshold.op" title="Link to this definition"></a></dt>
+<dd><p>The comparison operator to use. One of ‘&gt;’, ‘&lt;’, ‘&gt;=’, ‘&lt;=’, ‘==’, ‘!=’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.threshold.Threshold.apply_to_column_data">
+<span class="sig-name descname"><span class="pre">apply_to_column_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/threshold.html#Threshold.apply_to_column_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.threshold.Threshold.apply_to_column_data" title="Link to this definition"></a></dt>
+<dd><p>Applies the threshold operation to a pandas Series or scalar value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">Series</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="folktexts.threshold.Threshold.apply_to_column_name">
+<span class="sig-name descname"><span class="pre">apply_to_column_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">column_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/folktexts/threshold.html#Threshold.apply_to_column_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#folktexts.threshold.Threshold.apply_to_column_name" title="Link to this definition"></a></dt>
+<dd><p>Standardizes naming of thresholded columns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id13">
+<span class="sig-name descname"><span class="pre">op</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></em><a class="headerlink" href="#id13" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="folktexts.threshold.Threshold.valid_ops">
+<span class="sig-name descname"><span class="pre">valid_ops</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-data docutils literal notranslate"><span class="pre">ClassVar</span></code><span class="pre">[</span><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code><span class="pre">]</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'!=':</span> <span class="pre">&lt;built-in</span> <span class="pre">function</span> <span class="pre">ne&gt;,</span> <span class="pre">'&lt;':</span> <span class="pre">&lt;built-in</span> <span class="pre">function</span> <span class="pre">lt&gt;,</span> <span class="pre">'&lt;=':</span> <span class="pre">&lt;built-in</span> <span class="pre">function</span> <span class="pre">le&gt;,</span> <span class="pre">'==':</span> <span class="pre">&lt;built-in</span> <span class="pre">function</span> <span class="pre">eq&gt;,</span> <span class="pre">'&gt;':</span> <span class="pre">&lt;built-in</span> <span class="pre">function</span> <span class="pre">gt&gt;,</span> <span class="pre">'&gt;=':</span> <span class="pre">&lt;built-in</span> <span class="pre">function</span> <span class="pre">ge&gt;}</span></em><a class="headerlink" href="#folktexts.threshold.Threshold.valid_ops" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id14">
+<span class="sig-name descname"><span class="pre">value</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> <span class="pre">|</span> <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></em><a class="headerlink" href="#id14" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-folktexts">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-folktexts" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="modules.html" class="btn btn-neutral float-left" title="folktexts" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="folktexts.acs.html" class="btn btn-neutral float-right" title="folktexts.acs package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
