@@ -80,7 +80,7 @@ class WebAPILLMClassifier(LLMClassifier):
         self.max_api_rpm = max_api_rpm
         if "MAX_API_RPM" in os.environ:
             self.max_api_rpm = int(os.getenv("MAX_API_RPM"))
-            logging.warning(
+            logging.info(
                 f"MAX_API_RPM environment variable is set. "
                 f"Overriding previous value of {max_api_rpm} with {self.max_api_rpm}."
             )
@@ -234,13 +234,13 @@ class WebAPILLMClassifier(LLMClassifier):
         response_message: str = response.choices[0].message.content
 
         # Get top token choices for each forward pass
-        token_choices_all_passes = response.choices[0].logprobs["content"]
+        token_choices_all_passes = response.choices[0].logprobs.content
 
         # Construct dictionary of token to linear token probability for each forward pass
         token_probs_all_passes = [
             {
-                token_metadata["token"]: np.exp(token_metadata["logprob"])
-                for token_metadata in top_token_logprobs["top_logprobs"]
+                token_metadata.token: np.exp(token_metadata.logprob)
+                for token_metadata in top_token_logprobs.top_logprobs
             }
             for top_token_logprobs in token_choices_all_passes
         ]
@@ -291,7 +291,7 @@ class WebAPILLMClassifier(LLMClassifier):
                         risk_estimate = risk_estimate / 100.0
 
             except Exception:
-                logging.error(
+                logging.info(
                     f"Failed to extract numeric response from message='{response_message}';\n"
                     f"Falling back on standard risk estimate of {risk_estimate}.")
 
