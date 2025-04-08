@@ -1,2 +1,3 @@
 # Requirements for running folktexts with external model APIs
-litellm
+litellm>=1.40.14
+openai>=1.1.0
