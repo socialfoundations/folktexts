@@ -630,8 +630,9 @@ all_tasks = {
 model_name = "openai/gpt-4o-mini"
 import os
 import json
-os.environ["OPENAI_API_KEY"] = json.loads("secrets.txt")["open_ai_key"]
-
+with open("secrets.txt", "r") as handle:
+    os.environ["OPENAI_API_KEY"] = json.load("secrets.txt")["open_ai_key"]
+    
 for taskname in all_tasks:
     task, dataset = all_tasks[taskname]
     llm_clf = WebAPILLMClassifier(model_name=model_name, task=task)

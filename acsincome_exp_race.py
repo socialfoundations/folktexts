@@ -620,8 +620,9 @@ data = pd.read_csv("data/acsincome_classification.csv")
 model_name = "openai/gpt-4o-mini"
 import os
 import json
-os.environ["OPENAI_API_KEY"] = json.loads("secrets.txt")["open_ai_key"]
-
+with open("secrets.txt", "r") as handle:
+    os.environ["OPENAI_API_KEY"] = json.load("secrets.txt")["open_ai_key"]
+    
 races = set(data["RAC1P"].tolist())
 
 for race in races:
