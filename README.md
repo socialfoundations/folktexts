@@ -15,7 +15,38 @@
 
 Folktexts provides a suite of Q&A datasets for evaluating **uncertainty**, **calibration**, **accuracy** and **fairness** of LLMs on individual outcome prediction tasks. It provides a flexible framework to derive prediction **tasks from survey data**, translates them into natural text prompts, extracts LLM-generated _risk scores_, and computes statistical properties of these risk scores by comparing them to the ground truth outcomes.
 
-**Use folktexts to benchmark your LLM:** 
+<details>
+<summary><strong>Note:</strong> using reasoning models / chain-of-thought (click to expand)</summary>
+
+Support for reasoning-style benchmarking via the `ReasoningQA` interface lives on the **`reasoning-models`** branch ([`tree/reasoning-models`](https://github.com/socialfoundations/folktexts/tree/reasoning-models)). If you’re on `main` / using the PyPI release, switch to that branch and install from source:
+
+**Disclaimer:** This reasoning-model support is experimental. If you run into any issues/bugs, please open a GitHub issue at [`socialfoundations/folktexts/issues`](https://github.com/socialfoundations/folktexts/issues).
+
+```
+git clone https://github.com/socialfoundations/folktexts.git
+cd folktexts
+git checkout reasoning-models
+
+pip install -e .        # or: pip install -e ".[apis]" for web-hosted models
+mkdir -p results models data
+
+# Example: Qwen3-4B in thinking mode (ReasoningQA)
+download_models --model "Qwen/Qwen3-4B" --save-dir models
+run_acs_benchmark \
+  --model models/Qwen--Qwen3-4B \
+  --task ACSIncome \
+  --results-dir results \
+  --data-dir data \
+  --subsampling 0.01 \
+  --batch-size 1 \
+  --reasoning-prompting \
+  --enable-thinking
+```
+
+Use `--reasoning-prompting` to enable ReasoningQA prompts; add `--enable-thinking` for models that support it (e.g., Qwen3).
+</details>
+
+**Use folktexts to benchmark your LLM:**
 
 - Pre-defined Q&A benchmark tasks are provided based on data from the American Community Survey (<a href="https://www.census.gov/programs-surveys/acs/microdata/documentation.html">ACS</a>). Each tabular prediction task from the popular 
 [folktables](https://github.com/socialfoundations/folktables) package is made available 
