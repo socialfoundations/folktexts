@@ -82,6 +82,29 @@ def setup_arg_parser() -> ArgumentParser:
         default=False,
     )
 
+    parser.add_argument(
+        "--use-chat-template",
+        help="[bool] Whether to format prompts using the tokenizer's chat template (for instruct/chat models)",
+        action="store_true",
+        default=False,
+    )
+
+    parser.add_argument(
+        "--chat-prompt",
+        type=str,
+        help="[str] Custom assistant prefill text to use with chat templates",
+        required=False,
+        default=None,
+    )
+
+    parser.add_argument(
+        "--system-prompt",
+        type=str,
+        help="[str] Custom system prompt text to use with chat templates",
+        required=False,
+        default=None,
+    )
+
     # Optionally, receive a list of features to use (subset of original list)
     parser.add_argument(
         "--use-feature-subset",
@@ -155,6 +178,9 @@ def main():
         numeric_risk_prompting=args.numeric_risk_prompting,
         reuse_few_shot_examples=args.reuse_few_shot_examples,
         balance_few_shot_examples=args.balance_few_shot_examples,
+        use_chat_template=args.use_chat_template,
+        chat_prompt=args.chat_prompt,
+        system_prompt=args.system_prompt,
         batch_size=args.batch_size,
         context_size=args.context_size,
         correct_order_bias=not args.dont_correct_order_bias,

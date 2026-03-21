@@ -19,6 +19,11 @@ SYSTEM_PROMPT = """\
 You are a helpful assistant. You answer multiple-choice questions based on the information provided.
 """
 
+NUMERIC_SYSTEM_PROMPT = """\
+You are a helpful assistant. You provide numeric probability \
+estimates based on the information provided.
+"""
+
 ACS_TASK_DESCRIPTION = """\
 The following data corresponds to a survey respondent. \
 The survey was conducted among US residents in 2018. \
@@ -35,6 +40,7 @@ The data provided is enough to reach an approximate answer for each person.
 
 ANTHROPIC_CHAT_PROMPT = """If had to select one of the options, my answer would be"""
 GEMMA_CHAT_PROMPT = """The provided information suggests that the answer is"""
+NUMERIC_CHAT_PROMPT = """Answer (between 0 and 1): 0."""
 
 
 def encode_row_prompt(
@@ -124,25 +130,82 @@ def encode_row_prompt_few_shot(
     return prompt
 
 
+def tokenizer_supports_system_prompt(tokenizer: AutoTokenizer) -> bool:
+    """Check whether the tokenizer's chat template supports system messages.
+
+    Some models (e.g. Gemma) raise a TemplateError when a system role is used.
+    """
+    test_conversation = [
+        {"role": "system", "content": "test"},
+        {"role": "user", "content": "test"},
+    ]
+    try:
+        tokenizer.apply_chat_template(test_conversation, tokenize=False)
+        return True
+    except Exception:
+        return False
+
+
 def encode_row_prompt_chat(
     row: pd.Series,
     task: TaskMetadata,
     tokenizer: AutoTokenizer,
     question: QAInterface = None,
-    **chat_template_kwargs,
+    custom_prompt_prefix: str = None,
+    chat_prompt: str = None,
+    supports_system_prompt: bool = True,
+    system_prompt: str = None,
+    numeric: bool = False,
 ) -> str:
-    # TODO: implement two functions
-    # - one for gemma-like models that are not compatible with system prompts
-    # - and another for regular models compatible with system prompts
-    logging.warning("NOTE :: Untested feature!!")
+    """Encode a row prompt using the tokenizer's chat template.
+
+    Parameters
+    ----------
+    row : pd.Series
+        The row that the question will be about.
+    task : TaskMetadata
+        The task metadata object.
+    tokenizer : AutoTokenizer
+        The tokenizer whose chat template will be applied.
+    question : QAInterface, optional
+        The question interface to use.
+    custom_prompt_prefix : str, optional
+        A custom prompt prefix to prepend.
+    chat_prompt : str, optional
+        The assistant prefill text. If None, defaults to ANTHROPIC_CHAT_PROMPT
+        for multiple-choice mode, or NUMERIC_CHAT_PROMPT ("0.") for numeric
+        mode.
+    supports_system_prompt : bool, optional
+        Whether the model supports a system role, by default True.
+    system_prompt : str, optional
+        Custom system prompt text. If None, defaults to SYSTEM_PROMPT for
+        multiple-choice mode, or NUMERIC_SYSTEM_PROMPT for numeric mode.
+    numeric : bool, optional
+        Whether numeric risk prompting is being used, by default False.
+        Controls which defaults are used for chat_prompt and system_prompt.
+
+    Returns
+    -------
+    str
+        The fully formatted chat-template prompt.
+    """
+    user_content = encode_row_prompt(row, task, question=question, custom_prompt_prefix=custom_prompt_prefix)
+
+    # Resolve chat_prompt default based on prompting mode
+    if chat_prompt is None:
+        chat_prompt = NUMERIC_CHAT_PROMPT if numeric else ANTHROPIC_CHAT_PROMPT
+
+    # Resolve system_prompt default based on prompting mode
+    if system_prompt is None:
+        system_prompt = NUMERIC_SYSTEM_PROMPT if numeric else SYSTEM_PROMPT
+
+    resolved_system_prompt = system_prompt if supports_system_prompt else None
 
     return apply_chat_template(
         tokenizer,
-        (
-            SYSTEM_PROMPT
-            + encode_row_prompt(row, task, question=question)
-        ),
-        **chat_template_kwargs,
+        user_prompt=user_content,
+        system_prompt=resolved_system_prompt,
+        chat_prompt=chat_prompt,
     )
 
 
@@ -150,7 +213,7 @@ def apply_chat_template(
     tokenizer: AutoTokenizer,
     user_prompt: str,
     system_prompt: str = None,
-    chat_prompt: str = ANTHROPIC_CHAT_PROMPT,
+    chat_prompt: str = None,
     **kwargs,
 ) -> str:
     # Add system prompt
@@ -161,11 +224,13 @@ def apply_chat_template(
     # Add user prompt
     conversation.append({"role": "user", "content": user_prompt})
 
-    # Using the Anthropic-style chat prompt
-    conversation.append({"role": "assistant", "content": chat_prompt})
-
-    # Default kwargs
-    kwargs.setdefault("add_generation_prompt", False)
+    if chat_prompt:
+        # Using the Anthropic-style chat prompt
+        conversation.append({"role": "assistant", "content": chat_prompt})
+        kwargs.setdefault("add_generation_prompt", False)
+    else:
+        # No assistant prefill; let the model generate freely
+        kwargs.setdefault("add_generation_prompt", True)
 
     # Apply prompt template
     filled_prompt = tokenizer.apply_chat_template(
@@ -174,7 +239,9 @@ def apply_chat_template(
         **kwargs,
     )
 
-    # Make sure no special tokens follow the `CHAT_PROMPT`;
-    # > some models add a newline character and/or a <end_of_turn> token
-    filled_prompt = filled_prompt[: len(chat_prompt) + filled_prompt.find(chat_prompt)]
+    if chat_prompt:
+        # Make sure no special tokens follow the `CHAT_PROMPT`;
+        # > some models add a newline character and/or a <end_of_turn> token
+        filled_prompt = filled_prompt[: len(chat_prompt) + filled_prompt.rfind(chat_prompt)]
+
     return filled_prompt
