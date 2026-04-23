@@ -23,6 +23,7 @@ from .prompting import (
     encode_row_prompt,
     encode_row_prompt_chat,
     encode_row_prompt_few_shot,
+    resolve_chat_defaults,
     tokenizer_supports_system_prompt,
 )
 from .task import TaskMetadata
@@ -580,15 +581,22 @@ class Benchmark:
                     "It is not supported for web API models."
                 )
             print("Using chat template prompting.")
-            supports_sys = tokenizer_supports_system_prompt(tokenizer)
+
+            system_prompt, chat_prompt = resolve_chat_defaults(
+                numeric=config.numeric_risk_prompting,
+                system_prompt=config.system_prompt,
+                chat_prompt=config.chat_prompt,
+            )
+            # Drop the system prompt if the tokenizer's template doesn't accept one
+            if not tokenizer_supports_system_prompt(tokenizer):
+                system_prompt = None
+
             encode_row_function = partial(
                 encode_row_prompt_chat,
                 task=task,
                 tokenizer=tokenizer,
-                numeric=config.numeric_risk_prompting,
-                chat_prompt=config.chat_prompt,
-                supports_system_prompt=supports_sys,
-                system_prompt=config.system_prompt,
+                system_prompt=system_prompt,
+                chat_prompt=chat_prompt,
             )
 
         else:
