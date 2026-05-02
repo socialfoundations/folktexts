@@ -6,8 +6,6 @@ e.g.,
 """
 from __future__ import annotations
 
-import logging
-
 import pandas as pd
 from jinja2 import TemplateError
 from transformers import AutoTokenizer
@@ -15,6 +13,10 @@ from transformers import AutoTokenizer
 from .dataset import Dataset
 from .qa_interface import QAInterface
 from .task import TaskMetadata
+
+# Sentinel distinguishing "use the mode-appropriate default" from `None`
+# ("explicitly disable the role"). Module-private; not part of the public API.
+_DEFAULT = object()
 
 SYSTEM_PROMPT = """\
 You are a helpful assistant. You answer multiple-choice questions based on the information provided.
@@ -149,14 +151,15 @@ def tokenizer_supports_system_prompt(tokenizer: AutoTokenizer) -> bool:
 
 def resolve_chat_defaults(
     numeric: bool,
-    system_prompt: str = None,
-    chat_prompt: str = None,
+    system_prompt: str | None = None,
+    chat_prompt: str | None = None,
 ) -> tuple[str, str]:
     """Resolve default system_prompt / chat_prompt for chat-template prompting.
 
     A `None` value means "use the default for this mode". To explicitly disable
-    either (e.g. omit the system role), pass the resolved result through and
-    override with `None` afterwards.
+    a role downstream, override the resolved value with `None` after calling
+    this function (which is what `Benchmark.make_benchmark` does for tokenizers
+    that reject the system role).
     """
     if system_prompt is None:
         system_prompt = NUMERIC_SYSTEM_PROMPT if numeric else SYSTEM_PROMPT
@@ -169,11 +172,11 @@ def encode_row_prompt_chat(
     row: pd.Series,
     task: TaskMetadata,
     tokenizer: AutoTokenizer,
-    system_prompt: str = None,
-    chat_prompt: str = None,
+    system_prompt: str | None = _DEFAULT,    # type: ignore[assignment]
+    chat_prompt: str | None = _DEFAULT,      # type: ignore[assignment]
     numeric: bool = False,
-    question: QAInterface = None,
-    custom_prompt_prefix: str = None,
+    question: QAInterface | None = None,
+    custom_prompt_prefix: str | None = None,
 ) -> str:
     """Encode a row prompt using the tokenizer's chat template.
 
@@ -185,16 +188,20 @@ def encode_row_prompt_chat(
         The task metadata object.
     tokenizer : AutoTokenizer
         The tokenizer whose chat template will be applied.
-    system_prompt : str, optional
-        System prompt text. If None, resolved from `numeric` via
-        `resolve_chat_defaults`. Pass an empty-role override only after
-        calling the resolver directly.
-    chat_prompt : str, optional
-        Assistant prefill text. If None, resolved from `numeric` via
-        `resolve_chat_defaults`.
+    system_prompt : str | None, optional
+        System prompt text. If omitted, the mode-appropriate default selected
+        by `numeric` is used. Pass `None` explicitly to disable the system
+        role (e.g. for Gemma-style templates that reject it).
+    chat_prompt : str | None, optional
+        Assistant prefill text. If omitted, the mode-appropriate default
+        selected by `numeric` is used. Pass `None` explicitly to skip the
+        assistant prefill — note that this routes inference through
+        `add_generation_prompt=True` and breaks the last-token scoring
+        assumption used by `LLMClassifier`, so it is not appropriate for the
+        benchmark path.
     numeric : bool, optional
         Whether numeric risk prompting is being used. Selects which default
-        prompts are applied when `system_prompt` / `chat_prompt` are None.
+        prompts are applied when `system_prompt` / `chat_prompt` are omitted.
     question : QAInterface, optional
         The question interface to use.
     custom_prompt_prefix : str, optional
@@ -205,11 +212,11 @@ def encode_row_prompt_chat(
     str
         The fully formatted chat-template prompt.
     """
-    system_prompt, chat_prompt = resolve_chat_defaults(
-        numeric=numeric,
-        system_prompt=system_prompt,
-        chat_prompt=chat_prompt,
-    )
+    if system_prompt is _DEFAULT:
+        system_prompt = NUMERIC_SYSTEM_PROMPT if numeric else SYSTEM_PROMPT
+    if chat_prompt is _DEFAULT:
+        chat_prompt = NUMERIC_CHAT_PROMPT if numeric else ANTHROPIC_CHAT_PROMPT
+
     user_content = encode_row_prompt(row, task, question=question, custom_prompt_prefix=custom_prompt_prefix)
 
     return apply_chat_template(
@@ -223,8 +230,8 @@ def encode_row_prompt_chat(
 def apply_chat_template(
     tokenizer: AutoTokenizer,
     user_prompt: str,
-    system_prompt: str = None,
-    chat_prompt: str = None,
+    system_prompt: str | None = None,
+    chat_prompt: str | None = None,
     **kwargs,
 ) -> str:
     # Add system prompt
@@ -251,8 +258,19 @@ def apply_chat_template(
     )
 
     if chat_prompt is not None:
-        # Make sure no special tokens follow the `CHAT_PROMPT`;
-        # > some models add a newline character and/or a <end_of_turn> token
-        filled_prompt = filled_prompt[: len(chat_prompt) + filled_prompt.rfind(chat_prompt)]
+        # Trim any special tokens that the template appended after the prefill
+        # (e.g. a trailing newline or `<end_of_turn>`) so the last token of the
+        # returned prompt is the last token of `chat_prompt` itself — this is
+        # what `LLMClassifier` assumes when it reads answer-token probabilities.
+        idx = filled_prompt.rfind(chat_prompt)
+        if idx == -1:
+            raise ValueError(
+                "Assistant prefill not found verbatim in the templated output; "
+                "the tokenizer's chat template likely transforms it (e.g. "
+                "stripping or escaping). Cannot safely trim trailing tokens — "
+                "pass a `chat_prompt` that survives templating, or run without "
+                "an assistant prefill."
+            )
+        filled_prompt = filled_prompt[: idx + len(chat_prompt)]
 
     return filled_prompt

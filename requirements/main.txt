@@ -5,6 +5,7 @@ pandas
 tqdm
 accelerate
 transformers>=4.42.4    # most models also work with prior versions of transformers
+jinja2                  # for `TemplateError` in chat-template probing (transitively required by transformers)
 torch
 sentencepiece
 protobuf
