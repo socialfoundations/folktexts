@@ -100,15 +100,21 @@ def query_model_batch_multiple_passes(
         Last token *linear* probabilities for each forward pass, for each text
         in the input batch. The output has shape (batch_size, n_passes, vocab_size).
     """
-    # If `digits_only`, get token IDs for digit tokens
-    allowed_tokens_filter = np.ones(len(tokenizer.vocab), dtype=bool)
+    # Mask is sized to the model's logits dim, not the tokenizer's vocab dict:
+    # neither `len(tokenizer.vocab)` nor `tokenizer.vocab_size` is reliable
+    # (Gemma-3 has `len(vocab) == vocab_size + 1`; Llama-3.2 has
+    # `len(vocab) == vocab_size + 256`). Only `model.config.vocab_size` matches
+    # the actual logits axis we're masking.
+    vocab_dim = model.config.vocab_size
+    allowed_tokens_filter = np.ones(vocab_dim, dtype=bool)
     if digits_only:
         allowed_token_ids = np.array([
             tok_id
-            for token, tok_id in tokenizer.vocab.items() if token.isdecimal()
+            for token, tok_id in tokenizer.vocab.items()
+            if token.isdecimal() and tok_id < vocab_dim
         ])
 
-        allowed_tokens_filter = np.zeros(len(tokenizer.vocab), dtype=bool)
+        allowed_tokens_filter = np.zeros(vocab_dim, dtype=bool)
         allowed_tokens_filter[allowed_token_ids] = True
 
     # Current text batch
@@ -140,7 +146,7 @@ def query_model_batch_multiple_passes(
     # Cast output to np.array with correct shape
     last_token_probs_array = np.array(last_token_probs)
     last_token_probs_array = np.moveaxis(last_token_probs_array, 0, 1)
-    assert last_token_probs_array.shape == (len(text_inputs), n_passes, len(tokenizer.vocab))
+    assert last_token_probs_array.shape == (len(text_inputs), n_passes, vocab_dim)
     return last_token_probs_array
 
 
