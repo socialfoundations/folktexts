@@ -43,6 +43,13 @@ The data provided is enough to reach an approximate answer for each person.
 
 ANTHROPIC_CHAT_PROMPT = """If had to select one of the options, my answer would be"""
 GEMMA_CHAT_PROMPT = """The provided information suggests that the answer is"""
+# NOTE: The leading `0.` is part of the prefill, so the model only generates
+# the digits after the decimal point. This caps the expressible probability
+# at the open interval [0, 1) — true posteriors at or near 1.0 cannot be
+# emitted exactly. If you need full [0, 1] coverage, override `chat_prompt`
+# with e.g. `"Answer (between 0 and 1): "` and let the model produce the
+# leading digit itself (note that this also widens the digit-scoring search
+# space and may degrade calibration for low-probability cases).
 NUMERIC_CHAT_PROMPT = """Answer (between 0 and 1): 0."""
 
 
@@ -137,6 +144,11 @@ def tokenizer_supports_system_prompt(tokenizer: AutoTokenizer) -> bool:
     """Check whether the tokenizer's chat template supports system messages.
 
     Some models (e.g. Gemma) raise a TemplateError when a system role is used.
+    Other templates surface this with different exception types depending on
+    transformers / Jinja versions (e.g. `RuntimeError`, `KeyError`, or a
+    template-defined exception macro), so we treat any failure of the probe
+    as "system role not supported" rather than letting it propagate and
+    crash the benchmark.
     """
     test_conversation = [
         {"role": "system", "content": "test"},
@@ -146,6 +158,10 @@ def tokenizer_supports_system_prompt(tokenizer: AutoTokenizer) -> bool:
         tokenizer.apply_chat_template(test_conversation, tokenize=False)
         return True
     except (TemplateError, ValueError):
+        return False
+    except Exception:
+        # Defensive fallback for unexpected template-rendering failures —
+        # safer to skip the system prompt than to hard-fail the benchmark.
         return False
 
 
@@ -234,6 +250,27 @@ def apply_chat_template(
     chat_prompt: str | None = None,
     **kwargs,
 ) -> str:
+    """Apply the tokenizer's chat template to assemble a single prompt string.
+
+    Notes
+    -----
+    `system_prompt` is treated as "include" iff it is not `None`. This means an
+    empty string `""` will inject an empty system message rather than be
+    treated as "no system role" — pass `None` (or omit the argument) to skip
+    the system role entirely.
+
+    `chat_prompt` is the assistant prefill. When provided, the returned prompt
+    is trimmed so it ends exactly with `chat_prompt`, preserving the
+    last-token scoring contract relied on by `LLMClassifier`. If the chat
+    template mutates or strips the prefill (so it cannot be located verbatim
+    in the rendered output), a `ValueError` is raised rather than silently
+    returning a corrupted prompt.
+
+    When `chat_prompt is None`, `add_generation_prompt=True` is used and the
+    model is left to generate freely; this is **not** appropriate for the
+    benchmark scoring path (the last token will be a template-emitted role
+    header, not the prefill).
+    """
     # Add system prompt
     conversation = ([
         {"role": "system", "content": system_prompt}

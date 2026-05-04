@@ -562,6 +562,17 @@ class Benchmark:
                 "Please choose one or the other."
             )
 
+        # Warn if chat-only options are set without enabling the chat template:
+        # they are silently ignored on the zero-shot / few-shot paths.
+        if not config.use_chat_template and (
+            config.system_prompt is not None or config.chat_prompt is not None
+        ):
+            logging.warning(
+                "`system_prompt` / `chat_prompt` were provided but "
+                "`use_chat_template=False`; these arguments are only used by "
+                "the chat-template path and will be ignored."
+            )
+
         # Get prompting function
         if config.few_shot:
             print(f"Using few-shot prompting (n={config.few_shot})!")
@@ -587,8 +598,22 @@ class Benchmark:
                 system_prompt=config.system_prompt,
                 chat_prompt=config.chat_prompt,
             )
-            # Drop the system prompt if the tokenizer's template doesn't accept one
+            # Drop the system prompt if the tokenizer's template doesn't accept
+            # one (e.g. Gemma). Warn loudly when this discards a user-supplied
+            # value so it isn't silently lost.
             if not tokenizer_supports_system_prompt(tokenizer):
+                if config.system_prompt is not None:
+                    logging.warning(
+                        "Tokenizer's chat template rejects the `system` role; "
+                        "the user-supplied `system_prompt` will be discarded. "
+                        "Consider folding the instruction into `custom_prompt_prefix` "
+                        "or the user message instead."
+                    )
+                else:
+                    logging.info(
+                        "Tokenizer's chat template rejects the `system` role; "
+                        "running without a system prompt."
+                    )
                 system_prompt = None
 
             encode_row_function = partial(
