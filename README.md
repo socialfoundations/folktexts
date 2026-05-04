@@ -207,6 +207,7 @@ conjunction with the `run_acs_benchmark` command line script, or with the
 | `--results-dir` | Path to directory under which benchmark results will be saved. | `results` |
 | `--data-dir` | Root folder to find datasets in (or download ACS data to). | `~/data` |
 | `--numeric-risk-prompting` | Whether to use verbalized numeric risk prompting, i.e., directly query model for a probability estimate. **By default** will use standard multiple-choice Q&A, and extract risk scores from internal token probabilities. | Boolean flag (`True` if present, `False` otherwise) |
+| `--use-chat-template` | Format prompts using the tokenizer's chat template (recommended for instruct/chat models). Pair with `--system-prompt` and/or `--chat-prompt` to override the defaults. **By default** uses zero-shot prompting without a chat template. | Boolean flag (`True` if present, `False` otherwise) |
 | `--use-web-api-model` | Whether the given `--model` name corresponds to a web-hosted model or not. **By default** this is False (assumes a huggingface transformers model). If this flag is provided, `--model` must contain a [litellm](https://docs.litellm.ai) model identifier ([examples here](https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models)). | Boolean flag (`True` if present, `False` otherwise) |
 | `--subsampling` | Which fraction of the dataset to use for the benchmark. **By default** will use the whole test set. | `0.01` |
 | `--fit-threshold` | Whether to use the given number of samples to fit the binarization threshold. **By default** will use a fixed $t=0.5$ threshold instead of fitting on data. | `100` |
@@ -216,8 +217,8 @@ conjunction with the `run_acs_benchmark` command line script, or with the
 Full list of options:
 
 ```
-usage: run_acs_benchmark [-h] --model MODEL --results-dir RESULTS_DIR --data-dir DATA_DIR [--task TASK] [--few-shot FEW_SHOT] [--batch-size BATCH_SIZE] [--context-size CONTEXT_SIZE] [--fit-threshold FIT_THRESHOLD] [--subsampling SUBSAMPLING] [--seed SEED] [--use-web-api-model] [--dont-correct-order-bias] [--numeric-risk-prompting] [--reuse-few-shot-examples] [--use-feature-subset USE_FEATURE_SUBSET]
-                         [--use-population-filter USE_POPULATION_FILTER] [--logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
+usage: run_acs_benchmark [-h] --model MODEL --results-dir RESULTS_DIR --data-dir DATA_DIR [--task TASK] [--few-shot FEW_SHOT] [--batch-size BATCH_SIZE] [--context-size CONTEXT_SIZE] [--fit-threshold FIT_THRESHOLD] [--subsampling SUBSAMPLING] [--seed SEED] [--use-web-api-model] [--dont-correct-order-bias] [--numeric-risk-prompting] [--reuse-few-shot-examples] [--balance-few-shot-examples] [--use-chat-template] [--chat-prompt CHAT_PROMPT] [--system-prompt SYSTEM_PROMPT]
+                         [--use-feature-subset USE_FEATURE_SUBSET] [--use-population-filter USE_POPULATION_FILTER] [--max-api-rpm MAX_API_RPM] [--logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
 
 Benchmark risk scores produced by a language model on ACS data.
 
@@ -245,10 +246,19 @@ options:
                         [bool] Whether to prompt for numeric risk-estimates instead of multiple-choice Q&A
   --reuse-few-shot-examples
                         [bool] Whether to reuse the same samples for few-shot prompting (or sample new ones every time)
+  --balance-few-shot-examples
+                        [bool] Whether to sample evenly from all classes in few-shot prompting
+  --use-chat-template   [bool] Whether to format prompts using the tokenizer's chat template (for instruct/chat models)
+  --chat-prompt CHAT_PROMPT
+                        [str] Custom assistant prefill text to use with chat templates
+  --system-prompt SYSTEM_PROMPT
+                        [str] Custom system prompt text to use with chat templates
   --use-feature-subset USE_FEATURE_SUBSET
                         [str] Optional subset of features to use for prediction, comma separated
   --use-population-filter USE_POPULATION_FILTER
                         [str] Optional population filter for this benchmark; must follow the format 'column_name=value' to filter the dataset by a specific value.
+  --max-api-rpm MAX_API_RPM
+                        [int] Maximum number of API requests per minute (if using a web-hosted model)
   --logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                         [str] The logging level to use for the experiment
 ```

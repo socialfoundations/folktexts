@@ -105,6 +105,11 @@ class DirectNumericQA(QAInterface):
 
         This can include digits ("0"-"9"), multi-digit tokens (e.g., "100"), and
         the decimal point (".").
+
+        Assumes the returned token ids are all `< model.config.vocab_size` (the
+        logits axis the caller indexes into). Holds for digit/decimal tokens on
+        standard tokenizer families, but would break if such tokens were placed
+        among added/special tokens beyond the base vocab.
         """
         numeric_tokens = {
             key: token_id for key, token_id in tokenizer_vocab.items()
