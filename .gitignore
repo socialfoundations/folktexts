@@ -178,3 +178,6 @@ cython_debug/
 # sphinx docs
 docs/_build/
 docs/notebooks/
+
+# Claude Code project context (local, not shared)
+CLAUDE.md
