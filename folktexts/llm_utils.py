@@ -39,6 +39,19 @@ def _apply_chat_template_batch(
     if enable_thinking is None:
         return inputs
 
+    # Base models (e.g. raw Llama-3-8B, GPT-2) have no chat template; falling
+    # through to apply_chat_template would raise ValueError mid-batch. Use the
+    # raw prompts instead — the reasoning prompt itself is already self-contained.
+    if getattr(tokenizer, "chat_template", None) is None:
+        if enable_thinking:
+            logging.warning(
+                "Tokenizer has no chat_template; cannot honor enable_thinking=True. "
+                "Falling back to raw prompts (base model)."
+            )
+        else:
+            logging.info("Tokenizer has no chat_template; using raw prompts (base model).")
+        return inputs
+
     processed: list[str] = []
     for text in inputs:
         messages = [{"role": "user", "content": text}]
@@ -273,7 +286,7 @@ def generate_text_batch(
     text_inputs: list[str],
     model: AutoModelForCausalLM,
     tokenizer: AutoTokenizer,
-    max_new_tokens: int = 5000,
+    max_new_tokens: int = 1024,
     context_size: int = None,
     enable_thinking: bool = None,
 ) -> list[str]:
@@ -281,8 +294,9 @@ def generate_text_batch(
 
     Uses the model's generate() method for autoregressive text generation,
     suitable for reasoning-based Q&A where the model needs to produce
-    free-form text before outputting a probability estimate. Text is sampled
-    using the model's default generation parameters (temperature, top_p, etc.).
+    free-form text before outputting a probability estimate. Generation is
+    greedy (do_sample=False) so runs are reproducible — matches the web-API
+    path's temperature=0 contract.
 
     Parameters
     ----------
@@ -293,7 +307,7 @@ def generate_text_batch(
     tokenizer : AutoTokenizer
         The tokenizer used to encode/decode text.
     max_new_tokens : int, optional
-        Maximum number of new tokens to generate, by default 5000.
+        Maximum number of new tokens to generate, by default 1024.
     context_size : int, optional
         The maximum context size for input tokens. If None, no truncation
         is applied to inputs.
@@ -343,6 +357,7 @@ def generate_text_batch(
                 max_new_tokens=max_new_tokens,
                 pad_token_id=tokenizer.pad_token_id,
                 eos_token_id=tokenizer.eos_token_id,
+                do_sample=False,
             )
 
         generated_texts: list[str] = []

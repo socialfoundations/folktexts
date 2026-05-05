@@ -92,11 +92,37 @@ class TransformersLLMClassifier(LLMClassifier):
             self._log_generations_first_n = 3
         self._logged_generations_count = 0
 
+        # Track ReasoningQA extraction failures across batches so we can warn
+        # if a non-trivial fraction of samples fall back to the silent 0.5
+        # default — otherwise a benchmark with collapsed AUC looks "successful".
+        self._reasoning_total = 0
+        self._reasoning_failed = 0
+
     def _should_log_generation(self) -> bool:
         """Return True if we should log the next prompt/generation pair."""
         if self._log_generations_all:
             return True
         return self._logged_generations_count < max(self._log_generations_first_n, 0)
+
+    # Warn the first time the failure rate crosses 25% (after ≥20 samples) and
+    # again at every 200-sample boundary, so a benchmark with mostly-failing
+    # extractions surfaces in the logs instead of silently collapsing AUC to 0.5.
+    _REASONING_FAILURE_WARN_THRESHOLD = 0.25
+    _REASONING_FAILURE_WARN_MIN_SAMPLES = 20
+
+    def _maybe_warn_reasoning_failure_rate(self) -> None:
+        if self._reasoning_total < self._REASONING_FAILURE_WARN_MIN_SAMPLES:
+            return
+        if self._reasoning_total % 200 != 0 and self._reasoning_total != self._REASONING_FAILURE_WARN_MIN_SAMPLES:
+            return
+        rate = self._reasoning_failed / self._reasoning_total
+        if rate >= self._REASONING_FAILURE_WARN_THRESHOLD:
+            logging.warning(
+                f"ReasoningQA: probability extraction failed for "
+                f"{self._reasoning_failed}/{self._reasoning_total} samples "
+                f"({rate:.1%}); these fall back to 0.5 and will collapse AUC. "
+                f"Inspect generations with FOLKTEXTS_LOG_GENERATIONS_FIRST_N."
+            )
 
     def __hash__(self) -> int:
         """Generate a unique hash for the LLMClassifier object."""
@@ -159,8 +185,13 @@ class TransformersLLMClassifier(LLMClassifier):
             # Extract probability from generated text and log each sample
             risk_estimates_batch = []
             for idx, (prompt, generated_text) in enumerate(zip(prompts_batch, generated_texts)):
-                risk_estimate = question.get_answer_from_model_output(generated_text)
+                extracted = question.extract_probability_from_text(generated_text)
+                self._reasoning_total += 1
+                if extracted is None:
+                    self._reasoning_failed += 1
+                risk_estimate = 0.5 if extracted is None else extracted
                 risk_estimates_batch.append(risk_estimate)
+                self._maybe_warn_reasoning_failure_rate()
 
                 if self._should_log_generation():
                     # Log prompt, generated answer, and extracted risk score at INFO level
@@ -187,7 +218,7 @@ class TransformersLLMClassifier(LLMClassifier):
                     )
                     self._logged_generations_count += 1
 
-            return risk_estimates_batch
+            return np.asarray(risk_estimates_batch, dtype=float)
 
         # TODO: Add support for any unicode character used as a prefix to " A".
 
@@ -210,4 +241,4 @@ class TransformersLLMClassifier(LLMClassifier):
             for ltp in last_token_probs_batch
         ]
 
-        return risk_estimates_batch
+        return np.asarray(risk_estimates_batch, dtype=float)

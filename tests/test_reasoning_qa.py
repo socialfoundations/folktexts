@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import pytest
 
+from folktexts.benchmark import Benchmark, BenchmarkConfig
 from folktexts.qa_interface import ReasoningQA
 
 
@@ -92,3 +93,34 @@ class TestGetAnswerFromModelOutput:
         # single bad generation; the failure is logged at ERROR.
         result = reasoning_qa.get_answer_from_model_output("nonsense with no probability")
         assert result == 0.5
+
+
+# ----------------------------------------------------------------------
+# Benchmark._validate_config — reasoning ↔ chat-template asymmetry.
+# The reasoning path applies the tokenizer's chat template internally inside
+# `generate_text_batch`; combining it with `use_chat_template=True` would
+# double-wrap the prompt. This must be rejected upfront.
+# ----------------------------------------------------------------------
+
+class TestValidateConfigReasoningChatInteraction:
+    def test_rejects_chat_template_with_reasoning(self):
+        config = BenchmarkConfig(use_chat_template=True, reasoning_prompting=True)
+        with pytest.raises(ValueError, match="chat_template.*reasoning|reasoning.*chat_template"):
+            Benchmark._validate_config(config)
+
+    def test_rejects_chat_template_with_thinking(self):
+        config = BenchmarkConfig(use_chat_template=True, enable_thinking=True)
+        with pytest.raises(ValueError, match="chat_template.*reasoning|reasoning.*chat_template"):
+            Benchmark._validate_config(config)
+
+    def test_accepts_reasoning_without_chat_template(self):
+        # The supported configuration: reasoning applies its own chat template
+        # internally (or falls back to raw prompt for base models).
+        Benchmark._validate_config(
+            BenchmarkConfig(use_chat_template=False, reasoning_prompting=True)
+        )
+
+    def test_accepts_chat_template_without_reasoning(self):
+        Benchmark._validate_config(
+            BenchmarkConfig(use_chat_template=True, reasoning_prompting=False)
+        )
