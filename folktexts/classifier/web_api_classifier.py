@@ -12,7 +12,7 @@ from typing import Callable
 import numpy as np
 import pandas as pd
 
-from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA
+from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA, ReasoningQA
 from folktexts.task import TaskMetadata
 
 from .base import LLMClassifier
@@ -127,7 +127,7 @@ class WebAPILLMClassifier(LLMClassifier):
         self,
         prompts_batch: list[str],
         *,
-        question: MultipleChoiceQA | DirectNumericQA,
+        question: MultipleChoiceQA | DirectNumericQA | ReasoningQA,
         context_size: int = None,
     ) -> list[dict]:
         """Query the web API with a batch of prompts and returns the json response.
@@ -138,7 +138,7 @@ class WebAPILLMClassifier(LLMClassifier):
         ----------
         prompts_batch : list[str]
             A batch of string prompts to query the model with.
-        question : MultipleChoiceQA | DirectNumericQA
+        question : MultipleChoiceQA | DirectNumericQA | ReasoningQA
             The question (`QAInterface`) object to use for querying the model.
         context_size : int, optional
             The maximum context size to consider for each input (in tokens).
@@ -148,44 +148,66 @@ class WebAPILLMClassifier(LLMClassifier):
         responses_batch : list[dict]
             The returned JSON responses for each prompt in the batch.
         """
-        # Adapt number of forward passes
-        # > Single token answers should require only one forward pass
-        if question.num_forward_passes == 1:
+        # Handle ReasoningQA with longer text generation
+        if isinstance(question, ReasoningQA):
+            api_call_params = dict(
+                temperature=0,  # Deterministic for reproducibility
+                max_tokens=question.max_new_tokens,
+                stream=False,
+                seed=self.seed,
+            )
+            system_prompt = (
+                "You are a helpful assistant. Reason step-by-step about the question "
+                "and provide your final probability estimate. Your response MUST end "
+                "with 'Probability: X%' where X is a number between 0 and 100."
+            )
+        # Adapt number of forward passes for token-probability based methods
+        elif question.num_forward_passes == 1:
+            # Single token answers should require only one forward pass
             num_forward_passes = 1
-
-        # NOTE: Models often generate "0." instead of directly outputting the fractional part
-        # > Therefore: for multi-token answers, extra forward passes may be required
+            api_call_params = dict(
+                temperature=1,
+                max_tokens=num_forward_passes,
+                stream=False,
+                seed=self.seed,
+                logprobs=True,
+                top_logprobs=20,
+            )
         else:
+            # NOTE: Models often generate "0." instead of directly outputting the fractional part
+            # > Therefore: for multi-token answers, extra forward passes may be required
             # Add extra tokens for textual prefix, e.g., "The probability is: ..."
             num_forward_passes = question.num_forward_passes + 2
-
-        api_call_params = dict(
-            temperature=1,
-            max_tokens=num_forward_passes,
-            stream=False,
-            seed=self.seed,
-            logprobs=True,
-            top_logprobs=20,
-        )
-
-        if set(api_call_params.keys()) - self.supported_params:
-            raise RuntimeError(
-                f"Unsupported API parameters for model '{self.model_name}': "
-                f"{set(api_call_params.keys()) - self.supported_params}"
+            api_call_params = dict(
+                temperature=1,
+                max_tokens=num_forward_passes,
+                stream=False,
+                seed=self.seed,
+                logprobs=True,
+                top_logprobs=20,
             )
 
-        # Get system prompt depending on Q&A type
-        if isinstance(question, DirectNumericQA):
-            system_prompt = "Your response must start with a number representing the estimated probability."
-            # system_prompt = (
-            #     "You are a highly specialized assistant that always responds with a single number. "
-            #     "For every input, you must analyze the request and respond with only the relevant single number, "
-            #     "without any additional text, explanation, or symbols."
-            # )
-        elif isinstance(question, MultipleChoiceQA):
-            system_prompt = "Please respond with a single letter."
-        else:
-            raise ValueError(f"Unknown question type '{type(question)}'.")
+        # Check for unsupported parameters (only for non-ReasoningQA)
+        if not isinstance(question, ReasoningQA):
+            if set(api_call_params.keys()) - self.supported_params:
+                raise RuntimeError(
+                    f"Unsupported API parameters for model '{self.model_name}': "
+                    f"{set(api_call_params.keys()) - self.supported_params}"
+                )
+
+        # Get system prompt depending on Q&A type (if not already set for ReasoningQA)
+        if not isinstance(question, ReasoningQA):
+            if isinstance(question, DirectNumericQA):
+                system_prompt = "Your response must start with a number representing the estimated probability."
+                # system_prompt = (
+                #     "You are a highly specialized assistant that always responds with a single number. "
+                #     "For every input, you must analyze the request and respond with only the relevant single number, "
+                #     "without any additional text, explanation, or symbols."
+                # )
+            elif isinstance(question, MultipleChoiceQA):
+                system_prompt = "Please respond with a single letter."
+            else:
+                raise ValueError(f"Unknown question type '{type(question)}'.")
 
         # Query model for each prompt in the batch
         responses_batch = []
@@ -214,7 +236,7 @@ class WebAPILLMClassifier(LLMClassifier):
     def _decode_risk_estimate_from_api_response(
         self,
         response: dict,
-        question: MultipleChoiceQA | DirectNumericQA,
+        question: MultipleChoiceQA | DirectNumericQA | ReasoningQA,
     ) -> float:
         """Decode model output from API response to get risk estimate.
 
@@ -222,7 +244,7 @@ class WebAPILLMClassifier(LLMClassifier):
         ----------
         response : dict
             The response from the API call.
-        question : MultipleChoiceQA | DirectNumericQA
+        question : MultipleChoiceQA | DirectNumericQA | ReasoningQA
             The question (`QAInterface`) object to use for querying the model.
 
         Returns
@@ -232,6 +254,12 @@ class WebAPILLMClassifier(LLMClassifier):
         """
         # Get response message
         response_message: str = response.choices[0].message.content
+
+        # Handle ReasoningQA by extracting probability from generated text
+        if isinstance(question, ReasoningQA):
+            risk_estimate = question.get_answer_from_model_output(response_message)
+            logging.debug(f"ReasoningQA extracted probability: {risk_estimate:.2%}")
+            return risk_estimate
 
         # Get top token choices for each forward pass
         token_choices_all_passes = response.choices[0].logprobs.content
@@ -301,7 +329,7 @@ class WebAPILLMClassifier(LLMClassifier):
         self,
         prompts_batch: list[str],
         *,
-        question: MultipleChoiceQA | DirectNumericQA,
+        question: MultipleChoiceQA | DirectNumericQA | ReasoningQA,
         context_size: int = None,
     ) -> np.ndarray:
         """Query model with a batch of prompts and return risk estimates.
@@ -310,7 +338,7 @@ class WebAPILLMClassifier(LLMClassifier):
         ----------
         prompts_batch : list[str]
             A batch of string prompts to query the model with.
-        question : MultipleChoiceQA | DirectNumericQA
+        question : MultipleChoiceQA | DirectNumericQA | ReasoningQA
             The question (`QAInterface`) object to use for querying the model.
         context_size : int, optional
             The maximum context size to consider for each input (in tokens).

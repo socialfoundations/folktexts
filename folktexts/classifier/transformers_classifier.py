@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import logging
+import os
 from pathlib import Path
 from typing import Callable
 
@@ -10,8 +12,8 @@ import numpy as np
 import pandas as pd
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from folktexts.llm_utils import query_model_batch_multiple_passes
-from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA
+from folktexts.llm_utils import generate_text_batch, query_model_batch_multiple_passes
+from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA, ReasoningQA
 from folktexts.task import TaskMetadata
 
 from .._utils import hash_dict
@@ -80,6 +82,22 @@ class TransformersLLMClassifier(LLMClassifier):
             **inference_kwargs,
         )
 
+        # Logging controls (used mainly for ReasoningQA generation debugging).
+        # By default, log only the first N prompt/generation pairs; users can
+        # enable logging all generations via env var or CLI wrapper.
+        self._log_generations_all = os.getenv("FOLKTEXTS_LOG_GENERATIONS", "0").strip() in {"1", "true", "True"}
+        try:
+            self._log_generations_first_n = int(os.getenv("FOLKTEXTS_LOG_GENERATIONS_FIRST_N", "3"))
+        except ValueError:
+            self._log_generations_first_n = 3
+        self._logged_generations_count = 0
+
+    def _should_log_generation(self) -> bool:
+        """Return True if we should log the next prompt/generation pair."""
+        if self._log_generations_all:
+            return True
+        return self._logged_generations_count < max(self._log_generations_first_n, 0)
+
     def __hash__(self) -> int:
         """Generate a unique hash for the LLMClassifier object."""
 
@@ -104,7 +122,7 @@ class TransformersLLMClassifier(LLMClassifier):
         self,
         prompts_batch: list[str],
         *,
-        question: MultipleChoiceQA | DirectNumericQA,
+        question: MultipleChoiceQA | DirectNumericQA | ReasoningQA,
         context_size: int = None,
     ) -> np.ndarray:
         """Query model with a batch of prompts and return risk estimates.
@@ -113,7 +131,7 @@ class TransformersLLMClassifier(LLMClassifier):
         ----------
         prompts_batch : list[str]
             A batch of string prompts to query the model with.
-        question : MultipleChoiceQA | DirectNumericQA
+        question : MultipleChoiceQA | DirectNumericQA | ReasoningQA
             The question (`QAInterface`) object to use for querying the model.
         context_size : int, optional
             The maximum context size to consider for each input (in tokens).
@@ -123,9 +141,57 @@ class TransformersLLMClassifier(LLMClassifier):
         risk_estimates : np.ndarray
             The risk estimates for each prompt in the batch.
         """
+        # Handle ReasoningQA with text generation
+        if isinstance(question, ReasoningQA):
+            # Pass enable_thinking to generate_text_batch:
+            # - True: enable thinking mode (uses chat template with enable_thinking=True)
+            # - False: explicitly disable thinking mode (uses chat template with enable_thinking=False)
+            # Always apply chat template for ReasoningQA to properly format the prompt
+            generated_texts = generate_text_batch(
+                text_inputs=prompts_batch,
+                model=self.model,
+                tokenizer=self.tokenizer,
+                max_new_tokens=question.max_new_tokens,
+                context_size=context_size or self.inference_kwargs["context_size"],
+                enable_thinking=question.enable_thinking,
+            )
+
+            # Extract probability from generated text and log each sample
+            risk_estimates_batch = []
+            for idx, (prompt, generated_text) in enumerate(zip(prompts_batch, generated_texts)):
+                risk_estimate = question.get_answer_from_model_output(generated_text)
+                risk_estimates_batch.append(risk_estimate)
+
+                if self._should_log_generation():
+                    # Log prompt, generated answer, and extracted risk score at INFO level
+                    logging.info(
+                        "\n"
+                        + "=" * 60
+                        + "\n"
+                        + f"[ReasoningQA Sample {self._logged_generations_count + 1}]"
+                        + "\n"
+                        + "=" * 60
+                        + "\n"
+                        + "PROMPT:\n"
+                        + prompt
+                        + "\n"
+                        + "-" * 60
+                        + "\n"
+                        + "GENERATED ANSWER:\n"
+                        + generated_text
+                        + "\n"
+                        + "-" * 60
+                        + "\n"
+                        + f"EXTRACTED RISK SCORE: {risk_estimate:.6f}\n"
+                        + "=" * 60
+                    )
+                    self._logged_generations_count += 1
+
+            return risk_estimates_batch
+
         # TODO: Add support for any unicode character used as a prefix to " A".
 
-        # Query model
+        # Query model using token probabilities for DirectNumericQA and MultipleChoiceQA
         last_token_probs_batch = query_model_batch_multiple_passes(
             text_inputs=prompts_batch,
             model=self.model,

@@ -13,6 +13,125 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 PROB_WARN_THR = 0.5
 
 
+def _apply_chat_template_batch(
+    inputs: list[str],
+    *,
+    tokenizer: AutoTokenizer,
+    enable_thinking: bool | None,
+) -> list[str]:
+    """Apply tokenizer chat template to a list of prompts, if requested.
+
+    Parameters
+    ----------
+    inputs : list[str]
+        Raw (non-chat) prompts.
+    tokenizer : AutoTokenizer
+        Tokenizer used to apply the chat template.
+    enable_thinking : bool | None
+        If None, no chat template is applied. If True/False, chat template is
+        applied and (if supported) the `enable_thinking` kwarg is forwarded.
+
+    Returns
+    -------
+    formatted_inputs : list[str]
+        Prompts formatted using the tokenizer's chat template when requested.
+    """
+    if enable_thinking is None:
+        return inputs
+
+    processed: list[str] = []
+    for text in inputs:
+        messages = [{"role": "user", "content": text}]
+        try:
+            processed.append(
+                tokenizer.apply_chat_template(
+                    messages,
+                    tokenize=False,
+                    add_generation_prompt=True,
+                    enable_thinking=enable_thinking,
+                )
+            )
+        except TypeError:
+            if enable_thinking:
+                logging.warning(
+                    "Tokenizer does not support 'enable_thinking' parameter. "
+                    "Falling back to standard chat template."
+                )
+            processed.append(
+                tokenizer.apply_chat_template(
+                    messages,
+                    tokenize=False,
+                    add_generation_prompt=True,
+                )
+            )
+
+    logging.debug(f"Applied chat template (enable_thinking={enable_thinking})")
+    return processed
+
+
+def _postprocess_generated_text(
+    full_text: str,
+    *,
+    enable_thinking: bool | None,
+    i: int,
+    n: int,
+) -> str:
+    """Return the content to use for downstream extraction.
+
+    In thinking mode, the model may emit a `<think> ... </think>` block. We log
+    the thinking content (debug) but return only the response content after
+    `</think>` for extraction.
+
+    Parameters
+    ----------
+    full_text : str
+        Full decoded generation (new tokens only).
+    enable_thinking : bool | None
+        Whether thinking mode is enabled.
+    i : int
+        Index of this generation in the batch (0-based).
+    n : int
+        Total number of generations in the batch.
+
+    Returns
+    -------
+    response_text : str
+        Text to be used for probability extraction.
+    """
+    if enable_thinking is not True:
+        logging.debug(f"=== Generated output {i+1}/{n} ===")
+        logging.debug(f"Content ({len(full_text)} chars):\n{full_text[:500]}...")
+        return full_text.strip()
+
+    think_end_marker = "</think>"
+    if think_end_marker not in full_text:
+        logging.warning(
+            f"</think> marker not found in output (thinking mode was enabled). "
+            f"Using full generated text ({len(full_text)} chars)."
+        )
+        return full_text.strip()
+
+    parts = full_text.split(think_end_marker, 1)
+    thinking_content = parts[0].strip()
+    response_content = parts[1].strip() if len(parts) > 1 else ""
+
+    logging.debug(f"=== Generated output {i+1}/{n} ===")
+    logging.debug(f"Thinking content ({len(thinking_content)} chars) [IGNORED for extraction]:")
+    logging.debug(f"{thinking_content[:500]}..." if len(thinking_content) > 500 else thinking_content)
+    logging.debug(f"Response content ({len(response_content)} chars) [USED for extraction]:")
+    logging.debug(response_content)
+
+    if response_content:
+        return response_content
+
+    logging.warning(
+        "Response content after </think> is empty. "
+        "Model may not have generated a proper response. "
+        "Probability extraction will likely fail."
+    )
+    return ""
+
+
 def query_model_batch(
     text_inputs: list[str],
     model: AutoModelForCausalLM,
@@ -148,6 +267,101 @@ def query_model_batch_multiple_passes(
     last_token_probs_array = np.moveaxis(last_token_probs_array, 0, 1)
     assert last_token_probs_array.shape == (len(text_inputs), n_passes, vocab_dim)
     return last_token_probs_array
+
+
+def generate_text_batch(
+    text_inputs: list[str],
+    model: AutoModelForCausalLM,
+    tokenizer: AutoTokenizer,
+    max_new_tokens: int = 5000,
+    context_size: int = None,
+    enable_thinking: bool = None,
+) -> list[str]:
+    """Generate text completions for a batch of prompts.
+
+    Uses the model's generate() method for autoregressive text generation,
+    suitable for reasoning-based Q&A where the model needs to produce
+    free-form text before outputting a probability estimate. Text is sampled
+    using the model's default generation parameters (temperature, top_p, etc.).
+
+    Parameters
+    ----------
+    text_inputs : list[str]
+        The input prompts as a list of strings.
+    model : AutoModelForCausalLM
+        The model to use for generation.
+    tokenizer : AutoTokenizer
+        The tokenizer used to encode/decode text.
+    max_new_tokens : int, optional
+        Maximum number of new tokens to generate, by default 5000.
+    context_size : int, optional
+        The maximum context size for input tokens. If None, no truncation
+        is applied to inputs.
+    enable_thinking : bool, optional
+        Controls chat template application and thinking mode:
+        - None: Do not apply chat template (use raw prompts, for base models)
+        - False: Apply chat template WITHOUT thinking mode (for instruction-tuned models)
+        - True: Apply chat template WITH thinking mode, and extract response
+          content after </think> marker (for thinking models like Qwen3)
+
+    Returns
+    -------
+    generated_texts : list[str]
+        The generated text completions for each input prompt. Only the
+        newly generated tokens are returned (not the input prompt).
+    """
+    model_device = next(model.parameters()).device
+
+    # Save original padding side and set to left for generation
+    # (decoder-only models require left-padding for correct generation)
+    original_padding_side = tokenizer.padding_side
+    tokenizer.padding_side = "left"
+
+    try:
+        formatted_inputs = _apply_chat_template_batch(
+            text_inputs,
+            tokenizer=tokenizer,
+            enable_thinking=enable_thinking,
+        )
+
+        tokenized = tokenizer(
+            formatted_inputs,
+            return_tensors="pt",
+            padding=True,
+            truncation=True if context_size else False,
+            max_length=context_size,
+        )
+
+        tensor_inputs = tokenized.input_ids.to(model_device)
+        attention_mask = tokenized.attention_mask.to(model_device)
+        input_seq_length = tensor_inputs.shape[1]
+
+        with torch.no_grad():
+            outputs = model.generate(
+                input_ids=tensor_inputs,
+                attention_mask=attention_mask,
+                max_new_tokens=max_new_tokens,
+                pad_token_id=tokenizer.pad_token_id,
+                eos_token_id=tokenizer.eos_token_id,
+            )
+
+        generated_texts: list[str] = []
+        for i, output in enumerate(outputs):
+            generated_tokens = output[input_seq_length:]
+            full_generated_text = tokenizer.decode(generated_tokens, skip_special_tokens=True)
+            generated_texts.append(
+                _postprocess_generated_text(
+                    full_generated_text,
+                    enable_thinking=enable_thinking,
+                    i=i,
+                    n=len(outputs),
+                )
+            )
+
+        return generated_texts
+
+    finally:
+        tokenizer.padding_side = original_padding_side
 
 
 def add_pad_token(tokenizer):

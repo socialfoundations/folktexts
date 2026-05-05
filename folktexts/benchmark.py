@@ -26,6 +26,7 @@ from .prompting import (
     resolve_chat_defaults,
     tokenizer_supports_system_prompt,
 )
+from .qa_interface import ReasoningQA
 from .task import TaskMetadata
 
 DEFAULT_SEED = 42
@@ -42,6 +43,15 @@ class BenchmarkConfig:
     numeric_risk_prompting : bool, optional
         Whether to prompt for numeric risk-estimates instead of multiple-choice
         Q&A, by default False.
+    reasoning_prompting : bool, optional
+        Whether to use reasoning-based prompting (chain-of-thought) where the
+        model generates reasoning text before outputting a probability estimate,
+        by default False.
+    enable_thinking : bool, optional
+        Whether to enable thinking mode for models that support it (e.g., Qwen3).
+        Only applies when `reasoning_prompting=True`. When enabled, uses the
+        tokenizer's `apply_chat_template` with `enable_thinking=True`. Default
+        is False.
     few_shot : int | None, optional
         Whether to use few-shot prompting with a given number of examples, by
         default None.
@@ -80,6 +90,8 @@ class BenchmarkConfig:
     """
 
     numeric_risk_prompting: bool = False
+    reasoning_prompting: bool = False
+    enable_thinking: bool = False
     few_shot: int | None = None
     reuse_few_shot_examples: bool = False
     balance_few_shot_examples: bool = False
@@ -476,9 +488,14 @@ class Benchmark:
         config = config.update(**kwargs)
 
         # Fetch ACS task and dataset
-        acs_task = ACSTaskMetadata.get_task(
-            name=task_name,
-            use_numeric_qa=config.numeric_risk_prompting)
+        # NOTE: Only set use_numeric_qa if not using reasoning mode (enable_thinking
+        # or reasoning_prompting), since ReasoningQA will override the Q&A mode anyway.
+        use_numeric_qa = (
+            config.numeric_risk_prompting
+            and not config.reasoning_prompting
+            and not config.enable_thinking
+        )
+        acs_task = ACSTaskMetadata.get_task(name=task_name, use_numeric_qa=use_numeric_qa)
 
         acs_dataset = ACSDataset.make_from_task(
             task=acs_task,
@@ -493,6 +510,130 @@ class Benchmark:
             max_api_rpm=max_api_rpm,
             config=config,
         )
+
+    @staticmethod
+    def _configure_task_question(task: TaskMetadata, config: BenchmarkConfig) -> None:
+        """Pick the Q&A interface (reasoning / numeric / multiple-choice) on `task`."""
+        if config.reasoning_prompting or config.enable_thinking:
+            if config.enable_thinking and not config.reasoning_prompting:
+                logging.warning(
+                    "enable_thinking=True requires ReasoningQA interface; "
+                    "implicitly enabling reasoning_prompting mode."
+                )
+            base_question = task.direct_numeric_qa
+            if base_question is None:
+                raise ValueError(
+                    f"Task '{task.name}' does not have a question defined. "
+                    f"Cannot create ReasoningQA for reasoning_prompting or enable_thinking mode."
+                )
+            task.set_question(ReasoningQA(
+                column=base_question.column,
+                text=base_question.text,
+                enable_thinking=config.enable_thinking,
+            ))
+        elif config.numeric_risk_prompting:
+            task.use_numeric_qa = True
+
+    @staticmethod
+    def _validate_config(config: BenchmarkConfig) -> None:
+        """Reject incompatible config combinations and warn on no-op overrides."""
+        if config.few_shot and config.use_chat_template:
+            raise ValueError(
+                "Cannot use both few-shot prompting and chat template formatting. "
+                "Please choose one or the other."
+            )
+
+        if config.use_chat_template and (config.reasoning_prompting or config.enable_thinking):
+            raise ValueError(
+                "Cannot combine `use_chat_template=True` with `reasoning_prompting` "
+                "or `enable_thinking`: the reasoning path applies the tokenizer's "
+                "chat template internally inside `generate_text_batch`, so an "
+                "outer `encode_row_prompt_chat` would double-wrap the prompt. "
+                "Drop `--use-chat-template` when running with reasoning."
+            )
+
+        if not config.use_chat_template and (
+            config.system_prompt is not None or config.chat_prompt is not None
+        ):
+            # Warn loudly: chat-only knobs are silently ignored on the
+            # zero-shot / few-shot paths, which is rarely what the user wants.
+            logging.warning(
+                "`system_prompt` / `chat_prompt` were provided but "
+                "`use_chat_template=False`; these arguments are only used by "
+                "the chat-template path and will be ignored."
+            )
+
+    @staticmethod
+    def _build_chat_encode_row_function(
+        task: TaskMetadata,
+        tokenizer: AutoTokenizer,
+        config: BenchmarkConfig,
+    ):
+        """Build the chat-template `encode_row_prompt_chat` partial, honoring tokenizer quirks."""
+        if tokenizer is None:
+            raise ValueError(
+                "Chat template formatting requires a local tokenizer. "
+                "It is not supported for web API models."
+            )
+        print("Using chat template prompting.")
+
+        system_prompt, chat_prompt = resolve_chat_defaults(
+            numeric=config.numeric_risk_prompting,
+            system_prompt=config.system_prompt,
+            chat_prompt=config.chat_prompt,
+        )
+        # Drop the system prompt if the tokenizer's template doesn't accept
+        # one (e.g. Gemma). Warn loudly when this discards a user-supplied
+        # value so it isn't silently lost.
+        if not tokenizer_supports_system_prompt(tokenizer):
+            if config.system_prompt is not None:
+                logging.warning(
+                    "Tokenizer's chat template rejects the `system` role; "
+                    "the user-supplied `system_prompt` will be discarded. "
+                    "Consider folding the instruction into `custom_prompt_prefix` "
+                    "or the user message instead."
+                )
+            else:
+                logging.info(
+                    "Tokenizer's chat template rejects the `system` role; "
+                    "running without a system prompt."
+                )
+            system_prompt = None
+
+        return partial(
+            encode_row_prompt_chat,
+            task=task,
+            tokenizer=tokenizer,
+            system_prompt=system_prompt,
+            chat_prompt=chat_prompt,
+        )
+
+    @classmethod
+    def _build_encode_row_function(
+        cls,
+        *,
+        task: TaskMetadata,
+        dataset: Dataset,
+        tokenizer: AutoTokenizer,
+        config: BenchmarkConfig,
+    ):
+        """Pick the prompting function based on config (few-shot, chat-template, or zero-shot)."""
+        if config.few_shot:
+            print(f"Using few-shot prompting (n={config.few_shot})!")
+            return partial(
+                encode_row_prompt_few_shot,
+                task=task,
+                n_shots=config.few_shot,
+                dataset=dataset,
+                reuse_examples=config.reuse_few_shot_examples,
+                class_balancing=config.balance_few_shot_examples,
+            )
+
+        if config.use_chat_template:
+            return cls._build_chat_encode_row_function(task=task, tokenizer=tokenizer, config=config)
+
+        print("Using zero-shot prompting.")
+        return partial(encode_row_prompt, task=task)
 
     @classmethod
     def make_benchmark(
@@ -537,10 +678,9 @@ class Benchmark:
         # Update config with any additional kwargs
         config = config.update(**kwargs)
 
-        # Handle TaskMetadata object
+        # Handle TaskMetadata object and configure its Q&A mode from the config.
         task = TaskMetadata.get_task(task) if isinstance(task, str) else task
-        if config.numeric_risk_prompting:
-            task.use_numeric_qa = True
+        cls._configure_task_question(task, config)
 
         if config.feature_subset is not None and len(config.feature_subset) > 0:
             task = task.create_task_with_feature_subset(config.feature_subset)
@@ -555,78 +695,11 @@ class Benchmark:
         if config.population_filter is not None:
             dataset = dataset.filter(config.population_filter)
 
-        # Validate incompatible options
-        if config.few_shot and config.use_chat_template:
-            raise ValueError(
-                "Cannot use both few-shot prompting and chat template formatting. "
-                "Please choose one or the other."
-            )
+        cls._validate_config(config)
 
-        # Warn if chat-only options are set without enabling the chat template:
-        # they are silently ignored on the zero-shot / few-shot paths.
-        if not config.use_chat_template and (
-            config.system_prompt is not None or config.chat_prompt is not None
-        ):
-            logging.warning(
-                "`system_prompt` / `chat_prompt` were provided but "
-                "`use_chat_template=False`; these arguments are only used by "
-                "the chat-template path and will be ignored."
-            )
-
-        # Get prompting function
-        if config.few_shot:
-            print(f"Using few-shot prompting (n={config.few_shot})!")
-            encode_row_function = partial(
-                encode_row_prompt_few_shot,
-                task=task,
-                n_shots=config.few_shot,
-                dataset=dataset,
-                reuse_examples=config.reuse_few_shot_examples,
-                class_balancing=config.balance_few_shot_examples,
-            )
-
-        elif config.use_chat_template:
-            if tokenizer is None:
-                raise ValueError(
-                    "Chat template formatting requires a local tokenizer. "
-                    "It is not supported for web API models."
-                )
-            print("Using chat template prompting.")
-
-            system_prompt, chat_prompt = resolve_chat_defaults(
-                numeric=config.numeric_risk_prompting,
-                system_prompt=config.system_prompt,
-                chat_prompt=config.chat_prompt,
-            )
-            # Drop the system prompt if the tokenizer's template doesn't accept
-            # one (e.g. Gemma). Warn loudly when this discards a user-supplied
-            # value so it isn't silently lost.
-            if not tokenizer_supports_system_prompt(tokenizer):
-                if config.system_prompt is not None:
-                    logging.warning(
-                        "Tokenizer's chat template rejects the `system` role; "
-                        "the user-supplied `system_prompt` will be discarded. "
-                        "Consider folding the instruction into `custom_prompt_prefix` "
-                        "or the user message instead."
-                    )
-                else:
-                    logging.info(
-                        "Tokenizer's chat template rejects the `system` role; "
-                        "running without a system prompt."
-                    )
-                system_prompt = None
-
-            encode_row_function = partial(
-                encode_row_prompt_chat,
-                task=task,
-                tokenizer=tokenizer,
-                system_prompt=system_prompt,
-                chat_prompt=chat_prompt,
-            )
-
-        else:
-            print("Using zero-shot prompting.")
-            encode_row_function = partial(encode_row_prompt, task=task)
+        encode_row_function = cls._build_encode_row_function(
+            task=task, dataset=dataset, tokenizer=tokenizer, config=config,
+        )
 
         # Parse LLMClassifier parameters
         llm_inference_kwargs = {"correct_order_bias": config.correct_order_bias}
