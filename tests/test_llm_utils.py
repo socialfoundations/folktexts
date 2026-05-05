@@ -1,0 +1,82 @@
+"""Regression test for the vocab-mismatch bug in llm_utils.
+
+`tokenizer.vocab` (the dict), `tokenizer.vocab_size` (the base property), and
+`model.config.vocab_size` (the logits dim) are not interchangeable across
+families:
+
+  - Gemma-3-1b-it: `len(vocab) == vocab_size + 1`, logits dim == `vocab_size`.
+  - Llama-3.2:    `len(vocab) == vocab_size + 256`, logits dim == `len(vocab)`.
+
+The allowed-tokens mask must be sized against `model.config.vocab_size` (the
+actual logits axis); anything else crashes on one family or the other. This
+test pins both directions of the mismatch without needing real checkpoints.
+"""
+from __future__ import annotations
+
+import numpy as np
+import pytest
+import torch
+from torch import nn
+
+from folktexts.llm_utils import query_model_batch_multiple_passes
+
+
+class _Tokenizer:
+    """Configurable tokenizer mock — `len(vocab)` and `vocab_size` may differ."""
+
+    def __init__(self, vocab_size: int, n_extra: int):
+        self.vocab_size = vocab_size
+        # Base IDs 0..vocab_size-1 are decimal-named so digits_only catches them.
+        self.vocab = {str(i): i for i in range(vocab_size)}
+        # Extra added/special tokens beyond vocab_size (Gemma-style when
+        # logits_dim == vocab_size; or in-range when logits_dim == len(vocab)).
+        for k in range(n_extra):
+            self.vocab[f"<extra{k}>"] = vocab_size + k
+        self.pad_token_id = 0
+
+    def encode(self, text, return_tensors=None):
+        ids = torch.tensor([[1, 2, 3]], dtype=torch.long)
+        return ids if return_tensors == "pt" else ids.tolist()
+
+    def decode(self, ids):
+        return str(int(ids[0]))
+
+
+class _Model(nn.Module):
+    """Returns logits of shape (batch, seq, logits_dim) — the only thing we mask."""
+
+    def __init__(self, logits_dim: int):
+        super().__init__()
+        self._param = nn.Parameter(torch.zeros(1))
+        self.config = type("Cfg", (), {"vocab_size": logits_dim})()
+        self._logits_dim = logits_dim
+
+    def forward(self, input_ids, attention_mask):
+        batch, seq = input_ids.shape
+        return type("Out", (), {"logits": torch.zeros(batch, seq, self._logits_dim)})()
+
+
+# (label, tokenizer.vocab_size, n_extra_tokens, model.config.vocab_size)
+MISMATCH_CASES = [
+    ("gemma_style", 10, 1, 10),    # logits_dim == vocab_size,    len(vocab) > logits_dim
+    ("llama_style", 10, 5, 15),    # logits_dim == len(vocab),    vocab_size  < logits_dim
+    ("matched",     10, 0, 10),    # all three equal — sanity check
+]
+
+
+@pytest.mark.parametrize("label,vocab_size,n_extra,logits_dim", MISMATCH_CASES)
+@pytest.mark.parametrize("digits_only", [False, True])
+def test_vocab_mismatch_does_not_crash(label, vocab_size, n_extra, logits_dim, digits_only):
+    tokenizer = _Tokenizer(vocab_size=vocab_size, n_extra=n_extra)
+    model = _Model(logits_dim=logits_dim)
+
+    out = query_model_batch_multiple_passes(
+        text_inputs=["hello", "world"],
+        model=model,
+        tokenizer=tokenizer,
+        context_size=128,
+        n_passes=2,
+        digits_only=digits_only,
+    )
+    assert out.shape == (2, 2, logits_dim)
+    assert np.isfinite(out).all()

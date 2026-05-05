@@ -59,8 +59,14 @@ def encode_row_prompt(
     question: QAInterface = None,
     custom_prompt_prefix: str = None,
     add_task_description: bool = True,
+    with_answer_prefill: bool = True,
 ) -> str:
-    """Encode a question regarding a given row."""
+    """Encode a question regarding a given row.
+
+    `with_answer_prefill` is forwarded to `question.get_question_prompt`. The
+    chat-template path passes `False` so the prefill is supplied as a separate
+    assistant turn rather than baked into the user message.
+    """
     # Get the question to ask
     question = question or task.question
     return (
@@ -70,7 +76,7 @@ def encode_row_prompt(
 Information:
 {task.get_row_description(row)}
 
-{question.get_question_prompt()}""")
+{question.get_question_prompt(with_answer_prefill=with_answer_prefill)}""")
 
 
 def encode_row_prompt_few_shot(
@@ -233,7 +239,14 @@ def encode_row_prompt_chat(
     if chat_prompt is _DEFAULT:
         chat_prompt = NUMERIC_CHAT_PROMPT if numeric else ANTHROPIC_CHAT_PROMPT
 
-    user_content = encode_row_prompt(row, task, question=question, custom_prompt_prefix=custom_prompt_prefix)
+    # Skip the answer prefill in the user message: the chat path supplies it
+    # as the assistant turn (`chat_prompt`). Including it in both turns would
+    # duplicate the string in the rendered prompt and silently degrade scoring.
+    user_content = encode_row_prompt(
+        row, task, question=question,
+        custom_prompt_prefix=custom_prompt_prefix,
+        with_answer_prefill=False,
+    )
 
     return apply_chat_template(
         tokenizer,
