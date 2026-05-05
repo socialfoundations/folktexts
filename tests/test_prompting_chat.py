@@ -376,15 +376,16 @@ class TestEncodeRowPromptChat:
 # ----------------------------------------------------------------------
 # Numeric-prefill duplication regression tests
 # ----------------------------------------------------------------------
-# Background: `DirectNumericQA.get_question_prompt()` hard-codes
-# `"Answer (between 0 and 1): 0."` into the question text so the zero-shot
-# path can score the digits the model emits after `0.`. The chat-template
-# path (`encode_row_prompt_chat`) ALSO appends `NUMERIC_CHAT_PROMPT`
-# (byte-identical to that suffix) as the assistant turn — which used to
-# duplicate the prefill in the rendered prompt and silently degrade the
-# model's continuation (Mistral 7B IT chat-numeric AUC collapsed from 0.815
-# to 0.578). `encode_row_prompt_chat` now strips the duplicate; these tests
-# guard the structural property across paths.
+# Background: when zero-shot scoring, `DirectNumericQA.get_question_prompt()`
+# bakes `"Answer (between 0 and 1): 0."` into the question text — the
+# zero-shot path scores the digits the model emits right after that prefill.
+# The chat-template path appends `NUMERIC_CHAT_PROMPT` (byte-identical to
+# that suffix) as the assistant turn; if both paths emitted the prefill, it
+# would render twice and silently degrade scoring (Mistral 7B IT chat-numeric
+# AUC collapsed from 0.815 to 0.578 before the fix). The fix is structural:
+# `encode_row_prompt_chat` calls `encode_row_prompt(..., with_answer_prefill=False)`
+# so the user message stops short of the prefill; the chat_prompt assistant
+# turn is then the only place it appears. These tests pin that invariant.
 
 class TestEncodeRowPromptChatNumericPrefill:
     def _numeric_question(self) -> DirectNumericQA:
@@ -404,10 +405,9 @@ class TestEncodeRowPromptChatNumericPrefill:
             question=self._numeric_question(),
         )
         assert out.count(NUMERIC_CHAT_PROMPT) == 1, (
-            "DirectNumericQA hard-codes the assistant prefill into the user "
-            "turn; the chat-template path must strip it before appending the "
-            "assistant prefill, otherwise the rendered prompt duplicates the "
-            "string and silently breaks scoring."
+            "User content must omit the answer prefill (chat path passes "
+            "with_answer_prefill=False); only the assistant turn should "
+            "contribute NUMERIC_CHAT_PROMPT to the rendered prompt."
         )
 
     def test_chat_numeric_tail_invariant_preserved(
@@ -422,11 +422,11 @@ class TestEncodeRowPromptChatNumericPrefill:
         )
         assert out.endswith(NUMERIC_CHAT_PROMPT), (
             "LLMClassifier reads probabilities from the last token of the "
-            "rendered prompt; stripping the duplicated prefill must not break "
-            "the tail-equals-prefill invariant."
+            "rendered prompt; the tail-equals-prefill invariant must hold "
+            "(prefill comes from the assistant turn, not the user message)."
         )
 
-    def test_chat_mc_path_unaffected_by_strip(
+    def test_chat_mc_path_unaffected(
         self, chat_tokenizer, fake_task, sample_row
     ):
         out = encode_row_prompt_chat(
@@ -436,16 +436,16 @@ class TestEncodeRowPromptChatNumericPrefill:
         )
         assert out.count(ANTHROPIC_CHAT_PROMPT) == 1
         assert "Answer (between 0 and 1): 0." not in out, (
-            "MC path must not touch the numeric prefill at all — it isn't in "
-            "the user turn (MC questions end with `Answer:`) and it isn't the "
-            "assistant prefill (which is ANTHROPIC_CHAT_PROMPT for MC)."
+            "MC path must not introduce the numeric prefill anywhere — the "
+            "assistant prefill is ANTHROPIC_CHAT_PROMPT and the user turn "
+            "carries an MC-style question."
         )
 
     def test_zero_shot_numeric_prefill_unchanged(self, fake_task, sample_row):
         # The zero-shot path is what the paper used and what already
-        # reproduces; the strip lives only in `encode_row_prompt_chat`, so the
-        # zero-shot prompt must be untouched and the prefill must appear
-        # exactly once at the tail.
+        # reproduces; `encode_row_prompt` defaults to `with_answer_prefill=True`,
+        # so the zero-shot prompt must include the prefill exactly once at the
+        # tail (last-token scoring relies on it).
         out = encode_row_prompt(
             row=sample_row,
             task=fake_task,
@@ -454,3 +454,91 @@ class TestEncodeRowPromptChatNumericPrefill:
         prefill = "Answer (between 0 and 1): 0."
         assert out.endswith(prefill)
         assert out.count(prefill) == 1
+
+    def test_chat_numeric_user_turn_omits_prefill(
+        self, chat_tokenizer, fake_task, sample_row
+    ):
+        # Pin the structural property directly: the bare user content (before
+        # chat-template wrapping) must not contain the numeric prefill at all.
+        user_content = encode_row_prompt(
+            row=sample_row,
+            task=fake_task,
+            question=self._numeric_question(),
+            with_answer_prefill=False,
+        )
+        assert "Answer (between 0 and 1): 0." not in user_content
+        assert user_content.rstrip().endswith(
+            "What is this person's estimated yearly income?"
+        )
+
+
+# ----------------------------------------------------------------------
+# encode_row_prompt — `with_answer_prefill` plumbing
+# ----------------------------------------------------------------------
+# The chat path calls `encode_row_prompt(..., with_answer_prefill=False)` to
+# tell the QAInterface to leave out the answer prefill (so it can be supplied
+# as the assistant turn instead). These tests pin that the kwarg is actually
+# forwarded to `question.get_question_prompt(with_answer_prefill=...)` rather
+# than relying on a default — and that it round-trips for both QA types.
+
+class TestEncodeRowPromptThreadsAnswerPrefillFlag:
+    def test_kwarg_forwarded_to_question_get_question_prompt(self, sample_row):
+        """The plumbing assertion: `with_answer_prefill` reaches the QAInterface."""
+        task = MagicMock()
+        task.get_row_description.return_value = "Age: 35"
+        task.question.get_question_prompt.return_value = "Q?"
+
+        encode_row_prompt(
+            row=sample_row, task=task, with_answer_prefill=False,
+        )
+        task.question.get_question_prompt.assert_called_once_with(
+            with_answer_prefill=False,
+        )
+
+    def test_default_is_with_answer_prefill_true(self, sample_row):
+        """Backward-compat: callers that don't pass the kwarg get `True`."""
+        task = MagicMock()
+        task.get_row_description.return_value = "Age: 35"
+        task.question.get_question_prompt.return_value = "Q?"
+
+        encode_row_prompt(row=sample_row, task=task)
+        task.question.get_question_prompt.assert_called_once_with(
+            with_answer_prefill=True,
+        )
+
+    def test_numeric_round_trip_drops_prefill(self, fake_task, sample_row):
+        q = DirectNumericQA(column="x", text="Numeric Q?")
+        with_prefill = encode_row_prompt(
+            row=sample_row, task=fake_task, question=q, with_answer_prefill=True,
+        )
+        without_prefill = encode_row_prompt(
+            row=sample_row, task=fake_task, question=q, with_answer_prefill=False,
+        )
+        assert with_prefill.endswith("Answer (between 0 and 1): 0.")
+        assert "Answer (between 0 and 1)" not in without_prefill
+        # Without the prefill, the rendered prompt must end at the question
+        # text (which is the chat-path expectation).
+        assert without_prefill.rstrip().endswith("Numeric Q?")
+
+    def test_mc_round_trip_drops_answer_prefix(self, fake_task, sample_row):
+        from folktexts.qa_interface import Choice, MultipleChoiceQA
+        q = MultipleChoiceQA(
+            column="x",
+            text="MC Q?",
+            choices=(
+                Choice(text="No", data_value=0, numeric_value=0.0),
+                Choice(text="Yes", data_value=1, numeric_value=1.0),
+            ),
+        )
+        with_prefill = encode_row_prompt(
+            row=sample_row, task=fake_task, question=q, with_answer_prefill=True,
+        )
+        without_prefill = encode_row_prompt(
+            row=sample_row, task=fake_task, question=q, with_answer_prefill=False,
+        )
+        assert with_prefill.rstrip().endswith("Answer:")
+        # Choices remain in both forms — they're question content, not prefill.
+        assert "A. No." in with_prefill and "A. No." in without_prefill
+        assert "B. Yes." in with_prefill and "B. Yes." in without_prefill
+        # The `Answer:` trailer is the only thing the False flag should drop.
+        assert not without_prefill.rstrip().endswith("Answer:")

@@ -34,8 +34,16 @@ class QAInterface(ABC):
     text: str
     num_forward_passes: int
 
-    def get_question_prompt(self) -> str:
-        """Returns a question and answer key."""
+    def get_question_prompt(self, with_answer_prefill: bool = True) -> str:
+        """Returns the question text.
+
+        `with_answer_prefill=True` (the default) bakes the answer prefill into
+        the returned string — required by the zero-shot / few-shot last-token
+        scoring path, which reads probabilities from the very next token after
+        the prefill. Set to `False` for chat-template prompting, where the
+        prefill is supplied separately as the assistant turn (otherwise the
+        same string ends up emitted twice and silently degrades scoring).
+        """
         raise NotImplementedError
 
     def get_answer_from_model_output(
@@ -91,32 +99,34 @@ class DirectNumericQA(QAInterface):
     num_forward_passes: int = 2     # NOTE: overrides superclass default
     answer_probability: bool = True
 
-    def get_question_prompt(self) -> str:
-        question_prompt = f"""Question: {self.text}\n"""
-        if self.answer_probability:
-            question_prompt += "Answer (between 0 and 1): 0."
-        else:
-            question_prompt += "Answer: "
+    def get_question_prompt(self, with_answer_prefill: bool = True) -> str:
+        question_prompt = f"Question: {self.text}"
+        if with_answer_prefill:
+            if self.answer_probability:
+                question_prompt += "\nAnswer (between 0 and 1): 0."
+            else:
+                question_prompt += "\nAnswer: "
 
         return question_prompt
 
-    def _get_numeric_tokens(self, tokenizer_vocab: dict[str, int]) -> dict[str, int]:
+    def _get_numeric_tokens(
+        self, tokenizer_vocab: dict[str, int], vocab_dim: int,
+    ) -> dict[str, int]:
         """Returns the indices of tokens that correspond to numbers.
 
         This can include digits ("0"-"9"), multi-digit tokens (e.g., "100"), and
         the decimal point (".").
 
-        Assumes the returned token ids are all `< model.config.vocab_size` (the
-        logits axis the caller indexes into). Holds for digit/decimal tokens on
-        standard tokenizer families, but would break if such tokens were placed
-        among added/special tokens beyond the base vocab.
+        Token ids are filtered to `< vocab_dim` (the model's logits axis); some
+        tokenizer families place added/special tokens beyond the base vocab,
+        and the caller indexes `last_token_probs` by these ids.
         """
         numeric_tokens = {
             key: token_id for key, token_id in tokenizer_vocab.items()
-            if key.isdigit()
+            if key.isdigit() and token_id < vocab_dim
         }
 
-        if "." in tokenizer_vocab:
+        if "." in tokenizer_vocab and tokenizer_vocab["."] < vocab_dim:
             numeric_tokens["."] = tokenizer_vocab["."]
 
         return numeric_tokens
@@ -148,7 +158,9 @@ class DirectNumericQA(QAInterface):
         answer over multiple forward passes, but for now we'll just take the
         argmax on each forward pass.
         """
-        numeric_tokens_vocab = self._get_numeric_tokens(tokenizer_vocab)
+        numeric_tokens_vocab = self._get_numeric_tokens(
+            tokenizer_vocab, vocab_dim=last_token_probs.shape[-1],
+        )
 
         if len(last_token_probs) < self.num_forward_passes:
             logging.info(
@@ -293,16 +305,16 @@ class MultipleChoiceQA(QAInterface):
         logging.error(f"Could not find answer for text: {text}")
         return None
 
-    def get_question_prompt(self) -> str:
+    def get_question_prompt(self, with_answer_prefill: bool = True) -> str:
         choice_str = "\n".join(
             f"{key}. {choice.text}."
             for key, choice in self.key_to_choice.items()
         )
 
-        return (f"""\
-Question: {self.text}
-{choice_str}
-Answer:""")
+        prompt = f"Question: {self.text}\n{choice_str}"
+        if with_answer_prefill:
+            prompt += "\nAnswer:"
+        return prompt
 
     def _decode_model_output_to_choice_distribution(
         self,
