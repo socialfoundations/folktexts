@@ -19,7 +19,13 @@ from .classifier import LLMClassifier, TransformersLLMClassifier, WebAPILLMClass
 from .dataset import Dataset
 from .evaluation import evaluate_predictions
 from .plotting import render_evaluation_plots, render_fairness_plots
-from .prompting import encode_row_prompt, encode_row_prompt_few_shot
+from .prompting import (
+    encode_row_prompt,
+    encode_row_prompt_chat,
+    encode_row_prompt_few_shot,
+    resolve_chat_defaults,
+    tokenizer_supports_system_prompt,
+)
 from .task import TaskMetadata
 
 DEFAULT_SEED = 42
@@ -45,6 +51,17 @@ class BenchmarkConfig:
     balance_few_shot_examples : bool, optional
         Whether to balance the samples for few-shot prompting with respect to
         their labels, by default False.
+    use_chat_template : bool, optional
+        Whether to format prompts using the tokenizer's chat template, by
+        default False. Only supported for local transformers models.
+    chat_prompt : str | None, optional
+        The assistant prefill text to use with chat templates. If None, uses
+        the appropriate default for the prompting mode (ANTHROPIC_CHAT_PROMPT
+        for multiple-choice, NUMERIC_CHAT_PROMPT for numeric).
+    system_prompt : str | None, optional
+        Custom system prompt text to use with chat templates. If None, uses
+        the appropriate default for the prompting mode (SYSTEM_PROMPT for
+        multiple-choice, NUMERIC_SYSTEM_PROMPT for numeric).
     batch_size : int | None, optional
         The batch size to use for inference.
     context_size : int | None, optional
@@ -66,6 +83,9 @@ class BenchmarkConfig:
     few_shot: int | None = None
     reuse_few_shot_examples: bool = False
     balance_few_shot_examples: bool = False
+    use_chat_template: bool = False
+    chat_prompt: str | None = None
+    system_prompt: str | None = None
     batch_size: int | None = None
     context_size: int | None = None
     correct_order_bias: bool = True
@@ -535,6 +555,24 @@ class Benchmark:
         if config.population_filter is not None:
             dataset = dataset.filter(config.population_filter)
 
+        # Validate incompatible options
+        if config.few_shot and config.use_chat_template:
+            raise ValueError(
+                "Cannot use both few-shot prompting and chat template formatting. "
+                "Please choose one or the other."
+            )
+
+        # Warn if chat-only options are set without enabling the chat template:
+        # they are silently ignored on the zero-shot / few-shot paths.
+        if not config.use_chat_template and (
+            config.system_prompt is not None or config.chat_prompt is not None
+        ):
+            logging.warning(
+                "`system_prompt` / `chat_prompt` were provided but "
+                "`use_chat_template=False`; these arguments are only used by "
+                "the chat-template path and will be ignored."
+            )
+
         # Get prompting function
         if config.few_shot:
             print(f"Using few-shot prompting (n={config.few_shot})!")
@@ -545,6 +583,45 @@ class Benchmark:
                 dataset=dataset,
                 reuse_examples=config.reuse_few_shot_examples,
                 class_balancing=config.balance_few_shot_examples,
+            )
+
+        elif config.use_chat_template:
+            if tokenizer is None:
+                raise ValueError(
+                    "Chat template formatting requires a local tokenizer. "
+                    "It is not supported for web API models."
+                )
+            print("Using chat template prompting.")
+
+            system_prompt, chat_prompt = resolve_chat_defaults(
+                numeric=config.numeric_risk_prompting,
+                system_prompt=config.system_prompt,
+                chat_prompt=config.chat_prompt,
+            )
+            # Drop the system prompt if the tokenizer's template doesn't accept
+            # one (e.g. Gemma). Warn loudly when this discards a user-supplied
+            # value so it isn't silently lost.
+            if not tokenizer_supports_system_prompt(tokenizer):
+                if config.system_prompt is not None:
+                    logging.warning(
+                        "Tokenizer's chat template rejects the `system` role; "
+                        "the user-supplied `system_prompt` will be discarded. "
+                        "Consider folding the instruction into `custom_prompt_prefix` "
+                        "or the user message instead."
+                    )
+                else:
+                    logging.info(
+                        "Tokenizer's chat template rejects the `system` role; "
+                        "running without a system prompt."
+                    )
+                system_prompt = None
+
+            encode_row_function = partial(
+                encode_row_prompt_chat,
+                task=task,
+                tokenizer=tokenizer,
+                system_prompt=system_prompt,
+                chat_prompt=chat_prompt,
             )
 
         else:
