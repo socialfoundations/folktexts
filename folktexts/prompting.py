@@ -235,6 +235,14 @@ def encode_row_prompt_chat(
 
     user_content = encode_row_prompt(row, task, question=question, custom_prompt_prefix=custom_prompt_prefix)
 
+    # Strip a duplicated assistant prefill from the user-message tail.
+    # Some QAInterface implementations (notably DirectNumericQA) hard-code the
+    # answer prefill into the question text for the zero-shot path's benefit;
+    # when chat-template prompting also appends `chat_prompt` as the assistant
+    # turn the same string ends up emitted twice and silently degrades scoring.
+    if chat_prompt is not None and user_content.endswith(chat_prompt):
+        user_content = user_content[: -len(chat_prompt)].rstrip()
+
     return apply_chat_template(
         tokenizer,
         user_prompt=user_content,

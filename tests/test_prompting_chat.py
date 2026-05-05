@@ -24,10 +24,12 @@ from folktexts.prompting import (
     NUMERIC_SYSTEM_PROMPT,
     SYSTEM_PROMPT,
     apply_chat_template,
+    encode_row_prompt,
     encode_row_prompt_chat,
     resolve_chat_defaults,
     tokenizer_supports_system_prompt,
 )
+from folktexts.qa_interface import DirectNumericQA
 
 # Local snapshot dir for a chat-tuned tokenizer. Override via env var if needed.
 LOCAL_CHAT_TOKENIZER_PATH = Path(
@@ -369,3 +371,86 @@ class TestEncodeRowPromptChat:
         assert "Age: 35" in out
         assert "Occupation: Engineer" in out
         assert "What is the income bracket?" in out
+
+
+# ----------------------------------------------------------------------
+# Numeric-prefill duplication regression tests
+# ----------------------------------------------------------------------
+# Background: `DirectNumericQA.get_question_prompt()` hard-codes
+# `"Answer (between 0 and 1): 0."` into the question text so the zero-shot
+# path can score the digits the model emits after `0.`. The chat-template
+# path (`encode_row_prompt_chat`) ALSO appends `NUMERIC_CHAT_PROMPT`
+# (byte-identical to that suffix) as the assistant turn — which used to
+# duplicate the prefill in the rendered prompt and silently degrade the
+# model's continuation (Mistral 7B IT chat-numeric AUC collapsed from 0.815
+# to 0.578). `encode_row_prompt_chat` now strips the duplicate; these tests
+# guard the structural property across paths.
+
+class TestEncodeRowPromptChatNumericPrefill:
+    def _numeric_question(self) -> DirectNumericQA:
+        return DirectNumericQA(
+            column="PINCP",
+            text="What is this person's estimated yearly income?",
+        )
+
+    def test_chat_numeric_renders_prefill_exactly_once(
+        self, chat_tokenizer, fake_task, sample_row
+    ):
+        out = encode_row_prompt_chat(
+            row=sample_row,
+            task=fake_task,
+            tokenizer=chat_tokenizer,
+            numeric=True,
+            question=self._numeric_question(),
+        )
+        assert out.count(NUMERIC_CHAT_PROMPT) == 1, (
+            "DirectNumericQA hard-codes the assistant prefill into the user "
+            "turn; the chat-template path must strip it before appending the "
+            "assistant prefill, otherwise the rendered prompt duplicates the "
+            "string and silently breaks scoring."
+        )
+
+    def test_chat_numeric_tail_invariant_preserved(
+        self, chat_tokenizer, fake_task, sample_row
+    ):
+        out = encode_row_prompt_chat(
+            row=sample_row,
+            task=fake_task,
+            tokenizer=chat_tokenizer,
+            numeric=True,
+            question=self._numeric_question(),
+        )
+        assert out.endswith(NUMERIC_CHAT_PROMPT), (
+            "LLMClassifier reads probabilities from the last token of the "
+            "rendered prompt; stripping the duplicated prefill must not break "
+            "the tail-equals-prefill invariant."
+        )
+
+    def test_chat_mc_path_unaffected_by_strip(
+        self, chat_tokenizer, fake_task, sample_row
+    ):
+        out = encode_row_prompt_chat(
+            row=sample_row,
+            task=fake_task,
+            tokenizer=chat_tokenizer,
+        )
+        assert out.count(ANTHROPIC_CHAT_PROMPT) == 1
+        assert "Answer (between 0 and 1): 0." not in out, (
+            "MC path must not touch the numeric prefill at all — it isn't in "
+            "the user turn (MC questions end with `Answer:`) and it isn't the "
+            "assistant prefill (which is ANTHROPIC_CHAT_PROMPT for MC)."
+        )
+
+    def test_zero_shot_numeric_prefill_unchanged(self, fake_task, sample_row):
+        # The zero-shot path is what the paper used and what already
+        # reproduces; the strip lives only in `encode_row_prompt_chat`, so the
+        # zero-shot prompt must be untouched and the prefill must appear
+        # exactly once at the tail.
+        out = encode_row_prompt(
+            row=sample_row,
+            task=fake_task,
+            question=self._numeric_question(),
+        )
+        prefill = "Answer (between 0 and 1): 0."
+        assert out.endswith(prefill)
+        assert out.count(prefill) == 1
