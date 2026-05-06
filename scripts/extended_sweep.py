@@ -188,15 +188,32 @@ def run_model_group(
     model_path = MODELS_ROOT / spec.name
     print(f"\n=== loading model {model_path} ({backend}) ===", flush=True)
 
-    if backend == "vllm":
-        from folktexts.llm_utils import load_vllm_model
-        model, tokenizer = load_vllm_model(
-            model_path.as_posix(),
-            max_model_len=_max_model_len_for(spec, modes),
-            seed=SEED,
-        )
-    else:
-        model, tokenizer = load_model_tokenizer(model_path.as_posix())
+    try:
+        if backend == "vllm":
+            from folktexts.llm_utils import load_vllm_model
+            model, tokenizer = load_vllm_model(
+                model_path.as_posix(),
+                max_model_len=_max_model_len_for(spec, modes),
+                seed=SEED,
+            )
+        else:
+            model, tokenizer = load_model_tokenizer(model_path.as_posix())
+    except Exception as exc:
+        # Mark every requested mode as failed and move on to the next model.
+        import traceback
+        tb = traceback.format_exc()
+        out_load_fail: list[tuple[Cell, dict | None, Optional[Exception]]] = []
+        for mode in modes:
+            cell = Cell(model_name=spec.name, mode=mode, backend=backend)
+            log_path = LOGS_DIR / f"{cell.slug}.log"
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            log_path.write_text(f"Failed to load model {spec.name} ({backend}):\n\n{tb}\n")
+            print(f"!! {cell.slug} MODEL-LOAD FAILED ({type(exc).__name__}): {exc}", flush=True)
+            out_load_fail.append((cell, None, exc))
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        return out_load_fail
 
     out: list[tuple[Cell, dict | None, Optional[Exception]]] = []
     for mode in modes:
