@@ -145,7 +145,17 @@ class VLLMClassifier(LLMClassifier):
                 config = AutoConfig.from_pretrained(
                     model_name_or_path, trust_remote_code=True,
                 )
-                return int(config.vocab_size)
+                # Multimodal Gemma-3 and similar wrap the language-model config
+                # under `text_config`; check both top-level and nested.
+                vs = getattr(config, "vocab_size", None)
+                if vs is None:
+                    vs = getattr(getattr(config, "text_config", None), "vocab_size", None)
+                if vs is not None:
+                    return int(vs)
+                logging.warning(
+                    f"AutoConfig {type(config).__name__} for {model_name_or_path} "
+                    "exposes no vocab_size at top level or text_config; falling back."
+                )
             except Exception as exc:
                 logging.warning(
                     f"AutoConfig.from_pretrained failed for {model_name_or_path}: "

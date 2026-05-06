@@ -241,8 +241,16 @@ def query_model_batch_multiple_passes(
     # neither `len(tokenizer.vocab)` nor `tokenizer.vocab_size` is reliable
     # (Gemma-3 has `len(vocab) == vocab_size + 1`; Llama-3.2 has
     # `len(vocab) == vocab_size + 256`). Only `model.config.vocab_size` matches
-    # the actual logits axis we're masking.
-    vocab_dim = model.config.vocab_size
+    # the actual logits axis we're masking. Multimodal Gemma-3 puts vocab_size
+    # under `config.text_config` instead of the top-level config.
+    vocab_dim = getattr(model.config, "vocab_size", None)
+    if vocab_dim is None:
+        vocab_dim = getattr(getattr(model.config, "text_config", None), "vocab_size", None)
+    if vocab_dim is None:
+        raise AttributeError(
+            f"Could not resolve vocab_size from {type(model.config).__name__} "
+            "(checked top-level and text_config)."
+        )
     allowed_tokens_filter = np.ones(vocab_dim, dtype=bool)
     if digits_only:
         allowed_token_ids = np.array([
