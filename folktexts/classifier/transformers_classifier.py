@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import logging
+import os
 from pathlib import Path
 from typing import Callable
 
@@ -10,8 +12,8 @@ import numpy as np
 import pandas as pd
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from folktexts.llm_utils import query_model_batch_multiple_passes
-from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA
+from folktexts.llm_utils import generate_text_batch, query_model_batch_multiple_passes
+from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA, ReasoningQA
 from folktexts.task import TaskMetadata
 
 from .._utils import hash_dict
@@ -80,6 +82,48 @@ class TransformersLLMClassifier(LLMClassifier):
             **inference_kwargs,
         )
 
+        # Logging controls (used mainly for ReasoningQA generation debugging).
+        # By default, log only the first N prompt/generation pairs; users can
+        # enable logging all generations via env var or CLI wrapper.
+        self._log_generations_all = os.getenv("FOLKTEXTS_LOG_GENERATIONS", "0").strip() in {"1", "true", "True"}
+        try:
+            self._log_generations_first_n = int(os.getenv("FOLKTEXTS_LOG_GENERATIONS_FIRST_N", "3"))
+        except ValueError:
+            self._log_generations_first_n = 3
+        self._logged_generations_count = 0
+
+        # Track ReasoningQA extraction failures across batches so we can warn
+        # if a non-trivial fraction of samples fall back to the silent 0.5
+        # default — otherwise a benchmark with collapsed AUC looks "successful".
+        self._reasoning_total = 0
+        self._reasoning_failed = 0
+
+    def _should_log_generation(self) -> bool:
+        """Return True if we should log the next prompt/generation pair."""
+        if self._log_generations_all:
+            return True
+        return self._logged_generations_count < max(self._log_generations_first_n, 0)
+
+    # Warn the first time the failure rate crosses 25% (after ≥20 samples) and
+    # again at every 200-sample boundary, so a benchmark with mostly-failing
+    # extractions surfaces in the logs instead of silently collapsing AUC to 0.5.
+    _REASONING_FAILURE_WARN_THRESHOLD = 0.25
+    _REASONING_FAILURE_WARN_MIN_SAMPLES = 20
+
+    def _maybe_warn_reasoning_failure_rate(self) -> None:
+        if self._reasoning_total < self._REASONING_FAILURE_WARN_MIN_SAMPLES:
+            return
+        if self._reasoning_total % 200 != 0 and self._reasoning_total != self._REASONING_FAILURE_WARN_MIN_SAMPLES:
+            return
+        rate = self._reasoning_failed / self._reasoning_total
+        if rate >= self._REASONING_FAILURE_WARN_THRESHOLD:
+            logging.warning(
+                f"ReasoningQA: probability extraction failed for "
+                f"{self._reasoning_failed}/{self._reasoning_total} samples "
+                f"({rate:.1%}); these fall back to 0.5 and will collapse AUC. "
+                f"Inspect generations with FOLKTEXTS_LOG_GENERATIONS_FIRST_N."
+            )
+
     def __hash__(self) -> int:
         """Generate a unique hash for the LLMClassifier object."""
 
@@ -104,7 +148,7 @@ class TransformersLLMClassifier(LLMClassifier):
         self,
         prompts_batch: list[str],
         *,
-        question: MultipleChoiceQA | DirectNumericQA,
+        question: MultipleChoiceQA | DirectNumericQA | ReasoningQA,
         context_size: int = None,
     ) -> np.ndarray:
         """Query model with a batch of prompts and return risk estimates.
@@ -113,7 +157,7 @@ class TransformersLLMClassifier(LLMClassifier):
         ----------
         prompts_batch : list[str]
             A batch of string prompts to query the model with.
-        question : MultipleChoiceQA | DirectNumericQA
+        question : MultipleChoiceQA | DirectNumericQA | ReasoningQA
             The question (`QAInterface`) object to use for querying the model.
         context_size : int, optional
             The maximum context size to consider for each input (in tokens).
@@ -123,9 +167,62 @@ class TransformersLLMClassifier(LLMClassifier):
         risk_estimates : np.ndarray
             The risk estimates for each prompt in the batch.
         """
+        # Handle ReasoningQA with text generation
+        if isinstance(question, ReasoningQA):
+            # Pass enable_thinking to generate_text_batch:
+            # - True: enable thinking mode (uses chat template with enable_thinking=True)
+            # - False: explicitly disable thinking mode (uses chat template with enable_thinking=False)
+            # Always apply chat template for ReasoningQA to properly format the prompt
+            generated_texts = generate_text_batch(
+                text_inputs=prompts_batch,
+                model=self.model,
+                tokenizer=self.tokenizer,
+                max_new_tokens=question.max_new_tokens,
+                context_size=context_size or self.inference_kwargs["context_size"],
+                enable_thinking=question.enable_thinking,
+            )
+
+            # Extract probability from generated text and log each sample
+            risk_estimates_batch = []
+            for idx, (prompt, generated_text) in enumerate(zip(prompts_batch, generated_texts)):
+                extracted = question.extract_probability_from_text(generated_text)
+                self._reasoning_total += 1
+                if extracted is None:
+                    self._reasoning_failed += 1
+                risk_estimate = 0.5 if extracted is None else extracted
+                risk_estimates_batch.append(risk_estimate)
+                self._maybe_warn_reasoning_failure_rate()
+
+                if self._should_log_generation():
+                    # Log prompt, generated answer, and extracted risk score at INFO level
+                    logging.info(
+                        "\n"
+                        + "=" * 60
+                        + "\n"
+                        + f"[ReasoningQA Sample {self._logged_generations_count + 1}]"
+                        + "\n"
+                        + "=" * 60
+                        + "\n"
+                        + "PROMPT:\n"
+                        + prompt
+                        + "\n"
+                        + "-" * 60
+                        + "\n"
+                        + "GENERATED ANSWER:\n"
+                        + generated_text
+                        + "\n"
+                        + "-" * 60
+                        + "\n"
+                        + f"EXTRACTED RISK SCORE: {risk_estimate:.6f}\n"
+                        + "=" * 60
+                    )
+                    self._logged_generations_count += 1
+
+            return np.asarray(risk_estimates_batch, dtype=float)
+
         # TODO: Add support for any unicode character used as a prefix to " A".
 
-        # Query model
+        # Query model using token probabilities for DirectNumericQA and MultipleChoiceQA
         last_token_probs_batch = query_model_batch_multiple_passes(
             text_inputs=prompts_batch,
             model=self.model,
@@ -144,4 +241,4 @@ class TransformersLLMClassifier(LLMClassifier):
             for ltp in last_token_probs_batch
         ]
 
-        return risk_estimates_batch
+        return np.asarray(risk_estimates_batch, dtype=float)

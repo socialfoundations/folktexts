@@ -18,7 +18,7 @@ from tqdm.auto import tqdm
 from folktexts.dataset import Dataset
 from folktexts.evaluation import compute_best_threshold
 from folktexts.prompting import encode_row_prompt as default_encode_row_prompt
-from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA
+from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA, ReasoningQA
 from folktexts.task import TaskMetadata
 
 from .._utils import hash_dict, hash_function
@@ -301,7 +301,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         self,
         prompts_batch: list[str],
         *,
-        question: MultipleChoiceQA | DirectNumericQA,
+        question: MultipleChoiceQA | DirectNumericQA | ReasoningQA,
         context_size: int = None,
     ) -> np.ndarray:
         """Query model with a batch of prompts and return risk estimates."""
@@ -339,6 +339,8 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         if self.correct_order_bias:
             if isinstance(q, DirectNumericQA):
                 logging.info("No need to correct ordering bias for DirectNumericQA prompting.")
+            elif isinstance(q, ReasoningQA):
+                logging.info("No need to correct ordering bias for ReasoningQA prompting.")
             elif isinstance(q, MultipleChoiceQA):
                 questions = list(MultipleChoiceQA.create_answer_keys_permutations(q))
             else:

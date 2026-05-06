@@ -16,21 +16,12 @@
 Folktexts provides a suite of Q&A datasets for evaluating **uncertainty**, **calibration**, **accuracy** and **fairness** of LLMs on individual outcome prediction tasks. It provides a flexible framework to derive prediction **tasks from survey data**, translates them into natural text prompts, extracts LLM-generated _risk scores_, and computes statistical properties of these risk scores by comparing them to the ground truth outcomes.
 
 <details>
-<summary><strong>Note:</strong> using reasoning models / chain-of-thought (click to expand)</summary>
+<summary><strong>Reasoning models (chain-of-thought):</strong> click to expand</summary>
 
-Support for reasoning-style benchmarking via the `ReasoningQA` interface lives on the **`reasoning-models`** branch ([`tree/reasoning-models`](https://github.com/socialfoundations/folktexts/tree/reasoning-models)). If you’re on `main` / using the PyPI release, switch to that branch and install from source:
-
-**Disclaimer:** This reasoning-model support is experimental. If you run into any issues/bugs, please open a GitHub issue at [`socialfoundations/folktexts/issues`](https://github.com/socialfoundations/folktexts/issues).
+Folktexts can prompt reasoning models to think step-by-step before producing a probability estimate. Pass `--reasoning-prompting` to enable the `ReasoningQA` interface; add `--enable-thinking` for tokenizers that expose a `<think>` block (e.g. Qwen3).
 
 ```
-git clone https://github.com/socialfoundations/folktexts.git
-cd folktexts
-git checkout reasoning-models
-
-pip install -e .        # or: pip install -e ".[apis]" for web-hosted models
-mkdir -p results models data
-
-# Example: Qwen3-4B in thinking mode (ReasoningQA)
+# Example: Qwen3-4B in thinking mode
 download_models --model "Qwen/Qwen3-4B" --save-dir models
 run_acs_benchmark \
   --model models/Qwen--Qwen3-4B \
@@ -43,15 +34,15 @@ run_acs_benchmark \
   --enable-thinking
 ```
 
-Use `--reasoning-prompting` to enable ReasoningQA prompts; add `--enable-thinking` for models that support it (e.g., Qwen3).
+The probability is extracted from the generated text via regex (e.g. `Probability: 75%`). `--reasoning-prompting` is mutually exclusive with `--use-chat-template` (the reasoning path applies the tokenizer's chat template internally).
 </details>
 
 **Use folktexts to benchmark your LLM:**
 
-- Pre-defined Q&A benchmark tasks are provided based on data from the American Community Survey (<a href="https://www.census.gov/programs-surveys/acs/microdata/documentation.html">ACS</a>). Each tabular prediction task from the popular 
-[folktables](https://github.com/socialfoundations/folktables) package is made available 
+- Pre-defined Q&A benchmark tasks are provided based on data from the American Community Survey (<a href="https://www.census.gov/programs-surveys/acs/microdata/documentation.html">ACS</a>). Each tabular prediction task from the popular
+[folktables](https://github.com/socialfoundations/folktables) package is made available
 as a natural-language Q&A task.
-- Parsed and ready-to-use versions of each *folktexts* dataset can be found on 
+- Parsed and ready-to-use versions of each *folktexts* dataset can be found on
 <a href="https://huggingface.co/datasets/acruz/folktexts"> Huggingface</a>.
 - The package can be used to customize your tasks. Select a feature to define your prediciton target. Specify subsets of input features to vary outcome uncertainty. Modify prompting templates to evaluate mappings from tabular data to natural text prompts. Compare different methods to extract uncertainty values from LLM responses. Extract raw risk scores and outcomes to perform custom statistical evaluations. Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
 
@@ -183,6 +174,22 @@ bench = Benchmark.make_benchmark(
 bench_results = bench.run(results_root_dir="results")
 ```
 
+You can also use **reasoning-based prompting** (chain-of-thought) where the model generates
+reasoning text before outputting a probability estimate:
+```py
+from folktexts.benchmark import Benchmark, BenchmarkConfig
+config = BenchmarkConfig(
+    reasoning_prompting=True,    # Enable chain-of-thought reasoning
+    enable_thinking=True,        # Enable thinking mode for Qwen3-like models (optional)
+)
+bench = Benchmark.make_benchmark(
+    task=acs_task_name, dataset=dataset,
+    model=model, tokenizer=tokenizer,
+    config=config,
+)
+bench_results = bench.run(results_root_dir="results")
+```
+
 Example snippet showcasing how to fit the binarization threshold on a few training samples
 (note that this is *not fine-tuning*), and obtaining discretized predictions using `.predict()`.
 ```py
@@ -207,7 +214,9 @@ conjunction with the `run_acs_benchmark` command line script, or with the
 | `--results-dir` | Path to directory under which benchmark results will be saved. | `results` |
 | `--data-dir` | Root folder to find datasets in (or download ACS data to). | `~/data` |
 | `--numeric-risk-prompting` | Whether to use verbalized numeric risk prompting, i.e., directly query model for a probability estimate. **By default** will use standard multiple-choice Q&A, and extract risk scores from internal token probabilities. | Boolean flag (`True` if present, `False` otherwise) |
-| `--use-chat-template` | Format prompts using the tokenizer's chat template (recommended for instruct/chat models). Pair with `--system-prompt` and/or `--chat-prompt` to override the defaults. **By default** uses zero-shot prompting without a chat template. | Boolean flag (`True` if present, `False` otherwise) |
+| `--use-chat-template` | Format prompts using the tokenizer's chat template (recommended for instruct/chat models). Pair with `--system-prompt` and/or `--chat-prompt` to override the defaults. Mutually exclusive with `--reasoning-prompting`. **By default** uses zero-shot prompting without a chat template. | Boolean flag (`True` if present, `False` otherwise) |
+| `--reasoning-prompting` | Use reasoning-based prompting (chain-of-thought): the model generates reasoning text before outputting a probability estimate, which is extracted from the generated text via regex. | Boolean flag (`True` if present, `False` otherwise) |
+| `--enable-thinking` | Enable thinking mode for tokenizers that support it (e.g. Qwen3). Only applies with `--reasoning-prompting`; calls `apply_chat_template(enable_thinking=True)` and strips the `<think>` block before extraction. | Boolean flag (`True` if present, `False` otherwise) |
 | `--use-web-api-model` | Whether the given `--model` name corresponds to a web-hosted model or not. **By default** this is False (assumes a huggingface transformers model). If this flag is provided, `--model` must contain a [litellm](https://docs.litellm.ai) model identifier ([examples here](https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models)). | Boolean flag (`True` if present, `False` otherwise) |
 | `--subsampling` | Which fraction of the dataset to use for the benchmark. **By default** will use the whole test set. | `0.01` |
 | `--fit-threshold` | Whether to use the given number of samples to fit the binarization threshold. **By default** will use a fixed $t=0.5$ threshold instead of fitting on data. | `100` |
@@ -217,7 +226,7 @@ conjunction with the `run_acs_benchmark` command line script, or with the
 Full list of options:
 
 ```
-usage: run_acs_benchmark [-h] --model MODEL --results-dir RESULTS_DIR --data-dir DATA_DIR [--task TASK] [--few-shot FEW_SHOT] [--batch-size BATCH_SIZE] [--context-size CONTEXT_SIZE] [--fit-threshold FIT_THRESHOLD] [--subsampling SUBSAMPLING] [--seed SEED] [--use-web-api-model] [--dont-correct-order-bias] [--numeric-risk-prompting] [--reuse-few-shot-examples] [--balance-few-shot-examples] [--use-chat-template] [--chat-prompt CHAT_PROMPT] [--system-prompt SYSTEM_PROMPT]
+usage: run_acs_benchmark [-h] --model MODEL --results-dir RESULTS_DIR --data-dir DATA_DIR [--task TASK] [--few-shot FEW_SHOT] [--batch-size BATCH_SIZE] [--context-size CONTEXT_SIZE] [--fit-threshold FIT_THRESHOLD] [--subsampling SUBSAMPLING] [--seed SEED] [--use-web-api-model] [--dont-correct-order-bias] [--numeric-risk-prompting] [--reasoning-prompting] [--enable-thinking] [--reuse-few-shot-examples] [--balance-few-shot-examples] [--use-chat-template] [--chat-prompt CHAT_PROMPT] [--system-prompt SYSTEM_PROMPT]
                          [--use-feature-subset USE_FEATURE_SUBSET] [--use-population-filter USE_POPULATION_FILTER] [--max-api-rpm MAX_API_RPM] [--logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
 
 Benchmark risk scores produced by a language model on ACS data.
@@ -244,6 +253,10 @@ options:
                         [bool] Whether to avoid correcting ordering bias, by default will correct it
   --numeric-risk-prompting
                         [bool] Whether to prompt for numeric risk-estimates instead of multiple-choice Q&A
+  --reasoning-prompting
+                        [bool] Whether to use reasoning-based prompting (chain-of-thought) where the model reasons before outputting a probability
+  --enable-thinking
+                        [bool] Whether to enable thinking mode for models that support it (e.g., Qwen3). Only applies with --reasoning-prompting
   --reuse-few-shot-examples
                         [bool] Whether to reuse the same samples for few-shot prompting (or sample new ones every time)
   --balance-few-shot-examples

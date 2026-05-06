@@ -69,6 +69,26 @@ def setup_arg_parser() -> ArgumentParser:
     )
 
     parser.add_argument(
+        "--reasoning-prompting",
+        help=(
+            "[bool] Whether to use reasoning-based prompting (chain-of-thought) "
+            "where the model reasons before outputting a probability"
+        ),
+        action="store_true",
+        default=False,
+    )
+
+    parser.add_argument(
+        "--enable-thinking",
+        help=(
+            "[bool] Whether to enable thinking mode for models that support it "
+            "(e.g., Qwen3). Only applies with --reasoning-prompting"
+        ),
+        action="store_true",
+        default=False,
+    )
+
+    parser.add_argument(
         "--reuse-few-shot-examples",
         help="[bool] Whether to reuse the same samples for few-shot prompting (or sample new ones every time)",
         action="store_true",
@@ -176,6 +196,8 @@ def main():
     config = BenchmarkConfig(
         few_shot=args.few_shot,
         numeric_risk_prompting=args.numeric_risk_prompting,
+        reasoning_prompting=args.reasoning_prompting,
+        enable_thinking=args.enable_thinking,
         reuse_few_shot_examples=args.reuse_few_shot_examples,
         balance_few_shot_examples=args.balance_few_shot_examples,
         use_chat_template=args.use_chat_template,

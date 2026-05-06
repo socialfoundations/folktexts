@@ -1,6 +1,6 @@
 """Interface for question-answering with LLMs.
 
-- Create different types of questions (direct numeric, multiple-choice).
+- Create different types of questions (direct numeric, multiple-choice, reasoning).
 - Encode questions and decode model outputs.
 - Compute risk-estimate from model outputs.
 """
@@ -440,3 +440,182 @@ class MultipleChoiceQA(QAInterface):
 
         logging.debug(f"Risk estimate: {risk_estimate:.2f}")
         return risk_estimate
+
+
+# Regex patterns for extracting probability from generated text
+# Matches formats like: "Probability: 80%", "Probability: 0.80", "probability: 80 percent"
+# Patterns are ordered by specificity - more specific patterns first
+_PROBABILITY_PATTERNS = [
+    # Match "Probability: X%" or "probability: X%" (with optional "is", "of", etc.)
+    r"[Pp]robability(?:\s+(?:is|of|estimate)?)?[:\s]+(\d+(?:\.\d+)?)\s*%",
+    # Match "Probability: 0.XX" or "probability: 0.XX" or "Probability: 1.0"
+    r"[Pp]robability(?:\s+(?:is|of|estimate)?)?[:\s]+(\d*\.?\d+)(?![%\d])",
+    # Match "X%" anywhere in text (prefer later matches in fallback)
+    r"(\d+(?:\.\d+)?)\s*%",
+    # Match "X percent" pattern
+    r"(\d+(?:\.\d+)?)\s+percent",
+    # Match standalone decimal (0.XX or .XX) that looks like probability
+    r"(?<![.\d])(0?\.\d+)(?![.\d])",
+]
+
+
+@dataclass(frozen=True)
+class ReasoningQA(QAInterface):
+    """Represents a reasoning-based question that allows chain-of-thought.
+
+    This interface allows models to reason about the question before outputting
+    a probability estimate. The model generates free-form text, and the
+    probability is extracted using regex patterns.
+
+    Notes
+    -----
+    Unlike `DirectNumericQA` and `MultipleChoiceQA` which use token probabilities,
+    this interface uses full text generation. The `num_forward_passes` is set to
+    -1 to signal that text generation mode should be used instead of token
+    probability extraction.
+
+    The expected output format is explicitly stated in the prompt, e.g.:
+    "Reason step-by-step about the question, then conclude with 'Probability: X%'
+    where X is your estimated probability."
+
+    The regex extraction is flexible and accepts multiple formats:
+    - "Probability: 80%" -> 0.80
+    - "Probability: 0.80" -> 0.80
+    - "Probability: 80 percent" -> 0.80
+    - "... 75%" (at end of text) -> 0.75
+
+    Attributes
+    ----------
+    enable_thinking : bool
+        Whether to enable thinking mode for models that support it (e.g., Qwen3).
+        When True, the tokenizer's `apply_chat_template` will be called with
+        `enable_thinking=True`. Default is False.
+    """
+
+    num_forward_passes: int = -1    # -1 signals text generation mode
+    max_new_tokens: int = 5000
+    enable_thinking: bool = False
+
+    def get_question_prompt(self, with_answer_prefill: bool = True) -> str:
+        """Returns the question prompt with instructions for reasoning output.
+
+        The `with_answer_prefill` parameter is accepted for interface
+        compatibility with `QAInterface` but has no effect: reasoning prompts
+        produce free-form text and have no answer prefill to strip.
+        """
+        return f"""\
+Question: {self.text}
+
+Think step-by-step about the factors that could influence the answer to this question. \
+After reasoning through the relevant information, provide your final probability estimate.
+
+Your response MUST end with your probability estimate in the following format:
+Probability: X%
+where X is a number between 0 and 100.
+
+Reasoning:"""
+
+    @staticmethod
+    def extract_probability_from_text(generated_text: str) -> float | None:
+        """Extract a probability value from generated text using regex patterns.
+
+        The extraction prioritizes (in order): the explicit "Probability: X[%]"
+        anchor, last loose percentage, "X percent", then a bare 0.XX decimal.
+        Returns a float in [0, 1] or None if nothing matched.
+        """
+        # First, try the explicit "Probability: X[%]" anchor (most reliable).
+        explicit_patterns = [
+            (r"[Pp]robability(?:\s+(?:is|of|estimate)?)?[:\s]+(\d+(?:\.\d+)?)\s*%", True),
+            (r"[Pp]robability(?:\s+(?:is|of|estimate)?)?[:\s]+(\d*\.?\d+)(?![%\d])", False),
+        ]
+        for pattern, percent_form in explicit_patterns:
+            value = ReasoningQA._extract_last_probability(
+                generated_text, pattern, percent_form=percent_form,
+            )
+            if value is not None:
+                logging.debug(f"Extracted probability {value:.2%} using pattern: {pattern}")
+                return value
+
+        # Fallback ladder: any percentage, "X percent", or a bare 0.XX decimal.
+        # `flags=0` for the percent forms; "percent" pattern is case-insensitive.
+        for pattern, percent_form, flags in [
+            (r"(\d+(?:\.\d+)?)\s*%", True, 0),
+            (r"(\d+(?:\.\d+)?)\s+percent", True, re.IGNORECASE),
+            (r"(?<![.\d])(0?\.\d+)(?![.\d])", False, 0),
+        ]:
+            value = ReasoningQA._extract_last_probability(
+                generated_text, pattern, percent_form=percent_form, flags=flags,
+            )
+            if value is not None:
+                logging.debug(f"Used fallback extraction: {value:.2%}")
+                return value
+
+        snippet = (
+            generated_text[:250] + "..." + generated_text[-250:]
+            if len(generated_text) > 500 else generated_text
+        )
+        logging.error(f"Could not extract probability from text:\n{snippet}")
+        return None
+
+    @staticmethod
+    def _extract_last_probability(
+        text: str, pattern: str, *, percent_form: bool, flags: int = 0,
+    ) -> float | None:
+        """Apply `pattern` to `text`, take the last match, and return it as a
+        probability in [0, 1] (dividing by 100 if `percent_form`) or None.
+
+        The "last match" rule matters: models often revise their estimate
+        mid-reasoning, and the final value is the one we want to trust.
+        """
+        matches = re.findall(pattern, text, flags=flags)
+        if not matches:
+            return None
+        value = float(matches[-1])
+        # If the pattern is the explicit `Probability: <number>(?!%)` form,
+        # callers may still emit a value > 1 they meant as a percentage.
+        if value > 1:
+            value = value / 100.0
+        elif percent_form:
+            value = value / 100.0
+        if 0 <= value <= 1:
+            return value
+        logging.warning(f"Extracted value {value} is out of range [0, 1]")
+        return None
+
+    def get_answer_from_model_output(
+        self,
+        generated_text: str,
+        tokenizer_vocab: dict[str, int] = None,
+    ) -> float:
+        """Extract the probability answer from the model's generated text.
+
+        Parameters
+        ----------
+        generated_text : str
+            The full text generated by the model, including reasoning and
+            the final probability estimate.
+        tokenizer_vocab : dict[str, int], optional
+            The tokenizer's vocabulary. Not used for ReasoningQA but included
+            for interface compatibility.
+
+        Returns
+        -------
+        answer : float
+            The extracted probability as a float between 0 and 1.
+
+        Raises
+        ------
+        ValueError
+            If no valid probability could be extracted from the generated text.
+        """
+        probability = self.extract_probability_from_text(generated_text)
+
+        if probability is None:
+            logging.error(
+                "Failed to extract probability from generated text. "
+                "Returning default value of 0.5."
+            )
+            return 0.5
+
+        logging.debug(f"Extracted probability: {probability:.2%}")
+        return probability
