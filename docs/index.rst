@@ -3,11 +3,6 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-.. error-parity documentation master file, created by
-   sphinx-quickstart on Thu Nov 23 16:53:42 2023.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 
 Welcome to :code:`folktexts`' documentation!
 ============================================
@@ -23,11 +18,11 @@ target variable is not uniquely determined by the input features.
 Folktexts is compatible with any huggingface transformer model and models 
 available through web APIs (e.g., OpenAI API).
 
-Five tabular data tasks are provided out-of-the-box, using the American
-Community Survey as a data source: `ACSIncome`, `ACSMobility`, `ACSTravelTime`, 
-`ACSEmployment`, and `ACSPublicCoverage`. These tasks follow the same name, 
-feature columns, and target columns as those put forth by `Ding et al. (2021)`_ 
-in the `folktables`_ python package.
+Six tabular data tasks are provided out-of-the-box, using the American
+Community Survey as a data source: `ACSIncome`, `ACSMobility`, `ACSTravelTime`,
+`ACSEmployment`, `ACSPublicCoverage`, and `ACSIncomePovertyRatio`. The first
+five follow the same name, feature columns, and target columns as those put
+forth by `Ding et al. (2021)`_ in the `folktables`_ python package.
 
 
 Full code available on the `GitHub repository`_, 
