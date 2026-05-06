@@ -188,10 +188,66 @@ conjunction with the `run_acs_benchmark` command line script, or with the
 | `--fit-threshold` | Whether to use the given number of samples to fit the binarization threshold. **By default** will use a fixed $t=0.5$ threshold instead of fitting on data. | `100` |
 | `--batch-size` | The number of samples to process in each inference batch. Choose according to your available VRAM. | `10`, `32` |
 
-Run `run_acs_benchmark --help` for the full list of options (few-shot prompting, custom system/chat prompts, feature/population filters, web-API rate limits, logging level, etc.).
+<details>
+<summary><strong>Full list of options</strong> (click to expand)</summary>
+
+```
+usage: run_acs_benchmark [-h] --model MODEL --results-dir RESULTS_DIR --data-dir DATA_DIR [--task TASK] [--few-shot FEW_SHOT] [--batch-size BATCH_SIZE] [--context-size CONTEXT_SIZE] [--fit-threshold FIT_THRESHOLD] [--subsampling SUBSAMPLING] [--seed SEED] [--use-web-api-model] [--dont-correct-order-bias] [--numeric-risk-prompting] [--reasoning-prompting] [--enable-thinking] [--reuse-few-shot-examples] [--balance-few-shot-examples] [--use-chat-template] [--chat-prompt CHAT_PROMPT] [--system-prompt SYSTEM_PROMPT]
+                         [--use-feature-subset USE_FEATURE_SUBSET] [--use-population-filter USE_POPULATION_FILTER] [--max-api-rpm MAX_API_RPM] [--logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
+
+Benchmark risk scores produced by a language model on ACS data.
+
+options:
+  -h, --help            show this help message and exit
+  --model MODEL         [str] Model name or path to model saved on disk
+  --results-dir RESULTS_DIR
+                        [str] Directory under which this experiment's results will be saved
+  --data-dir DATA_DIR   [str] Root folder to find datasets on
+  --task TASK           [str] Name of the ACS task to run the experiment on
+  --few-shot FEW_SHOT   [int] Use few-shot prompting with the given number of shots
+  --batch-size BATCH_SIZE
+                        [int] The batch size to use for inference
+  --context-size CONTEXT_SIZE
+                        [int] The maximum context size when prompting the LLM
+  --fit-threshold FIT_THRESHOLD
+                        [int] Whether to fit the prediction threshold, and on how many samples
+  --subsampling SUBSAMPLING
+                        [float] Which fraction of the dataset to use (if omitted will use all data)
+  --seed SEED           [int] Random seed -- to set for reproducibility
+  --use-web-api-model   [bool] Whether use a model hosted on a web API (instead of a local model)
+  --dont-correct-order-bias
+                        [bool] Whether to avoid correcting ordering bias, by default will correct it
+  --numeric-risk-prompting
+                        [bool] Whether to prompt for numeric risk-estimates instead of multiple-choice Q&A
+  --reasoning-prompting
+                        [bool] Whether to use reasoning-based prompting (chain-of-thought) where the model reasons before outputting a probability
+  --enable-thinking
+                        [bool] Whether to enable thinking mode for models that support it (e.g., Qwen3). Only applies with --reasoning-prompting
+  --reuse-few-shot-examples
+                        [bool] Whether to reuse the same samples for few-shot prompting (or sample new ones every time)
+  --balance-few-shot-examples
+                        [bool] Whether to sample evenly from all classes in few-shot prompting
+  --use-chat-template   [bool] Whether to format prompts using the tokenizer's chat template (for instruct/chat models)
+  --chat-prompt CHAT_PROMPT
+                        [str] Custom assistant prefill text to use with chat templates
+  --system-prompt SYSTEM_PROMPT
+                        [str] Custom system prompt text to use with chat templates
+  --use-feature-subset USE_FEATURE_SUBSET
+                        [str] Optional subset of features to use for prediction, comma separated
+  --use-population-filter USE_POPULATION_FILTER
+                        [str] Optional population filter for this benchmark; must follow the format 'column_name=value' to filter the dataset by a specific value.
+  --max-api-rpm MAX_API_RPM
+                        [int] Maximum number of API requests per minute (if using a web-hosted model)
+  --logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
+                        [str] The logging level to use for the experiment
+```
+
+</details>
 
 
 ## Evaluating feature importance
+<details>
+<summary>click to expand</summary>
 
 By evaluating LLMs on tabular classification tasks, we can use standard feature importance methods to assess which features the model uses to compute risk scores.
 
@@ -206,6 +262,8 @@ python -m folktexts.cli.eval_feature_importance --model 'meta-llama/Meta-Llama-3
 </div>
 
 This script uses sklearn's [`permutation_importance`](https://scikit-learn.org/stable/modules/generated/sklearn.inspection.permutation_importance.html#sklearn.inspection.permutation_importance) to assess which features contribute the most for the ROC AUC metric (other metrics can be assessed using the `--scorer [scorer]` parameter).
+
+</details>
 
 
 ## FAQ
