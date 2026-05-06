@@ -29,10 +29,12 @@ from .base import LLMClassifier
 if TYPE_CHECKING:
     import vllm
 
-# Top-K logprobs to request from vLLM. 20 mirrors the WebAPI path
-# (`web_api_classifier.py:174`) and is enough for both single-letter MC
-# answers and digit tokens; bump only if validation surfaces missing tokens.
-_TOPK_LOGPROBS = 20
+# Top-K logprobs to request from vLLM. WebAPI uses 20; we bump to 50 here
+# because zero-shot prompts on instruction-tuned base models can push A/B
+# answer letters into the long tail behind prose continuations
+# ("I", "The", "Based"…). 50 covers those without materially changing
+# results on models where A/B are clearly top-2.
+_TOPK_LOGPROBS = 50
 
 
 class VLLMClassifier(LLMClassifier):

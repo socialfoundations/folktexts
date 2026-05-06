@@ -223,6 +223,21 @@ class TestHelperShapeInvariants:
         # Equal mass on the two choices ⇒ p(positive)=0.5.
         assert risk == pytest.approx(0.5, abs=1e-6)
 
+    def test_zero_mass_on_choices_falls_back_to_uniform(self):
+        # If the top-K excludes every answer-letter variant (e.g. zero-shot on
+        # an instruct model that emits prose), the QA decoder must NOT divide
+        # by zero. Behaviour: uniform across choices ⇒ 0.5 for binary.
+        tokenizer_vocab = {" A": 1, " B": 2, " C": 3}
+        per_pass_topk = [{99: math.log(0.5), 100: math.log(0.5)}]  # other ids
+        risk = decode_topk_logprobs_to_risk_estimate(
+            per_pass_topk,
+            tokenizer_vocab=tokenizer_vocab,
+            vocab_dim=200,
+            question=_binary_mc_question(),
+        )
+        assert np.isfinite(risk)
+        assert risk == pytest.approx(0.5, abs=1e-6)
+
     def test_negative_token_id_is_dropped(self):
         # Defensive: a backend that smuggles a negative id should not crash
         # nor be counted (numpy's negative indexing would otherwise wrap
