@@ -367,6 +367,9 @@ def main() -> int:
                         help=f"Comma-separated subset of {DEFAULT_BACKENDS}.")
     parser.add_argument("--seeds", default=None,
                         help=f"Comma-separated seeds (default {DEFAULT_SEEDS}).")
+    parser.add_argument("--modes", default=None,
+                        help=f"Comma-separated subset of {list(MODE_FLAGS)}; "
+                             "applied to each model's default mode list.")
     parser.add_argument("--no-skip", action="store_true",
                         help="Re-run cells even if a matching JSON exists.")
     parser.add_argument("--dry-run", action="store_true",
@@ -376,6 +379,16 @@ def main() -> int:
     args = parser.parse_args()
 
     models = _parse_models(args.models)
+    if args.modes:
+        wanted = [m.strip() for m in args.modes.split(",") if m.strip()]
+        unknown = [m for m in wanted if m not in MODE_FLAGS]
+        if unknown:
+            raise SystemExit(f"Unknown mode(s): {unknown}. Known: {list(MODE_FLAGS)}")
+        models = {
+            name: [m for m in defmodes if m in wanted]
+            for name, defmodes in models.items()
+        }
+        models = {n: ms for n, ms in models.items() if ms}
     backends = (
         [b.strip() for b in args.backends.split(",") if b.strip()]
         if args.backends else list(DEFAULT_BACKENDS)
