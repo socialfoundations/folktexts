@@ -524,6 +524,7 @@ def load_vllm_model(
     tensor_parallel_size: int = 1,
     trust_remote_code: bool = True,
     seed: int = 42,
+    max_logprobs: int = 50,
     **kwargs,
 ):
     """Load a vLLM `LLM` engine and its tokenizer.
@@ -560,6 +561,11 @@ def load_vllm_model(
     seed : int, optional
         Random seed for vLLM. Doesn't affect greedy (`temperature=0`) decoding
         but pinned for safety.
+    max_logprobs : int, optional
+        Engine-level cap on top-K logprobs SamplingParams may request.
+        Default 50 — must be ≥ ``VLLMClassifier._TOPK_LOGPROBS`` or the engine
+        rejects the request at predict time (`VLLMValidationError: Requested
+        sample logprobs of K, which is greater than max allowed`).
     **kwargs
         Additional keyword arguments forwarded verbatim to ``vllm.LLM(...)``.
 
@@ -591,6 +597,7 @@ def load_vllm_model(
         tensor_parallel_size=tensor_parallel_size,
         trust_remote_code=trust_remote_code,
         seed=seed,
+        max_logprobs=max_logprobs,
         **kwargs,
     )
     tokenizer = llm.get_tokenizer()
