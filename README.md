@@ -63,6 +63,11 @@ pip install folktexts
 ```
 conda create -n folktexts python=3.11 && conda activate folktexts
 pip install folktexts
+
+# Install the vLLM extra for the default high-throughput local backend (CUDA GPU required).
+# Skip this if you only plan to run with --inference-backend transformers, --use-web-api-model,
+# or on machines without an NVIDIA GPU.
+pip install 'folktexts[vllm]'
 ```
 
 2. Create the working folders and download a model
@@ -118,7 +123,13 @@ clf = TransformersLLMClassifier(
     tokenizer=tokenizer,
     task=acs_task_name,
 )
-# NOTE: You can also use a web-hosted model like GPT4 using the `WebAPILLMClassifier` class
+# NOTE: For high-throughput local inference, swap to `VLLMClassifier`:
+#   from folktexts.llm_utils import load_vllm_model
+#   from folktexts.classifier import VLLMClassifier
+#   llm, tokenizer = load_vllm_model("/path/to/model", max_model_len=2048)
+#   clf = VLLMClassifier(llm=llm, tokenizer=tokenizer, task=acs_task_name,
+#                        model_name_or_path="/path/to/model")
+# Or use a web-hosted model with `WebAPILLMClassifier` (litellm-compatible).
 
 # Use a dataset or feed in your own data
 dataset = ACSDataset.make_from_task(acs_task_name)   # use `.subsample(0.01)` to get faster approximate results
@@ -183,7 +194,12 @@ conjunction with the `run_acs_benchmark` command line script, or with the
 | `--use-chat-template` | Format prompts using the tokenizer's chat template (recommended for instruct/chat models). Pair with `--system-prompt` and/or `--chat-prompt` to override the defaults. Mutually exclusive with `--reasoning-prompting`. **By default** uses zero-shot prompting without a chat template. | Boolean flag (`True` if present, `False` otherwise) |
 | `--reasoning-prompting` | Use reasoning-based prompting (chain-of-thought): the model generates reasoning text before outputting a probability estimate, which is extracted from the generated text via regex. | Boolean flag (`True` if present, `False` otherwise) |
 | `--enable-thinking` | Enable thinking mode for tokenizers that support it (e.g. Qwen3). Only applies with `--reasoning-prompting`; calls `apply_chat_template(enable_thinking=True)` and strips the `<think>` block before extraction. | Boolean flag (`True` if present, `False` otherwise) |
-| `--use-web-api-model` | Whether the given `--model` name corresponds to a web-hosted model or not. **By default** this is False (assumes a huggingface transformers model). If this flag is provided, `--model` must contain a [litellm](https://docs.litellm.ai) model identifier ([examples here](https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models)). | Boolean flag (`True` if present, `False` otherwise) |
+| `--use-web-api-model` | Whether the given `--model` name corresponds to a web-hosted model or not. **By default** this is False (assumes a local model). If this flag is provided, `--model` must contain a [litellm](https://docs.litellm.ai) model identifier ([examples here](https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models)). | Boolean flag (`True` if present, `False` otherwise) |
+| `--inference-backend` | Local inference backend. **Default** `vllm` for high-throughput continuous batching (requires `pip install 'folktexts[vllm]'` and a CUDA GPU); pass `transformers` to use the HuggingFace path instead. Ignored when `--use-web-api-model` is set. | `vllm`, `transformers` |
+| `--gpu-memory-utilization` | vLLM only. Fraction of GPU VRAM vLLM may pre-allocate for KV cache. Lower if vLLM OOMs at startup. | `0.85` (default) |
+| `--max-model-len` | vLLM only. Maximum tokens (input + output) per request. Defaults to `--context-size + 5000` for reasoning runs, otherwise `--context-size + 256`. Override on tighter VRAM. | `2048`, `8192` |
+| `--vllm-dtype` | vLLM only. Compute dtype. | `auto`, `bfloat16`, `float16` |
+| `--tensor-parallel-size` | vLLM only. Number of GPUs to shard the model across; auto-detects from `CUDA_VISIBLE_DEVICES`. | `1`, `2` |
 | `--subsampling` | Which fraction of the dataset to use for the benchmark. **By default** will use the whole test set. | `0.01` |
 | `--fit-threshold` | Whether to use the given number of samples to fit the binarization threshold. **By default** will use a fixed $t=0.5$ threshold instead of fitting on data. | `100` |
 | `--batch-size` | The number of samples to process in each inference batch. Choose according to your available VRAM. | `10`, `32` |
@@ -283,7 +299,7 @@ This script uses sklearn's [`permutation_importance`](https://scikit-learn.org/s
 3.
     **Q:** Can I use `folktexts` with closed-source models?
 
-    **A:** **Yes!** We provide compatibility with local LLMs via [🤗 transformers](https://github.com/huggingface/transformers) and compatibility with web-hosted LLMs via [litellm](https://github.com/BerriAI/litellm). For example, you can use `--model='gpt-4o' --use-web-api-model` to use GPT-4o when calling the `run_acs_benchmark` script. [Here's a complete list](https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models) of compatible OpenAI models. Note that some models are not compatible as they don't enable access to log-probabilities.
+    **A:** **Yes!** Local LLMs run on a high-throughput [vLLM](https://github.com/vllm-project/vllm) backend by default (install with `pip install 'folktexts[vllm]'`); pass `--inference-backend transformers` to fall back to the [🤗 transformers](https://github.com/huggingface/transformers) path. Web-hosted LLMs are supported via [litellm](https://github.com/BerriAI/litellm) — for example, `--model='gpt-4o' --use-web-api-model` runs GPT-4o through the OpenAI API. [Here's a complete list](https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models) of compatible OpenAI models. Note that some models are not compatible as they don't enable access to log-probabilities.
     Using models through a web API requires installing extra optional dependencies with `pip install 'folktexts[apis]'`.
 
 

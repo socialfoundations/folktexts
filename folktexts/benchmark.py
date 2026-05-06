@@ -15,7 +15,7 @@ from ._io import load_json, save_json
 from ._utils import hash_dict, is_valid_number, get_current_timestamp
 from .acs.acs_dataset import ACSDataset
 from .acs.acs_tasks import ACSTaskMetadata
-from .classifier import LLMClassifier, TransformersLLMClassifier, WebAPILLMClassifier
+from .classifier import LLMClassifier, TransformersLLMClassifier, VLLMClassifier, WebAPILLMClassifier
 from .dataset import Dataset
 from .evaluation import evaluate_predictions
 from .plotting import render_evaluation_plots, render_fairness_plots
@@ -443,6 +443,8 @@ class Benchmark:
         data_dir: str | Path = None,
         max_api_rpm: int = None,
         config: BenchmarkConfig = BenchmarkConfig.default_config(),
+        backend: str | None = None,
+        model_name_or_path: str | Path | None = None,
         **kwargs,
     ) -> Benchmark:
         """Create a standardized calibration benchmark on ACS data.
@@ -509,7 +511,35 @@ class Benchmark:
             tokenizer=tokenizer,
             max_api_rpm=max_api_rpm,
             config=config,
+            backend=backend,
+            model_name_or_path=model_name_or_path,
         )
+
+    @staticmethod
+    def _resolve_backend(*, backend: str | None, model) -> str:
+        """Pick the inference backend for this benchmark run.
+
+        Explicit `backend` overrides autodetection. Autodetection rules:
+        - `model` is a string -> "webapi" (model ID for litellm).
+        - `model` is a `vllm.LLM`-like object (has `.generate` and `.get_tokenizer`) -> "vllm".
+        - Otherwise -> "transformers".
+        """
+        if backend is not None:
+            backend = backend.lower()
+            if backend not in {"transformers", "vllm", "webapi"}:
+                raise ValueError(
+                    f"Unknown inference backend '{backend}'. "
+                    f"Expected one of: 'transformers', 'vllm', 'webapi'."
+                )
+            return backend
+
+        if isinstance(model, str):
+            return "webapi"
+        if hasattr(model, "generate") and hasattr(model, "get_tokenizer"):
+            # Duck-typed vLLM `LLM`. transformers models also expose `.generate`,
+            # but not `.get_tokenizer` — that's the discriminator.
+            return "vllm"
+        return "transformers"
 
     @staticmethod
     def _configure_task_question(task: TaskMetadata, config: BenchmarkConfig) -> None:
@@ -645,6 +675,8 @@ class Benchmark:
         tokenizer: AutoTokenizer = None,    # WebAPI models have no local tokenizer
         max_api_rpm: int = None,
         config: BenchmarkConfig = BenchmarkConfig.default_config(),
+        backend: str | None = None,
+        model_name_or_path: str | Path | None = None,
         **kwargs,
     ) -> Benchmark:
         """Create a calibration benchmark from a given configuration.
@@ -710,8 +742,9 @@ class Benchmark:
         if max_api_rpm is not None and isinstance(model, str):
             llm_inference_kwargs["max_api_rpm"] = max_api_rpm
 
-        # Create LLMClassifier object
-        if isinstance(model, str):
+        resolved_backend = cls._resolve_backend(backend=backend, model=model)
+
+        if resolved_backend == "webapi":
             llm_clf = WebAPILLMClassifier(
                 model_name=model,
                 task=task,
@@ -720,7 +753,18 @@ class Benchmark:
             )
             logging.info(f"Using webAPI model: {model}")
 
-        else:
+        elif resolved_backend == "vllm":
+            llm_clf = VLLMClassifier(
+                llm=model,
+                tokenizer=tokenizer,
+                task=task,
+                model_name_or_path=model_name_or_path,
+                encode_row=encode_row_function,
+                **llm_inference_kwargs,
+            )
+            logging.info(f"Using local vLLM model: {llm_clf.model_name}")
+
+        else:  # transformers
             llm_clf = TransformersLLMClassifier(
                 model=model,
                 tokenizer=tokenizer,

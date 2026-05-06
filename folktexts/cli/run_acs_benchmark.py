@@ -3,6 +3,7 @@
 """
 import json
 import logging
+import os
 import sys
 from argparse import ArgumentParser
 from pathlib import Path
@@ -12,6 +13,11 @@ DEFAULT_ACS_TASK = "ACSIncome"
 DEFAULT_BATCH_SIZE = 16
 DEFAULT_CONTEXT_SIZE = 600
 DEFAULT_SEED = 42
+
+DEFAULT_INFERENCE_BACKEND = "vllm"
+DEFAULT_GPU_MEM_UTIL = 0.85
+DEFAULT_VLLM_DTYPE = "auto"
+DEFAULT_TENSOR_PARALLEL_SIZE = 1
 
 
 def setup_arg_parser() -> ArgumentParser:
@@ -52,6 +58,52 @@ def setup_arg_parser() -> ArgumentParser:
         help="[bool] Whether use a model hosted on a web API (instead of a local model)",
         action="store_true",
         default=False,
+    )
+
+    parser.add_argument(
+        "--inference-backend",
+        type=str,
+        choices=["transformers", "vllm"],
+        default=DEFAULT_INFERENCE_BACKEND,
+        help=(
+            "[str] Local inference backend to use; default is 'vllm'. "
+            "Pass 'transformers' to fall back to the HuggingFace path. "
+            "Ignored when --use-web-api-model is set."
+        ),
+    )
+
+    parser.add_argument(
+        "--gpu-memory-utilization",
+        type=float,
+        default=DEFAULT_GPU_MEM_UTIL,
+        help="[float] vLLM gpu_memory_utilization (default 0.85). Lower if vLLM OOMs at startup.",
+    )
+
+    parser.add_argument(
+        "--max-model-len",
+        type=int,
+        default=None,
+        help=(
+            "[int] vLLM max_model_len (input + output tokens). If unset, derived "
+            "from --context-size + max_new_tokens for the prompting mode."
+        ),
+    )
+
+    parser.add_argument(
+        "--vllm-dtype",
+        type=str,
+        default=DEFAULT_VLLM_DTYPE,
+        help="[str] vLLM compute dtype (auto/bfloat16/float16/float32).",
+    )
+
+    parser.add_argument(
+        "--tensor-parallel-size",
+        type=int,
+        default=None,
+        help=(
+            "[int] vLLM tensor_parallel_size. If unset, auto-detected from "
+            "CUDA_VISIBLE_DEVICES (1 if unset)."
+        ),
     )
 
     parser.add_argument(
@@ -181,15 +233,42 @@ def main():
         population_filter_dict = cmd_line_args_to_kwargs(args.use_population_filter)
 
     # Load model and tokenizer
+    backend = None  # webapi when --use-web-api-model; otherwise the local choice
     # > Web-hosted LLM
     if args.use_web_api_model:
         model = args.model
         tokenizer = None
+        backend = "webapi"
 
-    # > Local LLM
+    # > Local LLM via vLLM (default)
+    elif args.inference_backend == "vllm":
+        from folktexts.llm_utils import load_vllm_model
+        tensor_parallel_size = args.tensor_parallel_size
+        if tensor_parallel_size is None:
+            cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES", "")
+            tensor_parallel_size = max(1, len([d for d in cuda_visible.split(",") if d.strip()]))
+        max_model_len = args.max_model_len
+        if max_model_len is None:
+            # Reasoning runs need much more output budget than baseline; use the
+            # bigger figure for both so a single vLLM engine handles the run.
+            reasoning_max_new_tokens = 5000 if (args.reasoning_prompting or args.enable_thinking) else 1
+            max_model_len = args.context_size + reasoning_max_new_tokens + 256
+
+        model, tokenizer = load_vllm_model(
+            args.model,
+            dtype=args.vllm_dtype,
+            gpu_memory_utilization=args.gpu_memory_utilization,
+            max_model_len=max_model_len,
+            tensor_parallel_size=tensor_parallel_size,
+            seed=args.seed,
+        )
+        backend = "vllm"
+
+    # > Local LLM via HuggingFace transformers (opt-in fallback)
     else:
         from folktexts.llm_utils import load_model_tokenizer
         model, tokenizer = load_model_tokenizer(args.model)
+        backend = "transformers"
 
     # Fill ACS Benchmark config
     from folktexts.benchmark import BenchmarkConfig
@@ -221,6 +300,8 @@ def main():
         config=config,
         subsampling=args.subsampling,
         max_api_rpm=args.max_api_rpm,
+        backend=backend,
+        model_name_or_path=args.model if backend == "vllm" else None,
     )
 
     # Set-up results directory
