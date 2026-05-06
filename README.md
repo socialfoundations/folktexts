@@ -15,28 +15,6 @@
 
 Folktexts provides a suite of Q&A datasets for evaluating **uncertainty**, **calibration**, **accuracy** and **fairness** of LLMs on individual outcome prediction tasks. It provides a flexible framework to derive prediction **tasks from survey data**, translates them into natural text prompts, extracts LLM-generated _risk scores_, and computes statistical properties of these risk scores by comparing them to the ground truth outcomes.
 
-<details>
-<summary><strong>Reasoning models (chain-of-thought):</strong> click to expand</summary>
-
-Folktexts can prompt reasoning models to think step-by-step before producing a probability estimate. Pass `--reasoning-prompting` to enable the `ReasoningQA` interface; add `--enable-thinking` for tokenizers that expose a `<think>` block (e.g. Qwen3).
-
-```
-# Example: Qwen3-4B in thinking mode
-download_models --model "Qwen/Qwen3-4B" --save-dir models
-run_acs_benchmark \
-  --model models/Qwen--Qwen3-4B \
-  --task ACSIncome \
-  --results-dir results \
-  --data-dir data \
-  --subsampling 0.01 \
-  --batch-size 1 \
-  --reasoning-prompting \
-  --enable-thinking
-```
-
-The probability is extracted from the generated text via regex (e.g. `Probability: 75%`). `--reasoning-prompting` is mutually exclusive with `--use-chat-template` (the reasoning path applies the tokenizer's chat template internally).
-</details>
-
 **Use folktexts to benchmark your LLM:**
 
 - Pre-defined Q&A benchmark tasks are provided based on data from the American Community Survey (<a href="https://www.census.gov/programs-surveys/acs/microdata/documentation.html">ACS</a>). Each tabular prediction task from the popular
@@ -44,7 +22,7 @@ The probability is extracted from the generated text via regex (e.g. `Probabilit
 as a natural-language Q&A task.
 - Parsed and ready-to-use versions of each *folktexts* dataset can be found on
 <a href="https://huggingface.co/datasets/acruz/folktexts"> Huggingface</a>.
-- The package can be used to customize your tasks. Select a feature to define your prediciton target. Specify subsets of input features to vary outcome uncertainty. Modify prompting templates to evaluate mappings from tabular data to natural text prompts. Compare different methods to extract uncertainty values from LLM responses. Extract raw risk scores and outcomes to perform custom statistical evaluations. Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
+- The package can be used to customize your tasks. Select a feature to define your prediction target. Specify subsets of input features to vary outcome uncertainty. Modify prompting templates to evaluate mappings from tabular data to natural text prompts. Compare different methods to extract uncertainty values from LLM responses. Extract raw risk scores and outcomes to perform custom statistical evaluations. Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
 
 <!-- ![folktexts-diagram](docs/_static/folktexts-loop-diagram.png) -->
 <p align="center">
@@ -80,33 +58,21 @@ pip install folktexts
 > Go through the following steps to run the benchmark tasks.
 > Alternatively, if you only want ready-to-use datasets, see [this section](#ready-to-use-datasets).
 
-1. Create conda environment
+1. Create the environment and install folktexts
 
 ```
-conda create -n folktexts python=3.11
-conda activate folktexts
-```
-
-2. Install folktexts package
-
-```
+conda create -n folktexts python=3.11 && conda activate folktexts
 pip install folktexts
 ```
 
-3. Create models dataset and results folder
+2. Create the working folders and download a model
 
 ```
-mkdir results
-mkdir models
-mkdir data
-```
-
-4. Download transformers model and tokenizer
-```
+mkdir results models data
 download_models --model 'google/gemma-2b' --save-dir models
 ```
 
-5. Run benchmark on a given task
+3. Run a benchmark task
 
 ```
 run_acs_benchmark --results-dir results --data-dir data --task 'ACSIncome' --model models/google--gemma-2b
@@ -222,8 +188,8 @@ conjunction with the `run_acs_benchmark` command line script, or with the
 | `--fit-threshold` | Whether to use the given number of samples to fit the binarization threshold. **By default** will use a fixed $t=0.5$ threshold instead of fitting on data. | `100` |
 | `--batch-size` | The number of samples to process in each inference batch. Choose according to your available VRAM. | `10`, `32` |
 
-
-Full list of options:
+<details>
+<summary><strong>Full list of options</strong> (click to expand)</summary>
 
 ```
 usage: run_acs_benchmark [-h] --model MODEL --results-dir RESULTS_DIR --data-dir DATA_DIR [--task TASK] [--few-shot FEW_SHOT] [--batch-size BATCH_SIZE] [--context-size CONTEXT_SIZE] [--fit-threshold FIT_THRESHOLD] [--subsampling SUBSAMPLING] [--seed SEED] [--use-web-api-model] [--dont-correct-order-bias] [--numeric-risk-prompting] [--reasoning-prompting] [--enable-thinking] [--reuse-few-shot-examples] [--balance-few-shot-examples] [--use-chat-template] [--chat-prompt CHAT_PROMPT] [--system-prompt SYSTEM_PROMPT]
@@ -276,9 +242,12 @@ options:
                         [str] The logging level to use for the experiment
 ```
 
+</details>
 
 
 ## Evaluating feature importance
+<details>
+<summary>click to expand</summary>
 
 By evaluating LLMs on tabular classification tasks, we can use standard feature importance methods to assess which features the model uses to compute risk scores.
 
@@ -293,6 +262,8 @@ python -m folktexts.cli.eval_feature_importance --model 'meta-llama/Meta-Llama-3
 </div>
 
 This script uses sklearn's [`permutation_importance`](https://scikit-learn.org/stable/modules/generated/sklearn.inspection.permutation_importance.html#sklearn.inspection.permutation_importance) to assess which features contribute the most for the ROC AUC metric (other metrics can be assessed using the `--scorer [scorer]` parameter).
+
+</details>
 
 
 ## FAQ
