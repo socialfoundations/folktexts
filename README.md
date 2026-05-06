@@ -15,28 +15,6 @@
 
 Folktexts provides a suite of Q&A datasets for evaluating **uncertainty**, **calibration**, **accuracy** and **fairness** of LLMs on individual outcome prediction tasks. It provides a flexible framework to derive prediction **tasks from survey data**, translates them into natural text prompts, extracts LLM-generated _risk scores_, and computes statistical properties of these risk scores by comparing them to the ground truth outcomes.
 
-<details>
-<summary><strong>Reasoning models (chain-of-thought):</strong> click to expand</summary>
-
-Folktexts can prompt reasoning models to think step-by-step before producing a probability estimate. Pass `--reasoning-prompting` to enable the `ReasoningQA` interface; add `--enable-thinking` for tokenizers that expose a `<think>` block (e.g. Qwen3).
-
-```
-# Example: Qwen3-4B in thinking mode
-download_models --model "Qwen/Qwen3-4B" --save-dir models
-run_acs_benchmark \
-  --model models/Qwen--Qwen3-4B \
-  --task ACSIncome \
-  --results-dir results \
-  --data-dir data \
-  --subsampling 0.01 \
-  --batch-size 1 \
-  --reasoning-prompting \
-  --enable-thinking
-```
-
-The probability is extracted from the generated text via regex (e.g. `Probability: 75%`). `--reasoning-prompting` is mutually exclusive with `--use-chat-template` (the reasoning path applies the tokenizer's chat template internally).
-</details>
-
 **Use folktexts to benchmark your LLM:**
 
 - Pre-defined Q&A benchmark tasks are provided based on data from the American Community Survey (<a href="https://www.census.gov/programs-surveys/acs/microdata/documentation.html">ACS</a>). Each tabular prediction task from the popular
@@ -44,7 +22,7 @@ The probability is extracted from the generated text via regex (e.g. `Probabilit
 as a natural-language Q&A task.
 - Parsed and ready-to-use versions of each *folktexts* dataset can be found on
 <a href="https://huggingface.co/datasets/acruz/folktexts"> Huggingface</a>.
-- The package can be used to customize your tasks. Select a feature to define your prediciton target. Specify subsets of input features to vary outcome uncertainty. Modify prompting templates to evaluate mappings from tabular data to natural text prompts. Compare different methods to extract uncertainty values from LLM responses. Extract raw risk scores and outcomes to perform custom statistical evaluations. Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
+- The package can be used to customize your tasks. Select a feature to define your prediction target. Specify subsets of input features to vary outcome uncertainty. Modify prompting templates to evaluate mappings from tabular data to natural text prompts. Compare different methods to extract uncertainty values from LLM responses. Extract raw risk scores and outcomes to perform custom statistical evaluations. Package documentation can be found [here](https://socialfoundations.github.io/folktexts/).
 
 <!-- ![folktexts-diagram](docs/_static/folktexts-loop-diagram.png) -->
 <p align="center">
@@ -80,33 +58,21 @@ pip install folktexts
 > Go through the following steps to run the benchmark tasks.
 > Alternatively, if you only want ready-to-use datasets, see [this section](#ready-to-use-datasets).
 
-1. Create conda environment
+1. Create the environment and install folktexts
 
 ```
-conda create -n folktexts python=3.11
-conda activate folktexts
-```
-
-2. Install folktexts package
-
-```
+conda create -n folktexts python=3.11 && conda activate folktexts
 pip install folktexts
 ```
 
-3. Create models dataset and results folder
+2. Create the working folders and download a model
 
 ```
-mkdir results
-mkdir models
-mkdir data
-```
-
-4. Download transformers model and tokenizer
-```
+mkdir results models data
 download_models --model 'google/gemma-2b' --save-dir models
 ```
 
-5. Run benchmark on a given task
+3. Run a benchmark task
 
 ```
 run_acs_benchmark --results-dir results --data-dir data --task 'ACSIncome' --model models/google--gemma-2b
@@ -222,60 +188,7 @@ conjunction with the `run_acs_benchmark` command line script, or with the
 | `--fit-threshold` | Whether to use the given number of samples to fit the binarization threshold. **By default** will use a fixed $t=0.5$ threshold instead of fitting on data. | `100` |
 | `--batch-size` | The number of samples to process in each inference batch. Choose according to your available VRAM. | `10`, `32` |
 
-
-Full list of options:
-
-```
-usage: run_acs_benchmark [-h] --model MODEL --results-dir RESULTS_DIR --data-dir DATA_DIR [--task TASK] [--few-shot FEW_SHOT] [--batch-size BATCH_SIZE] [--context-size CONTEXT_SIZE] [--fit-threshold FIT_THRESHOLD] [--subsampling SUBSAMPLING] [--seed SEED] [--use-web-api-model] [--dont-correct-order-bias] [--numeric-risk-prompting] [--reasoning-prompting] [--enable-thinking] [--reuse-few-shot-examples] [--balance-few-shot-examples] [--use-chat-template] [--chat-prompt CHAT_PROMPT] [--system-prompt SYSTEM_PROMPT]
-                         [--use-feature-subset USE_FEATURE_SUBSET] [--use-population-filter USE_POPULATION_FILTER] [--max-api-rpm MAX_API_RPM] [--logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
-
-Benchmark risk scores produced by a language model on ACS data.
-
-options:
-  -h, --help            show this help message and exit
-  --model MODEL         [str] Model name or path to model saved on disk
-  --results-dir RESULTS_DIR
-                        [str] Directory under which this experiment's results will be saved
-  --data-dir DATA_DIR   [str] Root folder to find datasets on
-  --task TASK           [str] Name of the ACS task to run the experiment on
-  --few-shot FEW_SHOT   [int] Use few-shot prompting with the given number of shots
-  --batch-size BATCH_SIZE
-                        [int] The batch size to use for inference
-  --context-size CONTEXT_SIZE
-                        [int] The maximum context size when prompting the LLM
-  --fit-threshold FIT_THRESHOLD
-                        [int] Whether to fit the prediction threshold, and on how many samples
-  --subsampling SUBSAMPLING
-                        [float] Which fraction of the dataset to use (if omitted will use all data)
-  --seed SEED           [int] Random seed -- to set for reproducibility
-  --use-web-api-model   [bool] Whether use a model hosted on a web API (instead of a local model)
-  --dont-correct-order-bias
-                        [bool] Whether to avoid correcting ordering bias, by default will correct it
-  --numeric-risk-prompting
-                        [bool] Whether to prompt for numeric risk-estimates instead of multiple-choice Q&A
-  --reasoning-prompting
-                        [bool] Whether to use reasoning-based prompting (chain-of-thought) where the model reasons before outputting a probability
-  --enable-thinking
-                        [bool] Whether to enable thinking mode for models that support it (e.g., Qwen3). Only applies with --reasoning-prompting
-  --reuse-few-shot-examples
-                        [bool] Whether to reuse the same samples for few-shot prompting (or sample new ones every time)
-  --balance-few-shot-examples
-                        [bool] Whether to sample evenly from all classes in few-shot prompting
-  --use-chat-template   [bool] Whether to format prompts using the tokenizer's chat template (for instruct/chat models)
-  --chat-prompt CHAT_PROMPT
-                        [str] Custom assistant prefill text to use with chat templates
-  --system-prompt SYSTEM_PROMPT
-                        [str] Custom system prompt text to use with chat templates
-  --use-feature-subset USE_FEATURE_SUBSET
-                        [str] Optional subset of features to use for prediction, comma separated
-  --use-population-filter USE_POPULATION_FILTER
-                        [str] Optional population filter for this benchmark; must follow the format 'column_name=value' to filter the dataset by a specific value.
-  --max-api-rpm MAX_API_RPM
-                        [int] Maximum number of API requests per minute (if using a web-hosted model)
-  --logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
-                        [str] The logging level to use for the experiment
-```
-
+Run `run_acs_benchmark --help` for the full list of options (few-shot prompting, custom system/chat prompts, feature/population filters, web-API rate limits, logging level, etc.).
 
 
 ## Evaluating feature importance
