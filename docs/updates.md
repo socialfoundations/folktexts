@@ -56,30 +56,6 @@ contract (multiple-choice, direct-numeric, and reasoning prompting).
   Multiple-choice mode runs unmasked; the QA decoder's prefix-variant
   matching handles renormalisation across answer letters.
 
-### Two structural fixes shipped with the migration
-
-While building the vLLM backend, two issues were surfaced and fixed in this
-release. Both are bug fixes, not API changes.
-
-**vLLM `logprobs_mode="processed_logprobs"`** — vLLM's default
-`raw_logprobs` returns top-K logprobs computed *before* the
-`allowed_token_ids` mask is applied. For `DirectNumericQA` on tokenizers
-with multi-digit decimal tokens (Llama-3 has 1100), the unmasked top-K is
-dominated by `'\n'`, `<|end_of_text|>`, and `'.'`. The numeric decoder
-treats `'.'` as a numeric token and would pick it over the only-allowed
-digit, producing answer text `"5."` → regex `"5"` → 0.5. The 8B base
-checkpoint collapsed to 99% of rows at exactly 0.5. `load_vllm_model` now
-defaults to `logprobs_mode="processed_logprobs"`, which returns top-K from
-the post-mask distribution and restores the expected behaviour.
-
-**`ReasoningQA.max_new_tokens` 5000 → 8000** — Qwen3-Thinking-2507 with
-`enable_thinking=True` did not reliably close `</think>` within 5000
-tokens (~13% of rows ran to budget mid-CoT and fell back to the regex
-0.5 default). Bumping to 8000 reduces the regex 0.5-fallback rate from
-13.1% to 2.5% and lifts thinking-on AUC on ACSIncome from 0.737 to 0.799.
-The CLI `max_model_len` heuristic now derives from
-`ReasoningQA.max_new_tokens` symbolically so the two stay in sync.
-
 ### Cluster runtime requirements (B200 / Hopper / vllm 0.20.1 wheel)
 
 The vLLM 0.20.1 wheel is built against CUDA 13. On clusters where the
@@ -106,9 +82,8 @@ paper's Table 1 (8 models × 2-4 modes), a modern + thinking-model sweep
 verified across 4 seeds × 2 backends on Llama-3-8B-Instruct and
 Qwen3-Thinking-2507.
 
-After the two structural fixes above, **36/38 cells fall within the
-strict gates** `|ΔAUC| ≤ 0.015` and `|ΔECE| ≤ 0.025`. The two
-remaining outliers are characterised:
+**36/38 cells fall within the strict gates** `|ΔAUC| ≤ 0.015` and
+`|ΔECE| ≤ 0.025`. The two remaining outliers are characterised:
 
 - `Llama-3-8B` base × `numeric` (zero-shot): vLLM `+0.017` AUC, `−0.041`
   ECE — vLLM is slightly *better*. The model is essentially near-random
