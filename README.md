@@ -29,54 +29,7 @@ as a natural-language Q&A task.
     <img src="docs/_static/folktexts-loop-diagram.png" alt="folktexts-diagram" width="700px">
 </p>
 
-> **🆕 v0.4.0** introduces a [vLLM](https://github.com/vllm-project/vllm) backend for local inference — typically 5–30× faster than the existing 🤗 transformers path, which remains fully supported as a fallback. See [`docs/updates.md`](docs/updates.md) for the full release notes.
-
-<details>
-<summary><strong>Using the vLLM backend</strong> (click to expand)</summary>
-
-Install the optional `vllm` extra (CUDA GPU required):
-
-```bash
-pip install 'folktexts[vllm]'
-```
-
-**From the CLI**, vLLM is now the default — no flag changes needed:
-
-```bash
-run_acs_benchmark --model models/google--gemma-2b --task ACSIncome \
-    --results-dir results --data-dir data
-```
-
-Pass `--inference-backend transformers` to opt back into the HuggingFace
-path. vLLM-specific knobs (all optional, sensible defaults):
-
-- `--gpu-memory-utilization 0.85` — fraction of VRAM vLLM may pre-allocate for the KV cache.
-- `--max-model-len 8192` — input + output token cap. Auto-derived from `--context-size` and the prompting mode if unset.
-- `--vllm-dtype bfloat16` — compute dtype (`auto`, `bfloat16`, `float16`, `float32`).
-- `--tensor-parallel-size 2` — shard across *N* GPUs; auto-detected from `CUDA_VISIBLE_DEVICES`.
-
-**From Python**, use `VLLMClassifier` instead of `TransformersLLMClassifier`:
-
-```py
-from folktexts.llm_utils import load_vllm_model
-from folktexts.classifier import VLLMClassifier
-
-# Load the engine and tokenizer (BF16, gpu_memory_utilization=0.85 by default).
-llm, tokenizer = load_vllm_model("/path/to/model", max_model_len=2048)
-
-# Same interface as TransformersLLMClassifier — predict_proba / predict / fit work unchanged.
-clf = VLLMClassifier(
-    llm=llm,
-    tokenizer=tokenizer,
-    task="ACSIncome",
-    model_name_or_path="/path/to/model",
-)
-test_scores = clf.predict_proba(X_test)
-```
-
-`VLLMClassifier` exposes the exact same scoring interface as `TransformersLLMClassifier`, so existing code that goes through `Benchmark.make_*_benchmark(...)` can be switched by simply loading the model with `load_vllm_model` and passing `backend="vllm"` (or letting autodetect fire).
-
-</details>
+> **🆕 v0.4.0** ships a [vLLM](https://github.com/vllm-project/vllm) backend for local inference — typically 5–30× faster than the 🤗 transformers path, which remains supported via `--inference-backend transformers`. Install with `pip install 'folktexts[vllm]'` (CUDA GPU required); see [`docs/updates.md`](docs/updates.md) for the full release notes.
 
 
 ## Table of contents   <!-- omit in toc -->
@@ -110,12 +63,7 @@ pip install folktexts
 
 ```
 conda create -n folktexts python=3.11 && conda activate folktexts
-pip install folktexts
-
-# Install the vLLM extra for the default high-throughput local backend (CUDA GPU required).
-# Skip this if you only plan to run with --inference-backend transformers, --use-web-api-model,
-# or on machines without an NVIDIA GPU.
-pip install 'folktexts[vllm]'
+pip install 'folktexts[vllm]'    # drop the [vllm] extra to skip the default GPU backend
 ```
 
 2. Create the working folders and download a model
@@ -134,13 +82,15 @@ run_acs_benchmark --results-dir results --data-dir data --task 'ACSIncome' --mod
 Run `run_acs_benchmark --help` to get a list of all available benchmark flags.
 
 ### Ready-to-use datasets
+<details>
+<summary>click to expand</summary>
 
-Ready-to-use Q&A datasets generated from the 2018 American Community Survey are available via
+Pre-rendered Q&A datasets generated from the 2018 American Community Survey are available on
 <a href="https://huggingface.co/datasets/acruz/folktexts">
 <span style="display: inline-block; vertical-align: middle;">
     <img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" alt="Logo" style="height: 1em; vertical-align: text-bottom;">
 </span>
-datasets</a>.
+Hugging Face</a> — handy if you only need the prompts/labels and don't want to run the LLM scoring pipeline yourself.
 
 ```py
 import datasets
@@ -150,80 +100,106 @@ acs_task_qa = datasets.load_dataset(
     split="test")       # Choose split according to your intended use case
 ```
 
+</details>
+
 
 ### Example usage
 
-Example code snippet that loads a pre-trained model, collects and parses Q&A data
-for the income-prediction task, and computes risk scores on the test split.
+Load a model and produce risk scores on the test split using the default vLLM backend:
 
 ```py
-# Load transformers model
-from folktexts.llm_utils import load_model_tokenizer
-model, tokenizer = load_model_tokenizer("gpt2")   # using tiny model as an example
-
+from folktexts.llm_utils import load_vllm_model
+from folktexts.classifier import VLLMClassifier
 from folktexts.acs import ACSDataset
-acs_task_name = "ACSIncome"     # Name of the benchmark ACS task to use
 
-# Create an object that classifies data using an LLM
-from folktexts import TransformersLLMClassifier
-clf = TransformersLLMClassifier(
-    model=model,
-    tokenizer=tokenizer,
-    task=acs_task_name,
+# BF16 + gpu_memory_utilization=0.85 by default; tune `max_model_len` for your VRAM.
+llm, tokenizer = load_vllm_model("/path/to/model", max_model_len=2048)
+
+clf = VLLMClassifier(
+    llm=llm, tokenizer=tokenizer,
+    task="ACSIncome",
+    model_name_or_path="/path/to/model",
 )
-# NOTE: For high-throughput local inference, swap to `VLLMClassifier`:
-#   from folktexts.llm_utils import load_vllm_model
-#   from folktexts.classifier import VLLMClassifier
-#   llm, tokenizer = load_vllm_model("/path/to/model", max_model_len=2048)
-#   clf = VLLMClassifier(llm=llm, tokenizer=tokenizer, task=acs_task_name,
-#                        model_name_or_path="/path/to/model")
-# Or use a web-hosted model with `WebAPILLMClassifier` (litellm-compatible).
 
-# Use a dataset or feed in your own data
-dataset = ACSDataset.make_from_task(acs_task_name)   # use `.subsample(0.01)` to get faster approximate results
-
-# You can compute risk score predictions using an sklearn-style interface
+dataset = ACSDataset.make_from_task("ACSIncome")    # `.subsample(0.01)` for faster approximate results
 X_test, y_test = dataset.get_test()
 test_scores = clf.predict_proba(X_test)
 ```
 
-If you only care about the overall benchmark results and not individual predictions,
-you can simply run the following code instead of using `.predict_proba()` directly:
+`VLLMClassifier`, `TransformersLLMClassifier`, and `WebAPILLMClassifier` all expose the
+same `.predict_proba` / `.predict` / `.fit` interface — switching backends is a one-line
+change to how the model is loaded.
+
+<details>
+<summary><strong>Using the 🤗 transformers backend instead</strong> (click to expand)</summary>
+
 ```py
-from folktexts.benchmark import Benchmark, BenchmarkConfig
+from folktexts.llm_utils import load_model_tokenizer
+from folktexts.classifier import TransformersLLMClassifier
+
+model, tokenizer = load_model_tokenizer("gpt2")     # tiny model for example
+clf = TransformersLLMClassifier(model=model, tokenizer=tokenizer, task="ACSIncome")
+```
+
+For web-hosted models (OpenAI, Anthropic, ...), use `WebAPILLMClassifier` with any
+[litellm](https://docs.litellm.ai)-compatible identifier that exposes log-probabilities
+(`pip install 'folktexts[apis]'`).
+
+</details>
+
+<details>
+<summary><strong>Running the full benchmark suite</strong> (click to expand)</summary>
+
+If you only care about overall metrics rather than per-row scores, use
+`Benchmark.make_benchmark`. The backend is autodetected from the model handle
+(vLLM `LLM` → `vllm`, HF `PreTrainedModel` → `transformers`, model-id string →
+`webapi`); pass `backend=` explicitly to override.
+
+```py
+from folktexts.benchmark import Benchmark
 bench = Benchmark.make_benchmark(
-    task=acs_task_name, dataset=dataset,  # These vars are defined in the snippet above
-    model=model, tokenizer=tokenizer,
-    numeric_risk_prompting=True,    # See the full list of configs below in the README
+    task="ACSIncome", dataset=dataset,
+    model=llm, tokenizer=tokenizer,
+    numeric_risk_prompting=True,    # see the options table below for the full list
 )
 bench_results = bench.run(results_root_dir="results")
 ```
 
-You can also use **reasoning-based prompting** (chain-of-thought) where the model generates
-reasoning text before outputting a probability estimate:
+</details>
+
+<details>
+<summary><strong>Reasoning prompting (chain-of-thought)</strong> (click to expand)</summary>
+
+The model generates reasoning text before emitting a probability, which is then
+extracted via regex. `enable_thinking=True` activates the Qwen3-style thinking-mode
+chat template and strips the `<think>` block before extraction.
+
 ```py
 from folktexts.benchmark import Benchmark, BenchmarkConfig
-config = BenchmarkConfig(
-    reasoning_prompting=True,    # Enable chain-of-thought reasoning
-    enable_thinking=True,        # Enable thinking mode for Qwen3-like models (optional)
-)
+
+config = BenchmarkConfig(reasoning_prompting=True, enable_thinking=True)
 bench = Benchmark.make_benchmark(
-    task=acs_task_name, dataset=dataset,
-    model=model, tokenizer=tokenizer,
-    config=config,
+    task="ACSIncome", dataset=dataset,
+    model=llm, tokenizer=tokenizer, config=config,
 )
 bench_results = bench.run(results_root_dir="results")
 ```
 
-Example snippet showcasing how to fit the binarization threshold on a few training samples
-(note that this is *not fine-tuning*), and obtaining discretized predictions using `.predict()`.
-```py
-# Optionally, you can fit the threshold based on a few samples
-clf.fit(*dataset[0:100])    # (`dataset[...]` will access training data)
+</details>
 
-# ...in order to get more accurate binary predictions with `.predict`
+<details>
+<summary><strong>Fitting a binarization threshold</strong> (click to expand)</summary>
+
+Fit a decision threshold on a small training slice (this is *not* fine-tuning —
+only the post-hoc threshold is learned), then call `.predict()` for discretized
+labels:
+
+```py
+clf.fit(*dataset[0:100])    # `dataset[...]` indexes into training data
 test_preds = clf.predict(X_test)
 ```
+
+</details>
 
 
 ## Benchmark features and options
