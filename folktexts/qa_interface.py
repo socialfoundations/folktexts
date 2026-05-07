@@ -502,7 +502,9 @@ class ReasoningQA(QAInterface):
     """
 
     num_forward_passes: int = -1    # -1 signals text generation mode
-    max_new_tokens: int = 5000
+    # Thinking-mode models (e.g., Qwen3-Thinking) need >= 8000 tokens to reliably
+    # close `</think>` and emit the final answer; 5000 leaves ~13% of rows unfinished.
+    max_new_tokens: int = 8000
     enable_thinking: bool = False
 
     def get_question_prompt(self, with_answer_prefill: bool = True) -> str:

@@ -124,11 +124,12 @@ def run_cell(cell: Cell, subsampling: float, *, skip_existing: bool = True) -> t
     try:
         if cell.backend == "vllm":
             from folktexts.llm_utils import load_vllm_model
-            # Reasoning needs ample output budget; ACS prompts are short, so 8k
-            # max_model_len is plenty.
+            from folktexts.qa_interface import ReasoningQA
+            # Need ≥ ACS prompt length (~700 tokens) + ReasoningQA.max_new_tokens
+            # (8000 post-fix); leave headroom.
             model, tokenizer = load_vllm_model(
                 model_path.as_posix(),
-                max_model_len=8192,
+                max_model_len=ReasoningQA.max_new_tokens + 1024,
                 seed=DEFAULT_SEED,
             )
         else:

@@ -85,7 +85,8 @@ def setup_arg_parser() -> ArgumentParser:
         default=None,
         help=(
             "[int] vLLM max_model_len (input + output tokens). If unset, derived "
-            "from --context-size + max_new_tokens for the prompting mode."
+            "from --context-size + ReasoningQA.max_new_tokens for the prompting "
+            "mode (currently 8000 for reasoning/thinking, 1 otherwise)."
         ),
     )
 
@@ -249,9 +250,15 @@ def main():
             tensor_parallel_size = max(1, len([d for d in cuda_visible.split(",") if d.strip()]))
         max_model_len = args.max_model_len
         if max_model_len is None:
-            # Reasoning runs need much more output budget than baseline; use the
-            # bigger figure for both so a single vLLM engine handles the run.
-            reasoning_max_new_tokens = 5000 if (args.reasoning_prompting or args.enable_thinking) else 1
+            # Reasoning runs need much more output budget than baseline. Pull from
+            # ReasoningQA.max_new_tokens so this stays in sync if the reasoning
+            # budget is bumped (Qwen3-Thinking needs ≥ 8k to close </think>).
+            from folktexts.qa_interface import ReasoningQA
+            reasoning_max_new_tokens = (
+                ReasoningQA.max_new_tokens
+                if (args.reasoning_prompting or args.enable_thinking)
+                else 1
+            )
             max_model_len = args.context_size + reasoning_max_new_tokens + 256
 
         model, tokenizer = load_vllm_model(
