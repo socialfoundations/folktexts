@@ -34,6 +34,7 @@ Check out the following sub-pages:
    :maxdepth: 1
 
    Readme file <readme>
+   Updates <updates>
    API reference <source/modules>
    Example notebooks <notebooks>
 
