@@ -596,6 +596,15 @@ def load_vllm_model(
     # caller has explicitly opted into verbose logs.
     os.environ.setdefault("VLLM_LOGGING_LEVEL", "WARNING")
 
+    # `processed_logprobs` returns top-K logprobs computed AFTER `allowed_token_ids`
+    # masking. The default `raw_logprobs` would return top-K from the unmasked
+    # distribution — which on `DirectNumericQA` causes the decoder to see non-digit
+    # tokens (e.g., '.', '\n') as high-probability "numeric tokens" and pick them
+    # over the only-allowed digit, collapsing Llama-3 base numeric output to 0.5
+    # (answer text "5." → regex "5" → 0.5). MC has no `allowed_token_ids` so this
+    # defaults to the raw distribution either way; numeric is the only mode this
+    # affects.
+    kwargs.setdefault("logprobs_mode", "processed_logprobs")
     logging.info(f"Loading vLLM model '{model_name_or_path}'")
     llm = LLM(
         model=str(model_name_or_path),
