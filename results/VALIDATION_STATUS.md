@@ -28,6 +28,12 @@ Aggregates the artifacts under `results/`. Each phase has a gate that the migrat
 
 - Source: `results/reasoning-sweep/REPORT.md`
 
+## Phase 7 — Edge cases
+
+- Source: `results/phase7-edge-cases/REPORT.md`
+- 1-sample DataFrame, model swap in same process, near/over-cap inputs,
+  tied-logit cross-backend agreement, OOM clean failure: **6/6 PASS**.
+
 ## Post-PR divergence fixes (2026-05-07)
 
 - Source: `divergences/`
