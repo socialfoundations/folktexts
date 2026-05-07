@@ -69,6 +69,7 @@ def main() -> int:
     multiseed = _try_read(RESULTS / "multi-seed-stability" / "REPORT.md")
     extended = _try_read(RESULTS / "extended-sweep" / "REPORT.md")
     reasoning = _try_read(RESULTS / "extended-sweep" / "REASONING_FAILURE_AUDIT.md")
+    reasoning_sweep = _try_read(RESULTS / "reasoning-sweep" / "REPORT.md")
 
     cross_rows_auc, cross_fails_auc = _count_gate_fails(cross, "AUC")
     cross_rows_ece, cross_fails_ece = _count_gate_fails(cross, "ECE")
@@ -143,14 +144,14 @@ def main() -> int:
         lines.append("- _Not yet run_ — `python scripts/extended_sweep.py --tier tier1`")
     lines.append("")
 
-    lines.append("## Phase 5 — Reasoning failure-rate audit")
+    lines.append("## Phase 5 — Reasoning sweep + failure-rate audit")
     lines.append("")
+    if reasoning_sweep:
+        lines.append("- Source: `results/reasoning-sweep/REPORT.md`")
     if reasoning:
-        lines.append("- Source: `results/extended-sweep/REASONING_FAILURE_AUDIT.md`")
-    else:
-        lines.append(
-            "- _Not yet run_ (depends on Phase 4) — `python scripts/audit_reasoning_failures.py`"
-        )
+        lines.append("- Failure-rate audit: `results/extended-sweep/REASONING_FAILURE_AUDIT.md`")
+    if not (reasoning_sweep or reasoning):
+        lines.append("- _Not yet run_ — `python scripts/reasoning_sweep.py`")
     lines.append("")
 
     OUT.write_text("\n".join(lines) + "\n")
