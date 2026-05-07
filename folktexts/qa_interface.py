@@ -376,10 +376,19 @@ class MultipleChoiceQA(QAInterface):
         msg = f"Answers have {answers_sum_prob:.2%} probability assigned."
         if answers_sum_prob < ANSWER_PROB_THRESHOLD:
             id_to_tok = {v: k for k, v in tokenizer_vocab.items()}
-            argmax_token = id_to_tok[np.argmax(last_token_probs)]
+            argmax_id = int(np.argmax(last_token_probs))
+            argmax_token = id_to_tok.get(argmax_id, f"<id={argmax_id}>")
             logging.warning(msg + f" Argmax token: '{argmax_token}'.")
         else:
             logging.debug(msg)
+
+        # No mass on any choice token — happens when the top-K logprobs cap
+        # excludes all answer-letter variants (vLLM/WebAPI), or with extreme
+        # FP16 underflow on transformers. Fall back to uniform over the QA's
+        # declared choices: same effect as the model saying "I don't know."
+        if answers_sum_prob <= 0 or not answers:
+            n = len(self.choices)
+            return {choice: 1.0 / n for choice in self.choices}
 
         return {
             choice: prob / answers_sum_prob
@@ -493,7 +502,9 @@ class ReasoningQA(QAInterface):
     """
 
     num_forward_passes: int = -1    # -1 signals text generation mode
-    max_new_tokens: int = 5000
+    # Thinking-mode models (e.g., Qwen3-Thinking) need >= 8000 tokens to reliably
+    # close `</think>` and emit the final answer; 5000 leaves ~13% of rows unfinished.
+    max_new_tokens: int = 8000
     enable_thinking: bool = False
 
     def get_question_prompt(self, with_answer_prefill: bool = True) -> str:

@@ -181,3 +181,9 @@ docs/notebooks/
 
 # Claude Code project context (local, not shared)
 CLAUDE.md
+
+# Local-only validation / debugging artifacts (kept out of the repo)
+scripts/
+divergences/
+results/VALIDATION_STATUS.md
+results/phase7-edge-cases/

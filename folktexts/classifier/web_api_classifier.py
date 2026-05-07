@@ -12,6 +12,7 @@ from typing import Callable
 import numpy as np
 import pandas as pd
 
+from folktexts.llm_utils import decode_topk_logprobs_to_risk_estimate
 from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA, ReasoningQA
 from folktexts.task import TaskMetadata
 
@@ -261,39 +262,33 @@ class WebAPILLMClassifier(LLMClassifier):
             logging.debug(f"ReasoningQA extracted probability: {risk_estimate:.2%}")
             return risk_estimate
 
-        # Get top token choices for each forward pass
+        # Get top-K logprobs per forward pass (keyed by decoded token string).
+        # OpenAI-style API returns string keys; we synthesise an integer ID per
+        # unique string so we can share the same scatter/decode helper as the
+        # vLLM backend (which provides real token IDs directly).
         token_choices_all_passes = response.choices[0].logprobs.content
 
-        # Construct dictionary of token to linear token probability for each forward pass
-        token_probs_all_passes = [
+        token_logprobs_per_pass = [
             {
-                token_metadata.token: np.exp(token_metadata.logprob)
+                token_metadata.token: token_metadata.logprob
                 for token_metadata in top_token_logprobs.top_logprobs
             }
             for top_token_logprobs in token_choices_all_passes
         ]
 
-        # Decode model output into risk estimates
-        # 1. Construct vocabulary dict for this response
-        vocab_tokens = {tok for forward_pass in token_probs_all_passes for tok in forward_pass}
+        all_tokens = sorted({tok for d in token_logprobs_per_pass for tok in d})
+        synthetic_vocab = {tok: idx for idx, tok in enumerate(all_tokens)}
 
-        token_to_id = {tok: i for i, tok in enumerate(vocab_tokens)}
-        id_to_token = {i: tok for i, tok in enumerate(vocab_tokens)}
+        per_pass_topk = [
+            {synthetic_vocab[tok]: lp for tok, lp in pass_logprobs.items()}
+            for pass_logprobs in token_logprobs_per_pass
+        ]
 
-        # 2. Parse `token_probs_all_passes` into an array of shape (num_passes, vocab_size)
-        token_probs_array = np.array([
-            [
-                forward_pass.get(id_to_token[i], 0)
-                for i in range(len(vocab_tokens))
-            ]
-            for forward_pass in token_probs_all_passes
-        ])
-        # NOTE: token_probs.shape = (num_passes, vocab_size)
-
-        # Get risk estimate
-        risk_estimate = question.get_answer_from_model_output(
-            token_probs_array,
-            tokenizer_vocab=token_to_id,
+        risk_estimate = decode_topk_logprobs_to_risk_estimate(
+            per_pass_topk,
+            tokenizer_vocab=synthetic_vocab,
+            vocab_dim=len(synthetic_vocab),
+            question=question,
         )
 
         # Sanity check numeric answers based on global model response:

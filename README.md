@@ -29,6 +29,7 @@ as a natural-language Q&A task.
     <img src="docs/_static/folktexts-loop-diagram.png" alt="folktexts-diagram" width="700px">
 </p>
 
+> **🆕 v0.4.0** ships a [vLLM](https://github.com/vllm-project/vllm) backend for local inference — typically 5–30× faster than the 🤗 transformers path, which remains supported via `--inference-backend transformers`. Install with `pip install 'folktexts[vllm]'` (CUDA GPU required); see [`docs/updates.md`](docs/updates.md) for the full release notes.
 
 
 ## Table of contents   <!-- omit in toc -->
@@ -62,7 +63,7 @@ pip install folktexts
 
 ```
 conda create -n folktexts python=3.11 && conda activate folktexts
-pip install folktexts
+pip install 'folktexts[vllm]'    # drop the [vllm] extra to skip the default GPU backend
 ```
 
 2. Create the working folders and download a model
@@ -81,13 +82,15 @@ run_acs_benchmark --results-dir results --data-dir data --task 'ACSIncome' --mod
 Run `run_acs_benchmark --help` to get a list of all available benchmark flags.
 
 ### Ready-to-use datasets
+<details>
+<summary>click to expand</summary>
 
-Ready-to-use Q&A datasets generated from the 2018 American Community Survey are available via
+Pre-rendered Q&A datasets generated from the 2018 American Community Survey are available on
 <a href="https://huggingface.co/datasets/acruz/folktexts">
 <span style="display: inline-block; vertical-align: middle;">
     <img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" alt="Logo" style="height: 1em; vertical-align: text-bottom;">
 </span>
-datasets</a>.
+Hugging Face</a> — handy if you only need the prompts/labels and don't want to run the LLM scoring pipeline yourself.
 
 ```py
 import datasets
@@ -97,77 +100,111 @@ acs_task_qa = datasets.load_dataset(
     split="test")       # Choose split according to your intended use case
 ```
 
+</details>
+
 
 ### Example usage
 
-Example code snippet that loads a pre-trained model, collects and parses Q&A data
-for the income-prediction task, and computes risk scores on the test split.
+Load a model and produce risk scores on the test split using the default vLLM backend:
 
 ```py
-# Load transformers model
-from folktexts.llm_utils import load_model_tokenizer
-model, tokenizer = load_model_tokenizer("gpt2")   # using tiny model as an example
-
+from folktexts.llm_utils import load_vllm_model
+from folktexts.classifier import VLLMClassifier
 from folktexts.acs import ACSDataset
-acs_task_name = "ACSIncome"     # Name of the benchmark ACS task to use
 
-# Create an object that classifies data using an LLM
-from folktexts import TransformersLLMClassifier
-clf = TransformersLLMClassifier(
-    model=model,
-    tokenizer=tokenizer,
-    task=acs_task_name,
+# BF16 + gpu_memory_utilization=0.85 by default; tune `max_model_len` for your VRAM.
+llm, tokenizer = load_vllm_model("/path/to/model", max_model_len=2048)
+
+clf = VLLMClassifier(
+    llm=llm, tokenizer=tokenizer,
+    task="ACSIncome",
+    model_name_or_path="/path/to/model",
 )
-# NOTE: You can also use a web-hosted model like GPT4 using the `WebAPILLMClassifier` class
 
-# Use a dataset or feed in your own data
-dataset = ACSDataset.make_from_task(acs_task_name)   # use `.subsample(0.01)` to get faster approximate results
-
-# You can compute risk score predictions using an sklearn-style interface
+dataset = ACSDataset.make_from_task("ACSIncome")    # `.subsample(0.01)` for faster approximate results
 X_test, y_test = dataset.get_test()
 test_scores = clf.predict_proba(X_test)
 ```
 
-If you only care about the overall benchmark results and not individual predictions,
-you can simply run the following code instead of using `.predict_proba()` directly:
+`VLLMClassifier`, `TransformersLLMClassifier`, and `WebAPILLMClassifier` all expose the
+same `.predict_proba` / `.predict` / `.fit` interface — switching backends is a one-line
+change to how the model is loaded.
+
+<details>
+<summary><strong>Using the 🤗 transformers backend instead</strong> (click to expand)</summary>
+
 ```py
-from folktexts.benchmark import Benchmark, BenchmarkConfig
+from folktexts.llm_utils import load_model_tokenizer
+from folktexts.classifier import TransformersLLMClassifier
+
+model, tokenizer = load_model_tokenizer("gpt2")     # tiny model for example
+clf = TransformersLLMClassifier(model=model, tokenizer=tokenizer, task="ACSIncome")
+```
+
+For web-hosted models (OpenAI, Anthropic, ...), use `WebAPILLMClassifier` with any
+[litellm](https://docs.litellm.ai)-compatible identifier that exposes log-probabilities
+(`pip install 'folktexts[apis]'`).
+
+</details>
+
+<details>
+<summary><strong>Running the full benchmark suite</strong> (click to expand)</summary>
+
+If you only care about overall metrics rather than per-row scores, use
+`Benchmark.make_benchmark`. The backend is autodetected from the model handle
+(vLLM `LLM` → `vllm`, HF `PreTrainedModel` → `transformers`, model-id string →
+`webapi`); pass `backend=` explicitly to override.
+
+```py
+from folktexts.benchmark import Benchmark
 bench = Benchmark.make_benchmark(
-    task=acs_task_name, dataset=dataset,  # These vars are defined in the snippet above
-    model=model, tokenizer=tokenizer,
-    numeric_risk_prompting=True,    # See the full list of configs below in the README
+    task="ACSIncome", dataset=dataset,
+    model=llm, tokenizer=tokenizer,
+    numeric_risk_prompting=True,    # see the options table below for the full list
 )
 bench_results = bench.run(results_root_dir="results")
 ```
 
-You can also use **reasoning-based prompting** (chain-of-thought) where the model generates
-reasoning text before outputting a probability estimate:
+</details>
+
+<details>
+<summary><strong>Reasoning prompting (chain-of-thought)</strong> (click to expand)</summary>
+
+The model generates reasoning text before emitting a probability, which is then
+extracted via regex. `enable_thinking=True` activates the Qwen3-style thinking-mode
+chat template and strips the `<think>` block before extraction.
+
 ```py
 from folktexts.benchmark import Benchmark, BenchmarkConfig
-config = BenchmarkConfig(
-    reasoning_prompting=True,    # Enable chain-of-thought reasoning
-    enable_thinking=True,        # Enable thinking mode for Qwen3-like models (optional)
-)
+
+config = BenchmarkConfig(reasoning_prompting=True, enable_thinking=True)
 bench = Benchmark.make_benchmark(
-    task=acs_task_name, dataset=dataset,
-    model=model, tokenizer=tokenizer,
-    config=config,
+    task="ACSIncome", dataset=dataset,
+    model=llm, tokenizer=tokenizer, config=config,
 )
 bench_results = bench.run(results_root_dir="results")
 ```
 
-Example snippet showcasing how to fit the binarization threshold on a few training samples
-(note that this is *not fine-tuning*), and obtaining discretized predictions using `.predict()`.
-```py
-# Optionally, you can fit the threshold based on a few samples
-clf.fit(*dataset[0:100])    # (`dataset[...]` will access training data)
+</details>
 
-# ...in order to get more accurate binary predictions with `.predict`
+<details>
+<summary><strong>Fitting a binarization threshold</strong> (click to expand)</summary>
+
+Fit a decision threshold on a small training slice (this is *not* fine-tuning —
+only the post-hoc threshold is learned), then call `.predict()` for discretized
+labels:
+
+```py
+clf.fit(*dataset[0:100])    # `dataset[...]` indexes into training data
 test_preds = clf.predict(X_test)
 ```
 
+</details>
+
 
 ## Benchmark features and options
+<details>
+<summary>click to expand</summary>
 
 Here's a summary list of the most important benchmark options/flags used in
 conjunction with the `run_acs_benchmark` command line script, or with the
@@ -183,7 +220,12 @@ conjunction with the `run_acs_benchmark` command line script, or with the
 | `--use-chat-template` | Format prompts using the tokenizer's chat template (recommended for instruct/chat models). Pair with `--system-prompt` and/or `--chat-prompt` to override the defaults. Mutually exclusive with `--reasoning-prompting`. **By default** uses zero-shot prompting without a chat template. | Boolean flag (`True` if present, `False` otherwise) |
 | `--reasoning-prompting` | Use reasoning-based prompting (chain-of-thought): the model generates reasoning text before outputting a probability estimate, which is extracted from the generated text via regex. | Boolean flag (`True` if present, `False` otherwise) |
 | `--enable-thinking` | Enable thinking mode for tokenizers that support it (e.g. Qwen3). Only applies with `--reasoning-prompting`; calls `apply_chat_template(enable_thinking=True)` and strips the `<think>` block before extraction. | Boolean flag (`True` if present, `False` otherwise) |
-| `--use-web-api-model` | Whether the given `--model` name corresponds to a web-hosted model or not. **By default** this is False (assumes a huggingface transformers model). If this flag is provided, `--model` must contain a [litellm](https://docs.litellm.ai) model identifier ([examples here](https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models)). | Boolean flag (`True` if present, `False` otherwise) |
+| `--use-web-api-model` | Whether the given `--model` name corresponds to a web-hosted model or not. **By default** this is False (assumes a local model). If this flag is provided, `--model` must contain a [litellm](https://docs.litellm.ai) model identifier ([examples here](https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models)). | Boolean flag (`True` if present, `False` otherwise) |
+| `--inference-backend` | Local inference backend. **Default** `vllm` for high-throughput continuous batching (requires `pip install 'folktexts[vllm]'` and a CUDA GPU); pass `transformers` to use the HuggingFace path instead. Ignored when `--use-web-api-model` is set. | `vllm`, `transformers` |
+| `--gpu-memory-utilization` | vLLM only. Fraction of GPU VRAM vLLM may pre-allocate for KV cache. Lower if vLLM OOMs at startup. | `0.85` (default) |
+| `--max-model-len` | vLLM only. Maximum tokens (input + output) per request. Defaults to `--context-size + ReasoningQA.max_new_tokens + 256` for reasoning runs (8000 + 256 = 8256 with the default budget), otherwise `--context-size + 1 + 256`. Override on tighter VRAM. | `2048`, `8192` |
+| `--vllm-dtype` | vLLM only. Compute dtype. | `auto`, `bfloat16`, `float16` |
+| `--tensor-parallel-size` | vLLM only. Number of GPUs to shard the model across; auto-detects from `CUDA_VISIBLE_DEVICES`. | `1`, `2` |
 | `--subsampling` | Which fraction of the dataset to use for the benchmark. **By default** will use the whole test set. | `0.01` |
 | `--fit-threshold` | Whether to use the given number of samples to fit the binarization threshold. **By default** will use a fixed $t=0.5$ threshold instead of fitting on data. | `100` |
 | `--batch-size` | The number of samples to process in each inference batch. Choose according to your available VRAM. | `10`, `32` |
@@ -192,7 +234,7 @@ conjunction with the `run_acs_benchmark` command line script, or with the
 <summary><strong>Full list of options</strong> (click to expand)</summary>
 
 ```
-usage: run_acs_benchmark [-h] --model MODEL --results-dir RESULTS_DIR --data-dir DATA_DIR [--task TASK] [--few-shot FEW_SHOT] [--batch-size BATCH_SIZE] [--context-size CONTEXT_SIZE] [--fit-threshold FIT_THRESHOLD] [--subsampling SUBSAMPLING] [--seed SEED] [--use-web-api-model] [--dont-correct-order-bias] [--numeric-risk-prompting] [--reasoning-prompting] [--enable-thinking] [--reuse-few-shot-examples] [--balance-few-shot-examples] [--use-chat-template] [--chat-prompt CHAT_PROMPT] [--system-prompt SYSTEM_PROMPT]
+usage: run_acs_benchmark [-h] --model MODEL --results-dir RESULTS_DIR --data-dir DATA_DIR [--task TASK] [--few-shot FEW_SHOT] [--batch-size BATCH_SIZE] [--context-size CONTEXT_SIZE] [--fit-threshold FIT_THRESHOLD] [--subsampling SUBSAMPLING] [--seed SEED] [--use-web-api-model] [--inference-backend {transformers,vllm}] [--gpu-memory-utilization GPU_MEMORY_UTILIZATION] [--max-model-len MAX_MODEL_LEN] [--vllm-dtype VLLM_DTYPE] [--tensor-parallel-size TENSOR_PARALLEL_SIZE] [--dont-correct-order-bias] [--numeric-risk-prompting] [--reasoning-prompting] [--enable-thinking] [--reuse-few-shot-examples] [--balance-few-shot-examples] [--use-chat-template] [--chat-prompt CHAT_PROMPT] [--system-prompt SYSTEM_PROMPT]
                          [--use-feature-subset USE_FEATURE_SUBSET] [--use-population-filter USE_POPULATION_FILTER] [--max-api-rpm MAX_API_RPM] [--logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
 
 Benchmark risk scores produced by a language model on ACS data.
@@ -215,14 +257,23 @@ options:
                         [float] Which fraction of the dataset to use (if omitted will use all data)
   --seed SEED           [int] Random seed -- to set for reproducibility
   --use-web-api-model   [bool] Whether use a model hosted on a web API (instead of a local model)
+  --inference-backend {transformers,vllm}
+                        [str] Local inference backend to use; default is 'vllm'. Pass 'transformers' to fall back to the HuggingFace path. Ignored when --use-web-api-model is set.
+  --gpu-memory-utilization GPU_MEMORY_UTILIZATION
+                        [float] vLLM gpu_memory_utilization (default 0.85). Lower if vLLM OOMs at startup.
+  --max-model-len MAX_MODEL_LEN
+                        [int] vLLM max_model_len (input + output tokens). If unset, derived from --context-size + ReasoningQA.max_new_tokens for the prompting mode (currently 8000 for reasoning/thinking, 1 otherwise).
+  --vllm-dtype VLLM_DTYPE
+                        [str] vLLM compute dtype (auto/bfloat16/float16/float32).
+  --tensor-parallel-size TENSOR_PARALLEL_SIZE
+                        [int] vLLM tensor_parallel_size. If unset, auto-detected from CUDA_VISIBLE_DEVICES (1 if unset).
   --dont-correct-order-bias
                         [bool] Whether to avoid correcting ordering bias, by default will correct it
   --numeric-risk-prompting
                         [bool] Whether to prompt for numeric risk-estimates instead of multiple-choice Q&A
   --reasoning-prompting
                         [bool] Whether to use reasoning-based prompting (chain-of-thought) where the model reasons before outputting a probability
-  --enable-thinking
-                        [bool] Whether to enable thinking mode for models that support it (e.g., Qwen3). Only applies with --reasoning-prompting
+  --enable-thinking     [bool] Whether to enable thinking mode for models that support it (e.g., Qwen3). Only applies with --reasoning-prompting
   --reuse-few-shot-examples
                         [bool] Whether to reuse the same samples for few-shot prompting (or sample new ones every time)
   --balance-few-shot-examples
@@ -241,6 +292,8 @@ options:
   --logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                         [str] The logging level to use for the experiment
 ```
+
+</details>
 
 </details>
 
@@ -267,6 +320,8 @@ This script uses sklearn's [`permutation_importance`](https://scikit-learn.org/s
 
 
 ## FAQ
+<details>
+<summary>click to expand</summary>
 
 1.
     **Q:** Can I use `folktexts` with a different dataset?
@@ -283,7 +338,7 @@ This script uses sklearn's [`permutation_importance`](https://scikit-learn.org/s
 3.
     **Q:** Can I use `folktexts` with closed-source models?
 
-    **A:** **Yes!** We provide compatibility with local LLMs via [🤗 transformers](https://github.com/huggingface/transformers) and compatibility with web-hosted LLMs via [litellm](https://github.com/BerriAI/litellm). For example, you can use `--model='gpt-4o' --use-web-api-model` to use GPT-4o when calling the `run_acs_benchmark` script. [Here's a complete list](https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models) of compatible OpenAI models. Note that some models are not compatible as they don't enable access to log-probabilities.
+    **A:** **Yes!** Local LLMs run on a high-throughput [vLLM](https://github.com/vllm-project/vllm) backend by default (install with `pip install 'folktexts[vllm]'`); pass `--inference-backend transformers` to fall back to the [🤗 transformers](https://github.com/huggingface/transformers) path. Web-hosted LLMs are supported via [litellm](https://github.com/BerriAI/litellm) — for example, `--model='gpt-4o' --use-web-api-model` runs GPT-4o through the OpenAI API. [Here's a complete list](https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models) of compatible OpenAI models. Note that some models are not compatible as they don't enable access to log-probabilities.
     Using models through a web API requires installing extra optional dependencies with `pip install 'folktexts[apis]'`.
 
 
@@ -294,6 +349,7 @@ This script uses sklearn's [`permutation_importance`](https://scikit-learn.org/s
 
     <!-- **A:** Yes. Although the package does not feature specific fine-tuning functionality, you can use the data and Q&A prompts generated by `folktexts` to fine-tune an LLM for a specific prediction task. Follow the [example jupyter notebook](notebooks/finetuning-llms-example.ipynb) for more details. In the future we may bring this functionality into the main package implementation. -->
 
+</details>
 
 
 ## Citation
