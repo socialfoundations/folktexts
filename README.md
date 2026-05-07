@@ -29,6 +29,54 @@ as a natural-language Q&A task.
     <img src="docs/_static/folktexts-loop-diagram.png" alt="folktexts-diagram" width="700px">
 </p>
 
+> **🆕 v0.4.0** introduces a [vLLM](https://github.com/vllm-project/vllm) backend for local inference — typically 5–30× faster than the existing 🤗 transformers path, which remains fully supported as a fallback. See [`docs/updates.md`](docs/updates.md) for the full release notes.
+
+<details>
+<summary><strong>Using the vLLM backend</strong> (click to expand)</summary>
+
+Install the optional `vllm` extra (CUDA GPU required):
+
+```bash
+pip install 'folktexts[vllm]'
+```
+
+**From the CLI**, vLLM is now the default — no flag changes needed:
+
+```bash
+run_acs_benchmark --model models/google--gemma-2b --task ACSIncome \
+    --results-dir results --data-dir data
+```
+
+Pass `--inference-backend transformers` to opt back into the HuggingFace
+path. vLLM-specific knobs (all optional, sensible defaults):
+
+- `--gpu-memory-utilization 0.85` — fraction of VRAM vLLM may pre-allocate for the KV cache.
+- `--max-model-len 8192` — input + output token cap. Auto-derived from `--context-size` and the prompting mode if unset.
+- `--vllm-dtype bfloat16` — compute dtype (`auto`, `bfloat16`, `float16`, `float32`).
+- `--tensor-parallel-size 2` — shard across *N* GPUs; auto-detected from `CUDA_VISIBLE_DEVICES`.
+
+**From Python**, use `VLLMClassifier` instead of `TransformersLLMClassifier`:
+
+```py
+from folktexts.llm_utils import load_vllm_model
+from folktexts.classifier import VLLMClassifier
+
+# Load the engine and tokenizer (BF16, gpu_memory_utilization=0.85 by default).
+llm, tokenizer = load_vllm_model("/path/to/model", max_model_len=2048)
+
+# Same interface as TransformersLLMClassifier — predict_proba / predict / fit work unchanged.
+clf = VLLMClassifier(
+    llm=llm,
+    tokenizer=tokenizer,
+    task="ACSIncome",
+    model_name_or_path="/path/to/model",
+)
+test_scores = clf.predict_proba(X_test)
+```
+
+`VLLMClassifier` exposes the exact same scoring interface as `TransformersLLMClassifier`, so existing code that goes through `Benchmark.make_*_benchmark(...)` can be switched by simply loading the model with `load_vllm_model` and passing `backend="vllm"` (or letting autodetect fire).
+
+</details>
 
 
 ## Table of contents   <!-- omit in toc -->
