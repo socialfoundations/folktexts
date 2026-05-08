@@ -46,7 +46,7 @@ def _apply_chat_template_batch(
 
     # Base models (e.g. raw Llama-3-8B, GPT-2) have no chat template; falling
     # through to apply_chat_template would raise ValueError mid-batch. Use the
-    # raw prompts instead — the reasoning prompt itself is already self-contained.
+    # raw prompts instead — the CoT prompt itself is already self-contained.
     if getattr(tokenizer, "chat_template", None) is None:
         if enable_thinking:
             logging.warning(
@@ -367,7 +367,7 @@ def generate_text_batch(
     """Generate text completions for a batch of prompts.
 
     Uses the model's generate() method for autoregressive text generation,
-    suitable for reasoning-based Q&A where the model needs to produce
+    suitable for chain-of-thought Q&A where the model needs to produce
     free-form text before outputting a probability estimate. Generation is
     greedy (do_sample=False) so runs are reproducible — matches the web-API
     path's temperature=0 contract.

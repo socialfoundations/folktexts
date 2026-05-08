@@ -20,7 +20,7 @@ from folktexts.llm_utils import (
     _postprocess_generated_text,
     decode_topk_logprobs_to_risk_estimate,
 )
-from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA, ReasoningQA
+from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA, ChainOfThoughtQA
 from folktexts.task import TaskMetadata
 
 from .._utils import hash_dict
@@ -99,7 +99,7 @@ class VLLMClassifier(LLMClassifier):
         )
 
         # Observability — mirrors transformers_classifier.py:88-125 so the
-        # ReasoningQA failure-rate warning fires identically across backends.
+        # ChainOfThoughtQA failure-rate warning fires identically across backends.
         self._log_generations_all = os.getenv("FOLKTEXTS_LOG_GENERATIONS", "0").strip() in {"1", "true", "True"}
         try:
             self._log_generations_first_n = int(os.getenv("FOLKTEXTS_LOG_GENERATIONS_FIRST_N", "3"))
@@ -107,8 +107,8 @@ class VLLMClassifier(LLMClassifier):
             self._log_generations_first_n = 3
         self._logged_generations_count = 0
 
-        self._reasoning_total = 0
-        self._reasoning_failed = 0
+        self._cot_total = 0
+        self._cot_failed = 0
 
     # ------------------------------------------------------------------
     # Init helpers
@@ -203,30 +203,30 @@ class VLLMClassifier(LLMClassifier):
         return int(hash_dict(hash_params), 16)
 
     # ------------------------------------------------------------------
-    # ReasoningQA failure-rate observability — mirrors transformers backend
+    # ChainOfThoughtQA failure-rate observability — mirrors transformers backend
     # ------------------------------------------------------------------
 
-    _REASONING_FAILURE_WARN_THRESHOLD = 0.25
-    _REASONING_FAILURE_WARN_MIN_SAMPLES = 20
+    _COT_FAILURE_WARN_THRESHOLD = 0.25
+    _COT_FAILURE_WARN_MIN_SAMPLES = 20
 
     def _should_log_generation(self) -> bool:
         if self._log_generations_all:
             return True
         return self._logged_generations_count < max(self._log_generations_first_n, 0)
 
-    def _maybe_warn_reasoning_failure_rate(self) -> None:
-        if self._reasoning_total < self._REASONING_FAILURE_WARN_MIN_SAMPLES:
+    def _maybe_warn_cot_failure_rate(self) -> None:
+        if self._cot_total < self._COT_FAILURE_WARN_MIN_SAMPLES:
             return
         if (
-            self._reasoning_total % 200 != 0
-            and self._reasoning_total != self._REASONING_FAILURE_WARN_MIN_SAMPLES
+            self._cot_total % 200 != 0
+            and self._cot_total != self._COT_FAILURE_WARN_MIN_SAMPLES
         ):
             return
-        rate = self._reasoning_failed / self._reasoning_total
-        if rate >= self._REASONING_FAILURE_WARN_THRESHOLD:
+        rate = self._cot_failed / self._cot_total
+        if rate >= self._COT_FAILURE_WARN_THRESHOLD:
             logging.warning(
-                f"ReasoningQA: probability extraction failed for "
-                f"{self._reasoning_failed}/{self._reasoning_total} samples "
+                f"ChainOfThoughtQA: probability extraction failed for "
+                f"{self._cot_failed}/{self._cot_total} samples "
                 f"({rate:.1%}); these fall back to 0.5 and will collapse AUC. "
                 f"Inspect generations with FOLKTEXTS_LOG_GENERATIONS_FIRST_N."
             )
@@ -239,12 +239,12 @@ class VLLMClassifier(LLMClassifier):
         self,
         prompts_batch: list[str],
         *,
-        question: MultipleChoiceQA | DirectNumericQA | ReasoningQA,
+        question: MultipleChoiceQA | DirectNumericQA | ChainOfThoughtQA,
         context_size: int = None,
     ) -> np.ndarray:
         """Query vLLM with a batch of prompts and return risk estimates."""
-        if isinstance(question, ReasoningQA):
-            return self._risk_estimates_reasoning(prompts_batch, question, context_size)
+        if isinstance(question, ChainOfThoughtQA):
+            return self._risk_estimates_cot(prompts_batch, question, context_size)
 
         if isinstance(question, DirectNumericQA):
             return self._risk_estimates_numeric(prompts_batch, question, context_size)
@@ -252,13 +252,13 @@ class VLLMClassifier(LLMClassifier):
         return self._risk_estimates_multiple_choice(prompts_batch, question, context_size)
 
     # ------------------------------------------------------------------
-    # ReasoningQA path: text generation + regex extraction
+    # ChainOfThoughtQA path: text generation + regex extraction
     # ------------------------------------------------------------------
 
-    def _risk_estimates_reasoning(
+    def _risk_estimates_cot(
         self,
         prompts_batch: list[str],
-        question: ReasoningQA,
+        question: ChainOfThoughtQA,
         context_size: int | None,
     ) -> np.ndarray:
         from vllm import SamplingParams  # local import — keeps module importable without vllm
@@ -290,19 +290,19 @@ class VLLMClassifier(LLMClassifier):
             )
 
             extracted = question.extract_probability_from_text(response_text)
-            self._reasoning_total += 1
+            self._cot_total += 1
             if extracted is None:
-                self._reasoning_failed += 1
+                self._cot_failed += 1
             risk_estimate = 0.5 if extracted is None else extracted
             risk_estimates_batch.append(risk_estimate)
-            self._maybe_warn_reasoning_failure_rate()
+            self._maybe_warn_cot_failure_rate()
 
             if self._should_log_generation():
                 logging.info(
                     "\n"
                     + "=" * 60
                     + "\n"
-                    + f"[ReasoningQA Sample {self._logged_generations_count + 1}]"
+                    + f"[ChainOfThoughtQA Sample {self._logged_generations_count + 1}]"
                     + "\n"
                     + "=" * 60
                     + "\n"

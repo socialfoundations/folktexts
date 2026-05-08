@@ -85,8 +85,8 @@ def setup_arg_parser() -> ArgumentParser:
         default=None,
         help=(
             "[int] vLLM max_model_len (input + output tokens). If unset, derived "
-            "from --context-size + ReasoningQA.max_new_tokens for the prompting "
-            "mode (currently 8000 for reasoning/thinking, 1 otherwise)."
+            "from --context-size + ChainOfThoughtQA.max_new_tokens for the prompting "
+            "mode (currently 8000 for CoT/thinking, 1 otherwise)."
         ),
     )
 
@@ -122,10 +122,10 @@ def setup_arg_parser() -> ArgumentParser:
     )
 
     parser.add_argument(
-        "--reasoning-prompting",
+        "--cot-prompting",
         help=(
-            "[bool] Whether to use reasoning-based prompting (chain-of-thought) "
-            "where the model reasons before outputting a probability"
+            "[bool] Whether to use chain-of-thought (CoT) prompting where the "
+            "model reasons step-by-step before outputting a probability"
         ),
         action="store_true",
         default=False,
@@ -134,8 +134,8 @@ def setup_arg_parser() -> ArgumentParser:
     parser.add_argument(
         "--enable-thinking",
         help=(
-            "[bool] Whether to enable thinking mode for models that support it "
-            "(e.g., Qwen3). Only applies with --reasoning-prompting"
+            "[bool] Whether to enable thinking mode for tokenizers that support "
+            "it (e.g., Qwen3). Only applies with --cot-prompting"
         ),
         action="store_true",
         default=False,
@@ -250,16 +250,16 @@ def main():
             tensor_parallel_size = max(1, len([d for d in cuda_visible.split(",") if d.strip()]))
         max_model_len = args.max_model_len
         if max_model_len is None:
-            # Reasoning runs need much more output budget than baseline. Pull from
-            # ReasoningQA.max_new_tokens so this stays in sync if the reasoning
+            # CoT runs need much more output budget than baseline. Pull from
+            # ChainOfThoughtQA.max_new_tokens so this stays in sync if the CoT
             # budget is bumped (Qwen3-Thinking needs ≥ 8k to close </think>).
-            from folktexts.qa_interface import ReasoningQA
-            reasoning_max_new_tokens = (
-                ReasoningQA.max_new_tokens
-                if (args.reasoning_prompting or args.enable_thinking)
+            from folktexts.qa_interface import ChainOfThoughtQA
+            cot_max_new_tokens = (
+                ChainOfThoughtQA.max_new_tokens
+                if (args.cot_prompting or args.enable_thinking)
                 else 1
             )
-            max_model_len = args.context_size + reasoning_max_new_tokens + 256
+            max_model_len = args.context_size + cot_max_new_tokens + 256
 
         model, tokenizer = load_vllm_model(
             args.model,
@@ -282,7 +282,7 @@ def main():
     config = BenchmarkConfig(
         few_shot=args.few_shot,
         numeric_risk_prompting=args.numeric_risk_prompting,
-        reasoning_prompting=args.reasoning_prompting,
+        cot_prompting=args.cot_prompting,
         enable_thinking=args.enable_thinking,
         reuse_few_shot_examples=args.reuse_few_shot_examples,
         balance_few_shot_examples=args.balance_few_shot_examples,
