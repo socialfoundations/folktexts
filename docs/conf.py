@@ -61,13 +61,13 @@ html_static_path = ['_static']
 html_js_files = [
     'custom.js',    # custom JS file
 ]
+html_css_files = [
+    'custom.css',   # custom CSS file
+]
 
-# Show the package version in the sidebar header (under the project title).
-# `release` (set above) is the source; `display_version=True` is the
-# sphinx_rtd_theme switch that renders it.
-html_theme_options = {
-    'display_version': True,
-}
+# The package version is rendered under the project title in the sidebar via
+# `_templates/layout.html`, which overrides sphinx_rtd_theme's `sidebartitle`
+# block. The theme's old `display_version` option was removed in 3.0.
 
 # nbsphinx configuration
 nbsphinx_execute = 'never'  # Set to 'always' if you want to execute the notebooks during the build process
