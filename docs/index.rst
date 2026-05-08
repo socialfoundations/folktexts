@@ -33,10 +33,11 @@ Check out the following sub-pages:
 .. toctree::
    :maxdepth: 1
 
-   Readme file <readme>
-   Updates <updates>
-   API reference <source/modules>
-   Example notebooks <notebooks>
+   🏠 Home <self>
+   📖 Readme file <readme>
+   📝 Updates <updates>
+   ⚙️ API reference <source/modules>
+   📓 Example notebooks <notebooks>
 
 
 Citing

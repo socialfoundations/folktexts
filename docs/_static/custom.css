@@ -1,0 +1,11 @@
+/* Version label rendered by docs/_templates/layout.html under the project
+   title in the sidebar. sphinx_rtd_theme >=3.0 no longer ships a `.version`
+   style, so we provide one matching the prior look. */
+.wy-side-nav-search > .version {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 90%;
+    margin-top: -0.4045em;
+    margin-bottom: 0.809em;
+    font-weight: normal;
+    display: block;
+}
