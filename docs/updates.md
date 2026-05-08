@@ -3,7 +3,7 @@
 Release notes summarising user-visible changes between versions. Older changes
 not yet listed here can be reconstructed from the git log.
 
-## Unreleased — rename `reasoning_*` → `cot_*` / `chain_of_thought_*`
+## v0.5.0 — rename `reasoning_*` → `cot_*` / `chain_of_thought_*`
 
 Two distinct concepts shared the word "reasoning" in the public API: the
 free-form chain-of-thought prompt template and the HF chat-template
