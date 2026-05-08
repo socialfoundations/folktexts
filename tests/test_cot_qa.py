@@ -7,7 +7,14 @@ from __future__ import annotations
 import pytest
 
 from folktexts.benchmark import Benchmark, BenchmarkConfig
-from folktexts.qa_interface import ChainOfThoughtQA
+from folktexts.col_to_text import ColumnToText
+from folktexts.qa_interface import (
+    ChainOfThoughtQA,
+    Choice,
+    DirectNumericQA,
+    MultipleChoiceQA,
+)
+from folktexts.task import TaskMetadata
 
 
 @pytest.fixture
@@ -124,3 +131,131 @@ class TestValidateConfigCoTChatInteraction:
         Benchmark._validate_config(
             BenchmarkConfig(use_chat_template=True, cot_prompting=False)
         )
+
+
+# ----------------------------------------------------------------------
+# Benchmark._configure_task_question — singleton state reset.
+#
+# `TaskMetadata.get_task` is a class-level cache, so the same task object
+# is reused across benchmark runs. _configure_task_question MUST clear any
+# Q&A state written by a prior run — without this, switching from a
+# CoT/thinking cell to a plain chat_mcq cell silently dispatches
+# ChainOfThoughtQA inference (max_new_tokens=8000) for what should be a
+# 1-token MC prediction. Caught while running scripts/cot_e2e_sweep.py:
+# gpt-oss-20b chat_mcq came right after a Qwen3-14B cot_thinking cell, the
+# leaked CoT question made the run emit 38 000 chars of gibberish per row
+# at ~50 s/batch.
+# ----------------------------------------------------------------------
+
+@pytest.fixture
+def fresh_task() -> TaskMetadata:
+    """A real `TaskMetadata` with both MC and numeric Q&A interfaces wired up,
+    so `_configure_task_question` can be exercised end-to-end without
+    monkeypatching the singleton cache.
+
+    Uses a unique name per test run via the test id to avoid colliding with
+    `TaskMetadata._tasks`'s cross-test cache."""
+    mc_qa = MultipleChoiceQA(
+        column="TARGET",
+        text="Is the value high?",
+        choices=(
+            Choice("low", data_value=0, numeric_value=0.0),
+            Choice("high", data_value=1, numeric_value=1.0),
+        ),
+    )
+    num_qa = DirectNumericQA(
+        column="TARGET",
+        text="What is the value?",
+    )
+    name = f"_test_state_leak_{id(mc_qa)}"
+    task = TaskMetadata(
+        name=name,
+        features=["x"],
+        target="TARGET",
+        cols_to_text={
+            "x": ColumnToText("x", short_description="x"),
+            "TARGET": ColumnToText("TARGET", short_description="target"),
+        },
+        multiple_choice_qa=mc_qa,
+        direct_numeric_qa=num_qa,
+    )
+    yield task
+    # Cleanup the class-level cache so subsequent tests don't inherit state.
+    TaskMetadata._tasks.pop(name, None)
+
+
+class TestConfigureTaskQuestionStateReset:
+    def test_chat_mcq_after_cot_thinking_resets_to_mc(self, fresh_task):
+        # Bug repro: configure CoT+thinking first, then chat_mcq. Without the
+        # else-branch reset in _configure_task_question, task.question would
+        # still return the leaked ChainOfThoughtQA.
+        Benchmark._configure_task_question(
+            fresh_task,
+            BenchmarkConfig(cot_prompting=True, enable_thinking=True),
+        )
+        assert isinstance(fresh_task.question, ChainOfThoughtQA)
+        assert fresh_task._use_cot_qa is True
+
+        Benchmark._configure_task_question(
+            fresh_task,
+            BenchmarkConfig(use_chat_template=True),  # chat_mcq: no CoT/numeric/thinking
+        )
+        assert isinstance(fresh_task.question, MultipleChoiceQA)
+        assert fresh_task._use_cot_qa is False
+        assert fresh_task._use_numeric_qa is False
+
+    def test_chat_mcq_after_numeric_resets_to_mc(self, fresh_task):
+        # Symmetric case: chat_numeric -> chat_mcq must also clear state.
+        Benchmark._configure_task_question(
+            fresh_task,
+            BenchmarkConfig(numeric_risk_prompting=True),
+        )
+        assert isinstance(fresh_task.question, DirectNumericQA)
+        assert fresh_task._use_numeric_qa is True
+
+        Benchmark._configure_task_question(
+            fresh_task,
+            BenchmarkConfig(use_chat_template=True),
+        )
+        assert isinstance(fresh_task.question, MultipleChoiceQA)
+        assert fresh_task._use_cot_qa is False
+        assert fresh_task._use_numeric_qa is False
+
+    def test_chat_mcq_after_cot_resets_to_mc(self, fresh_task):
+        # CoT without thinking — same leak pattern.
+        Benchmark._configure_task_question(
+            fresh_task, BenchmarkConfig(cot_prompting=True),
+        )
+        assert isinstance(fresh_task.question, ChainOfThoughtQA)
+
+        Benchmark._configure_task_question(
+            fresh_task, BenchmarkConfig(),  # all flags default-False = chat_mcq
+        )
+        assert isinstance(fresh_task.question, MultipleChoiceQA)
+
+    def test_cot_after_numeric_overrides(self, fresh_task):
+        # CoT branch already calls set_question(), which clears both flags.
+        # This is just a regression guard — make sure that path still works.
+        Benchmark._configure_task_question(
+            fresh_task, BenchmarkConfig(numeric_risk_prompting=True),
+        )
+        Benchmark._configure_task_question(
+            fresh_task, BenchmarkConfig(cot_prompting=True),
+        )
+        assert isinstance(fresh_task.question, ChainOfThoughtQA)
+        assert fresh_task._use_numeric_qa is False
+        assert fresh_task._use_cot_qa is True
+
+    def test_numeric_after_cot_thinking_overrides(self, fresh_task):
+        # Numeric branch sets `task.use_numeric_qa = True`, whose setter
+        # also clears `_use_cot_qa`. Regression guard for that setter contract.
+        Benchmark._configure_task_question(
+            fresh_task,
+            BenchmarkConfig(cot_prompting=True, enable_thinking=True),
+        )
+        Benchmark._configure_task_question(
+            fresh_task, BenchmarkConfig(numeric_risk_prompting=True),
+        )
+        assert isinstance(fresh_task.question, DirectNumericQA)
+        assert fresh_task._use_cot_qa is False
+        assert fresh_task._use_numeric_qa is True
