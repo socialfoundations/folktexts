@@ -1,0 +1,455 @@
+
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>folktexts.prompting &mdash; folktexts 0.5.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=fd6457a4" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=41710f8f" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=1dd76d02"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../../_static/custom.js?v=882eb7ae"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  <a href="../../index.html" class="icon icon-home">
+    folktexts
+  </a>
+    <div class="version">0.5.0</div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">🏠 Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../readme.html">📖 Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../updates.html">📝 Updates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">⚙️ API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../notebooks.html">📓 Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">folktexts.prompting</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for folktexts.prompting</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Module to map risk-estimation questions to different prompting techniques.</span>
+
+<span class="sd">e.g.,</span>
+<span class="sd">- multiple-choice Q&amp;A vs direct numeric Q&amp;A;</span>
+<span class="sd">- zero-shot vs few-shot vs CoT;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">jinja2</span><span class="w"> </span><span class="kn">import</span> <span class="n">TemplateError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">transformers</span><span class="w"> </span><span class="kn">import</span> <span class="n">AutoTokenizer</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.qa_interface</span><span class="w"> </span><span class="kn">import</span> <span class="n">QAInterface</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.task</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskMetadata</span>
+
+<span class="c1"># Sentinel distinguishing &quot;use the mode-appropriate default&quot; from `None`</span>
+<span class="c1"># (&quot;explicitly disable the role&quot;). Module-private; not part of the public API.</span>
+<span class="n">_DEFAULT</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+
+<span class="n">SYSTEM_PROMPT</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span><span class="se">\</span>
+<span class="s2">You are a helpful assistant. You answer multiple-choice questions based on the information provided.</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+<span class="n">NUMERIC_SYSTEM_PROMPT</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span><span class="se">\</span>
+<span class="s2">You are a helpful assistant. You provide numeric probability </span><span class="se">\</span>
+<span class="s2">estimates based on the information provided.</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+<span class="n">ACS_TASK_DESCRIPTION</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span><span class="se">\</span>
+<span class="s2">The following data corresponds to a survey respondent. </span><span class="se">\</span>
+<span class="s2">The survey was conducted among US residents in 2018. </span><span class="se">\</span>
+<span class="s2">Please answer the question based on the information provided. </span><span class="se">\</span>
+<span class="s2">The data provided is enough to reach an approximate answer.</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+<span class="n">ACS_FEW_SHOT_TASK_DESCRIPTION</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span><span class="se">\</span>
+<span class="s2">The following data corresponds to different survey respondents. </span><span class="se">\</span>
+<span class="s2">The survey was conducted among US residents in 2018. </span><span class="se">\</span>
+<span class="s2">Please answer each question based on the information provided. </span><span class="se">\</span>
+<span class="s2">The data provided is enough to reach an approximate answer for each person.</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+<span class="n">ANTHROPIC_CHAT_PROMPT</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;If had to select one of the options, my answer would be&quot;&quot;&quot;</span>
+<span class="n">GEMMA_CHAT_PROMPT</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;The provided information suggests that the answer is&quot;&quot;&quot;</span>
+<span class="c1"># NOTE: The leading `0.` is part of the prefill, so the model only generates</span>
+<span class="c1"># the digits after the decimal point. This caps the expressible probability</span>
+<span class="c1"># at the open interval [0, 1) — true posteriors at or near 1.0 cannot be</span>
+<span class="c1"># emitted exactly. If you need full [0, 1] coverage, override `chat_prompt`</span>
+<span class="c1"># with e.g. `&quot;Answer (between 0 and 1): &quot;` and let the model produce the</span>
+<span class="c1"># leading digit itself (note that this also widens the digit-scoring search</span>
+<span class="c1"># space and may degrade calibration for low-probability cases).</span>
+<span class="n">NUMERIC_CHAT_PROMPT</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;Answer (between 0 and 1): 0.&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="encode_row_prompt">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.encode_row_prompt">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">encode_row_prompt</span><span class="p">(</span>
+    <span class="n">row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
+    <span class="n">task</span><span class="p">:</span> <span class="n">TaskMetadata</span><span class="p">,</span>
+    <span class="n">question</span><span class="p">:</span> <span class="n">QAInterface</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">custom_prompt_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">add_task_description</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">with_answer_prefill</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Encode a question regarding a given row.</span>
+
+<span class="sd">    `with_answer_prefill` is forwarded to `question.get_question_prompt`. The</span>
+<span class="sd">    chat-template path passes `False` so the prefill is supplied as a separate</span>
+<span class="sd">    assistant turn rather than baked into the user message.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Get the question to ask</span>
+    <span class="n">question</span> <span class="o">=</span> <span class="n">question</span> <span class="ow">or</span> <span class="n">task</span><span class="o">.</span><span class="n">question</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">ACS_TASK_DESCRIPTION</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">add_task_description</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="o">+</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">custom_prompt_prefix</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">custom_prompt_prefix</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span><span class="se">\</span>
+<span class="s2">Information:</span>
+<span class="si">{</span><span class="n">task</span><span class="o">.</span><span class="n">get_row_description</span><span class="p">(</span><span class="n">row</span><span class="p">)</span><span class="si">}</span>
+
+<span class="si">{</span><span class="n">question</span><span class="o">.</span><span class="n">get_question_prompt</span><span class="p">(</span><span class="n">with_answer_prefill</span><span class="o">=</span><span class="n">with_answer_prefill</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;&quot;&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="encode_row_prompt_few_shot">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.encode_row_prompt_few_shot">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">encode_row_prompt_few_shot</span><span class="p">(</span>
+    <span class="n">row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
+    <span class="n">task</span><span class="p">:</span> <span class="n">TaskMetadata</span><span class="p">,</span>
+    <span class="n">dataset</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span>
+    <span class="n">n_shots</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">question</span><span class="p">:</span> <span class="n">QAInterface</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reuse_examples</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">class_balancing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">custom_prompt_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Encode a question regarding a given row using few-shot prompting.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    row : pd.Series</span>
+<span class="sd">        The row that the question will be about.</span>
+<span class="sd">    task : TaskMetadata</span>
+<span class="sd">        The task that the row belongs to.</span>
+<span class="sd">    n_shots : int, optional</span>
+<span class="sd">        The number of example questions and answers to use before prompting</span>
+<span class="sd">        about the given row, by default 3.</span>
+<span class="sd">    reuse_examples : bool, optional</span>
+<span class="sd">        Whether to reuse the same examples for consistency. By default will</span>
+<span class="sd">        resample new examples each time (`reuse_examples=False`).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    prompt : str</span>
+<span class="sd">        The encoded few-shot prompt.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Take `n_shots` random samples from the train set</span>
+    <span class="n">X_examples</span><span class="p">,</span> <span class="n">y_examples</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">sample_n_train_examples</span><span class="p">(</span>
+        <span class="n">n_shots</span><span class="p">,</span>
+        <span class="n">reuse_examples</span><span class="o">=</span><span class="n">reuse_examples</span><span class="p">,</span>
+        <span class="n">class_balancing</span><span class="o">=</span><span class="n">class_balancing</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Start with task description</span>
+    <span class="n">prompt</span> <span class="o">=</span> <span class="n">ACS_FEW_SHOT_TASK_DESCRIPTION</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+    <span class="c1"># Get the question to ask</span>
+    <span class="n">question</span> <span class="o">=</span> <span class="n">question</span> <span class="ow">or</span> <span class="n">task</span><span class="o">.</span><span class="n">question</span>
+
+    <span class="c1"># Add `n` example rows with respective labels</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_shots</span><span class="p">):</span>
+        <span class="n">prompt</span> <span class="o">+=</span> <span class="p">(</span>
+            <span class="n">encode_row_prompt</span><span class="p">(</span>
+                <span class="n">X_examples</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span>
+                <span class="n">add_task_description</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">custom_prompt_prefix</span><span class="o">=</span><span class="n">custom_prompt_prefix</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">question</span><span class="o">.</span><span class="n">get_answer_key_from_value</span><span class="p">(</span><span class="n">y_examples</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Add the target row without its label</span>
+    <span class="n">prompt</span> <span class="o">+=</span> <span class="n">encode_row_prompt</span><span class="p">(</span>
+        <span class="n">row</span><span class="p">,</span>
+        <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span>
+        <span class="n">add_task_description</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">custom_prompt_prefix</span><span class="o">=</span><span class="n">custom_prompt_prefix</span><span class="p">,</span>
+        <span class="n">question</span><span class="o">=</span><span class="n">question</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">prompt</span></div>
+
+
+
+<div class="viewcode-block" id="tokenizer_supports_system_prompt">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.tokenizer_supports_system_prompt">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">tokenizer_supports_system_prompt</span><span class="p">(</span><span class="n">tokenizer</span><span class="p">:</span> <span class="n">AutoTokenizer</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Check whether the tokenizer&#39;s chat template supports system messages.</span>
+
+<span class="sd">    Some models (e.g. Gemma) raise a TemplateError when a system role is used.</span>
+<span class="sd">    Other templates surface this with different exception types depending on</span>
+<span class="sd">    transformers / Jinja versions (e.g. `RuntimeError`, `KeyError`, or a</span>
+<span class="sd">    template-defined exception macro), so we treat any failure of the probe</span>
+<span class="sd">    as &quot;system role not supported&quot; rather than letting it propagate and</span>
+<span class="sd">    crash the benchmark.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">test_conversation</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;test&quot;</span><span class="p">},</span>
+        <span class="p">{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;test&quot;</span><span class="p">},</span>
+    <span class="p">]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">tokenizer</span><span class="o">.</span><span class="n">apply_chat_template</span><span class="p">(</span><span class="n">test_conversation</span><span class="p">,</span> <span class="n">tokenize</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">except</span> <span class="p">(</span><span class="n">TemplateError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="c1"># Defensive fallback for unexpected template-rendering failures —</span>
+        <span class="c1"># safer to skip the system prompt than to hard-fail the benchmark.</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+
+<div class="viewcode-block" id="resolve_chat_defaults">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.resolve_chat_defaults">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">resolve_chat_defaults</span><span class="p">(</span>
+    <span class="n">numeric</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">system_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">chat_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Resolve default system_prompt / chat_prompt for chat-template prompting.</span>
+
+<span class="sd">    A `None` value means &quot;use the default for this mode&quot;. To explicitly disable</span>
+<span class="sd">    a role downstream, override the resolved value with `None` after calling</span>
+<span class="sd">    this function (which is what `Benchmark.make_benchmark` does for tokenizers</span>
+<span class="sd">    that reject the system role).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">system_prompt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">system_prompt</span> <span class="o">=</span> <span class="n">NUMERIC_SYSTEM_PROMPT</span> <span class="k">if</span> <span class="n">numeric</span> <span class="k">else</span> <span class="n">SYSTEM_PROMPT</span>
+    <span class="k">if</span> <span class="n">chat_prompt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">chat_prompt</span> <span class="o">=</span> <span class="n">NUMERIC_CHAT_PROMPT</span> <span class="k">if</span> <span class="n">numeric</span> <span class="k">else</span> <span class="n">ANTHROPIC_CHAT_PROMPT</span>
+    <span class="k">return</span> <span class="n">system_prompt</span><span class="p">,</span> <span class="n">chat_prompt</span></div>
+
+
+
+<div class="viewcode-block" id="encode_row_prompt_chat">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.encode_row_prompt_chat">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">encode_row_prompt_chat</span><span class="p">(</span>
+    <span class="n">row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
+    <span class="n">task</span><span class="p">:</span> <span class="n">TaskMetadata</span><span class="p">,</span>
+    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">AutoTokenizer</span><span class="p">,</span>
+    <span class="n">system_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_DEFAULT</span><span class="p">,</span>    <span class="c1"># type: ignore[assignment]</span>
+    <span class="n">chat_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">_DEFAULT</span><span class="p">,</span>      <span class="c1"># type: ignore[assignment]</span>
+    <span class="n">numeric</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">question</span><span class="p">:</span> <span class="n">QAInterface</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">custom_prompt_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Encode a row prompt using the tokenizer&#39;s chat template.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    row : pd.Series</span>
+<span class="sd">        The row that the question will be about.</span>
+<span class="sd">    task : TaskMetadata</span>
+<span class="sd">        The task metadata object.</span>
+<span class="sd">    tokenizer : AutoTokenizer</span>
+<span class="sd">        The tokenizer whose chat template will be applied.</span>
+<span class="sd">    system_prompt : str | None, optional</span>
+<span class="sd">        System prompt text. If omitted, the mode-appropriate default selected</span>
+<span class="sd">        by `numeric` is used. Pass `None` explicitly to disable the system</span>
+<span class="sd">        role (e.g. for Gemma-style templates that reject it).</span>
+<span class="sd">    chat_prompt : str | None, optional</span>
+<span class="sd">        Assistant prefill text. If omitted, the mode-appropriate default</span>
+<span class="sd">        selected by `numeric` is used. Pass `None` explicitly to skip the</span>
+<span class="sd">        assistant prefill — note that this routes inference through</span>
+<span class="sd">        `add_generation_prompt=True` and breaks the last-token scoring</span>
+<span class="sd">        assumption used by `LLMClassifier`, so it is not appropriate for the</span>
+<span class="sd">        benchmark path.</span>
+<span class="sd">    numeric : bool, optional</span>
+<span class="sd">        Whether numeric risk prompting is being used. Selects which default</span>
+<span class="sd">        prompts are applied when `system_prompt` / `chat_prompt` are omitted.</span>
+<span class="sd">    question : QAInterface, optional</span>
+<span class="sd">        The question interface to use.</span>
+<span class="sd">    custom_prompt_prefix : str, optional</span>
+<span class="sd">        A custom prompt prefix to prepend.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        The fully formatted chat-template prompt.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">system_prompt</span> <span class="ow">is</span> <span class="n">_DEFAULT</span><span class="p">:</span>
+        <span class="n">system_prompt</span> <span class="o">=</span> <span class="n">NUMERIC_SYSTEM_PROMPT</span> <span class="k">if</span> <span class="n">numeric</span> <span class="k">else</span> <span class="n">SYSTEM_PROMPT</span>
+    <span class="k">if</span> <span class="n">chat_prompt</span> <span class="ow">is</span> <span class="n">_DEFAULT</span><span class="p">:</span>
+        <span class="n">chat_prompt</span> <span class="o">=</span> <span class="n">NUMERIC_CHAT_PROMPT</span> <span class="k">if</span> <span class="n">numeric</span> <span class="k">else</span> <span class="n">ANTHROPIC_CHAT_PROMPT</span>
+
+    <span class="c1"># Skip the answer prefill in the user message: the chat path supplies it</span>
+    <span class="c1"># as the assistant turn (`chat_prompt`). Including it in both turns would</span>
+    <span class="c1"># duplicate the string in the rendered prompt and silently degrade scoring.</span>
+    <span class="n">user_content</span> <span class="o">=</span> <span class="n">encode_row_prompt</span><span class="p">(</span>
+        <span class="n">row</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">question</span><span class="o">=</span><span class="n">question</span><span class="p">,</span>
+        <span class="n">custom_prompt_prefix</span><span class="o">=</span><span class="n">custom_prompt_prefix</span><span class="p">,</span>
+        <span class="n">with_answer_prefill</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">apply_chat_template</span><span class="p">(</span>
+        <span class="n">tokenizer</span><span class="p">,</span>
+        <span class="n">user_prompt</span><span class="o">=</span><span class="n">user_content</span><span class="p">,</span>
+        <span class="n">system_prompt</span><span class="o">=</span><span class="n">system_prompt</span><span class="p">,</span>
+        <span class="n">chat_prompt</span><span class="o">=</span><span class="n">chat_prompt</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="apply_chat_template">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.apply_chat_template">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">apply_chat_template</span><span class="p">(</span>
+    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">AutoTokenizer</span><span class="p">,</span>
+    <span class="n">user_prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">system_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">chat_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply the tokenizer&#39;s chat template to assemble a single prompt string.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    `system_prompt` is treated as &quot;include&quot; iff it is not `None`. This means an</span>
+<span class="sd">    empty string `&quot;&quot;` will inject an empty system message rather than be</span>
+<span class="sd">    treated as &quot;no system role&quot; — pass `None` (or omit the argument) to skip</span>
+<span class="sd">    the system role entirely.</span>
+
+<span class="sd">    `chat_prompt` is the assistant prefill. When provided, the returned prompt</span>
+<span class="sd">    is trimmed so it ends exactly with `chat_prompt`, preserving the</span>
+<span class="sd">    last-token scoring contract relied on by `LLMClassifier`. If the chat</span>
+<span class="sd">    template mutates or strips the prefill (so it cannot be located verbatim</span>
+<span class="sd">    in the rendered output), a `ValueError` is raised rather than silently</span>
+<span class="sd">    returning a corrupted prompt.</span>
+
+<span class="sd">    When `chat_prompt is None`, `add_generation_prompt=True` is used and the</span>
+<span class="sd">    model is left to generate freely; this is **not** appropriate for the</span>
+<span class="sd">    benchmark scoring path (the last token will be a template-emitted role</span>
+<span class="sd">    header, not the prefill).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Add system prompt</span>
+    <span class="n">conversation</span> <span class="o">=</span> <span class="p">([</span>
+        <span class="p">{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">system_prompt</span><span class="p">}</span>
+    <span class="p">]</span> <span class="k">if</span> <span class="n">system_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[])</span>
+
+    <span class="c1"># Add user prompt</span>
+    <span class="n">conversation</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">user_prompt</span><span class="p">})</span>
+
+    <span class="k">if</span> <span class="n">chat_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Using the Anthropic-style chat prompt</span>
+        <span class="n">conversation</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">chat_prompt</span><span class="p">})</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;add_generation_prompt&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># No assistant prefill; let the model generate freely</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;add_generation_prompt&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Apply prompt template</span>
+    <span class="n">filled_prompt</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">apply_chat_template</span><span class="p">(</span>
+        <span class="n">conversation</span><span class="o">=</span><span class="n">conversation</span><span class="p">,</span>
+        <span class="n">tokenize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">chat_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Trim any special tokens that the template appended after the prefill</span>
+        <span class="c1"># (e.g. a trailing newline or `&lt;end_of_turn&gt;`) so the last token of the</span>
+        <span class="c1"># returned prompt is the last token of `chat_prompt` itself — this is</span>
+        <span class="c1"># what `LLMClassifier` assumes when it reads answer-token probabilities.</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">filled_prompt</span><span class="o">.</span><span class="n">rfind</span><span class="p">(</span><span class="n">chat_prompt</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Assistant prefill not found verbatim in the templated output; &quot;</span>
+                <span class="s2">&quot;the tokenizer&#39;s chat template likely transforms it (e.g. &quot;</span>
+                <span class="s2">&quot;stripping or escaping). Cannot safely trim trailing tokens — &quot;</span>
+                <span class="s2">&quot;pass a `chat_prompt` that survives templating, or run without &quot;</span>
+                <span class="s2">&quot;an assistant prefill.&quot;</span>
+            <span class="p">)</span>
+        <span class="n">filled_prompt</span> <span class="o">=</span> <span class="n">filled_prompt</span><span class="p">[:</span> <span class="n">idx</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">chat_prompt</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="n">filled_prompt</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,542 @@
+
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>folktexts.classifier.vllm_classifier &mdash; folktexts 0.5.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=41710f8f" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=1dd76d02"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../../../_static/custom.js?v=882eb7ae"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  <a href="../../../index.html" class="icon icon-home">
+    folktexts
+  </a>
+    <div class="version">0.5.0</div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">🏠 Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">📖 Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../updates.html">📝 Updates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/modules.html">⚙️ API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">📓 Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">folktexts.classifier.vllm_classifier</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for folktexts.classifier.vllm_classifier</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Module for using vLLM as the local LLM-inference backend.</span>
+
+<span class="sd">Mirrors `TransformersLLMClassifier` for the score-extraction contract — the</span>
+<span class="sd">same QA decoders are reused, only the model-call inner loop changes.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Callable</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">transformers</span><span class="w"> </span><span class="kn">import</span> <span class="n">AutoConfig</span><span class="p">,</span> <span class="n">AutoTokenizer</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.llm_utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_apply_chat_template_batch</span><span class="p">,</span>
+    <span class="n">_postprocess_generated_text</span><span class="p">,</span>
+    <span class="n">decode_topk_logprobs_to_risk_estimate</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.qa_interface</span><span class="w"> </span><span class="kn">import</span> <span class="n">DirectNumericQA</span><span class="p">,</span> <span class="n">MultipleChoiceQA</span><span class="p">,</span> <span class="n">ChainOfThoughtQA</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.task</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskMetadata</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">hash_dict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMClassifier</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">vllm</span>
+
+<span class="c1"># Top-K logprobs to request from vLLM. WebAPI uses 20; we bump to 50 here</span>
+<span class="c1"># because zero-shot prompts on instruction-tuned base models can push A/B</span>
+<span class="c1"># answer letters into the long tail behind prose continuations</span>
+<span class="c1"># (&quot;I&quot;, &quot;The&quot;, &quot;Based&quot;…). 50 covers those without materially changing</span>
+<span class="c1"># results on models where A/B are clearly top-2.</span>
+<span class="n">_TOPK_LOGPROBS</span> <span class="o">=</span> <span class="mi">50</span>
+
+
+<div class="viewcode-block" id="VLLMClassifier">
+<a class="viewcode-back" href="../../../source/folktexts.classifier.html#folktexts.classifier.vllm_classifier.VLLMClassifier">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">VLLMClassifier</span><span class="p">(</span><span class="n">LLMClassifier</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Use a vLLM `LLM` engine to produce risk scores.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">llm</span><span class="p">:</span> <span class="s2">&quot;vllm.LLM&quot;</span><span class="p">,</span>
+        <span class="n">tokenizer</span><span class="p">:</span> <span class="n">AutoTokenizer</span><span class="p">,</span>
+        <span class="n">task</span><span class="p">:</span> <span class="n">TaskMetadata</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">model_name_or_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">custom_prompt_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">encode_row</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">correct_order_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">inference_kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates an LLMClassifier backed by vLLM.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        llm : vllm.LLM</span>
+<span class="sd">            A loaded vLLM engine. See `folktexts.llm_utils.load_vllm_model`.</span>
+<span class="sd">        tokenizer : AutoTokenizer</span>
+<span class="sd">            The HuggingFace tokenizer for the model. Usually obtained via</span>
+<span class="sd">            `llm.get_tokenizer()`; passed in explicitly so observability hooks</span>
+<span class="sd">            (chat-template helpers, vocab lookups) work without reaching into</span>
+<span class="sd">            vLLM internals.</span>
+<span class="sd">        task : TaskMetadata | str</span>
+<span class="sd">            The task metadata object or name of an already created task.</span>
+<span class="sd">        model_name_or_path : str | Path, optional</span>
+<span class="sd">            The model path / name used to load the engine. Used for the</span>
+<span class="sd">            display name and as a stable hash input. Defaults to the engine&#39;s</span>
+<span class="sd">            internal `model_config.model` if available.</span>
+<span class="sd">        custom_prompt_prefix, encode_row, threshold, correct_order_bias, seed,</span>
+<span class="sd">        **inference_kwargs</span>
+<span class="sd">            Forwarded to `LLMClassifier`. See base-class docs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_llm</span> <span class="o">=</span> <span class="n">llm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span> <span class="o">=</span> <span class="n">tokenizer</span>
+
+        <span class="c1"># Resolve a stable name + vocab_dim without poking vLLM internals where</span>
+        <span class="c1"># possible. AutoConfig is the canonical source of truth for vocab_size</span>
+        <span class="c1"># (the logits axis) — same value `model.config.vocab_size` would give</span>
+        <span class="c1"># on the transformers path.</span>
+        <span class="n">resolved_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_model_path</span><span class="p">(</span><span class="n">model_name_or_path</span><span class="p">)</span>
+        <span class="n">model_name</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">resolved_path</span><span class="p">)</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="n">resolved_path</span> <span class="k">else</span> <span class="s2">&quot;vllm-model&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_name_or_path</span> <span class="o">=</span> <span class="n">resolved_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_vocab_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_vocab_dim</span><span class="p">(</span><span class="n">resolved_path</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model_name</span><span class="o">=</span><span class="n">model_name</span><span class="p">,</span>
+            <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span>
+            <span class="n">custom_prompt_prefix</span><span class="o">=</span><span class="n">custom_prompt_prefix</span><span class="p">,</span>
+            <span class="n">encode_row</span><span class="o">=</span><span class="n">encode_row</span><span class="p">,</span>
+            <span class="n">correct_order_bias</span><span class="o">=</span><span class="n">correct_order_bias</span><span class="p">,</span>
+            <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+            <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">inference_kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Observability — mirrors transformers_classifier.py:88-125 so the</span>
+        <span class="c1"># ChainOfThoughtQA failure-rate warning fires identically across backends.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log_generations_all</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;FOLKTEXTS_LOG_GENERATIONS&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="s2">&quot;true&quot;</span><span class="p">,</span> <span class="s2">&quot;True&quot;</span><span class="p">}</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log_generations_first_n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;FOLKTEXTS_LOG_GENERATIONS_FIRST_N&quot;</span><span class="p">,</span> <span class="s2">&quot;3&quot;</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log_generations_first_n</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_logged_generations_count</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cot_total</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cot_failed</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Init helpers</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_resolve_model_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_name_or_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Best-effort lookup of the model path used to load the engine.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">model_name_or_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">model_name_or_path</span><span class="p">)</span>
+        <span class="c1"># vLLM has shuffled this attribute across versions; try a few paths</span>
+        <span class="c1"># before giving up.</span>
+        <span class="k">for</span> <span class="n">getter</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">llm</span><span class="p">:</span> <span class="n">llm</span><span class="o">.</span><span class="n">llm_engine</span><span class="o">.</span><span class="n">model_config</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+            <span class="k">lambda</span> <span class="n">llm</span><span class="p">:</span> <span class="n">llm</span><span class="o">.</span><span class="n">llm_engine</span><span class="o">.</span><span class="n">get_model_config</span><span class="p">()</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+            <span class="k">lambda</span> <span class="n">llm</span><span class="p">:</span> <span class="n">llm</span><span class="o">.</span><span class="n">llm_engine</span><span class="o">.</span><span class="n">vllm_config</span><span class="o">.</span><span class="n">model_config</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+        <span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">getter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_llm</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="k">continue</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_resolve_vocab_dim</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">model_name_or_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">:</span> <span class="n">AutoTokenizer</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the model&#39;s logits-axis vocab size.</span>
+
+<span class="sd">        Always prefer `AutoConfig.vocab_size` over `len(tokenizer.get_vocab())`</span>
+<span class="sd">        (the latter diverges across families — Gemma-3 has it == vocab_size+1,</span>
+<span class="sd">        Llama-3.2 has it == vocab_size+256). See CLAUDE.md &quot;Gotchas&quot;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">model_name_or_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">config</span> <span class="o">=</span> <span class="n">AutoConfig</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
+                    <span class="n">model_name_or_path</span><span class="p">,</span> <span class="n">trust_remote_code</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="c1"># Multimodal Gemma-3 and similar wrap the language-model config</span>
+                <span class="c1"># under `text_config`; check both top-level and nested.</span>
+                <span class="n">vs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;vocab_size&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">vs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">vs</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;text_config&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="s2">&quot;vocab_size&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">vs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">vs</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;AutoConfig </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">config</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> for </span><span class="si">{</span><span class="n">model_name_or_path</span><span class="si">}</span><span class="s2"> &quot;</span>
+                    <span class="s2">&quot;exposes no vocab_size at top level or text_config; falling back.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;AutoConfig.from_pretrained failed for </span><span class="si">{</span><span class="n">model_name_or_path</span><span class="si">}</span><span class="s2">: &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">exc</span><span class="si">!r}</span><span class="s2">; falling back to tokenizer-derived vocab size.&quot;</span>
+                <span class="p">)</span>
+        <span class="c1"># Fallback: best of the two tokenizer-derived numbers; warn loudly,</span>
+        <span class="c1"># since this is the path that the vocab-mismatch bug used to trip on.</span>
+        <span class="n">fallback</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="n">tokenizer</span><span class="p">,</span> <span class="s2">&quot;vocab_size&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">get_vocab</span><span class="p">())</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">tokenizer</span><span class="p">,</span> <span class="s2">&quot;get_vocab&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Falling back to tokenizer-derived vocab_dim=</span><span class="si">{</span><span class="n">fallback</span><span class="si">}</span><span class="s2">; &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;this can mis-size the logits mask on Gemma-3 / Llama-3.2 &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;families. Pass `model_name_or_path` explicitly to use AutoConfig.&quot;</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">fallback</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Properties / hashing</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">llm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_llm</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tokenizer</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AutoTokenizer</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Hash distinct from `TransformersLLMClassifier.__hash__`.</span>
+
+<span class="sd">        Including the backend tag prevents result-file paths</span>
+<span class="sd">        (`results.bench-{hash}.json`) from colliding when the same model is</span>
+<span class="sd">        run under both backends — predictions can differ on the order of 1e-3</span>
+<span class="sd">        due to attention-kernel differences, so re-using a transformers CSV</span>
+<span class="sd">        for a vLLM run would silently mix them.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">hash_params</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">super_hash</span><span class="o">=</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__hash__</span><span class="p">(),</span>
+            <span class="n">backend</span><span class="o">=</span><span class="s2">&quot;vllm&quot;</span><span class="p">,</span>
+            <span class="n">vocab_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_vocab_dim</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">hash_dict</span><span class="p">(</span><span class="n">hash_params</span><span class="p">),</span> <span class="mi">16</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># ChainOfThoughtQA failure-rate observability — mirrors transformers backend</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+
+    <span class="n">_COT_FAILURE_WARN_THRESHOLD</span> <span class="o">=</span> <span class="mf">0.25</span>
+    <span class="n">_COT_FAILURE_WARN_MIN_SAMPLES</span> <span class="o">=</span> <span class="mi">20</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_should_log_generation</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_log_generations_all</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logged_generations_count</span> <span class="o">&lt;</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_log_generations_first_n</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_maybe_warn_cot_failure_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cot_total</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_COT_FAILURE_WARN_MIN_SAMPLES</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cot_total</span> <span class="o">%</span> <span class="mi">200</span> <span class="o">!=</span> <span class="mi">0</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cot_total</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_COT_FAILURE_WARN_MIN_SAMPLES</span>
+        <span class="p">):</span>
+            <span class="k">return</span>
+        <span class="n">rate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cot_failed</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cot_total</span>
+        <span class="k">if</span> <span class="n">rate</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_COT_FAILURE_WARN_THRESHOLD</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;ChainOfThoughtQA: probability extraction failed for &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_cot_failed</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_cot_total</span><span class="si">}</span><span class="s2"> samples &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">rate</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2">); these fall back to 0.5 and will collapse AUC. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Inspect generations with FOLKTEXTS_LOG_GENERATIONS_FIRST_N.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># Inference dispatch</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_query_prompt_risk_estimates_batch</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">prompts_batch</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">question</span><span class="p">:</span> <span class="n">MultipleChoiceQA</span> <span class="o">|</span> <span class="n">DirectNumericQA</span> <span class="o">|</span> <span class="n">ChainOfThoughtQA</span><span class="p">,</span>
+        <span class="n">context_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Query vLLM with a batch of prompts and return risk estimates.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">question</span><span class="p">,</span> <span class="n">ChainOfThoughtQA</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_risk_estimates_cot</span><span class="p">(</span><span class="n">prompts_batch</span><span class="p">,</span> <span class="n">question</span><span class="p">,</span> <span class="n">context_size</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">question</span><span class="p">,</span> <span class="n">DirectNumericQA</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_risk_estimates_numeric</span><span class="p">(</span><span class="n">prompts_batch</span><span class="p">,</span> <span class="n">question</span><span class="p">,</span> <span class="n">context_size</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_risk_estimates_multiple_choice</span><span class="p">(</span><span class="n">prompts_batch</span><span class="p">,</span> <span class="n">question</span><span class="p">,</span> <span class="n">context_size</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># ChainOfThoughtQA path: text generation + regex extraction</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_risk_estimates_cot</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">prompts_batch</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">question</span><span class="p">:</span> <span class="n">ChainOfThoughtQA</span><span class="p">,</span>
+        <span class="n">context_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">vllm</span><span class="w"> </span><span class="kn">import</span> <span class="n">SamplingParams</span>  <span class="c1"># local import — keeps module importable without vllm</span>
+
+        <span class="c1"># Apply chat template (or fall back to raw prompts for base models) —</span>
+        <span class="c1"># exact same path the transformers backend takes. `enable_thinking` is</span>
+        <span class="c1"># threaded through.</span>
+        <span class="n">formatted_inputs</span> <span class="o">=</span> <span class="n">_apply_chat_template_batch</span><span class="p">(</span>
+            <span class="n">prompts_batch</span><span class="p">,</span>
+            <span class="n">tokenizer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="p">,</span>
+            <span class="n">enable_thinking</span><span class="o">=</span><span class="n">question</span><span class="o">.</span><span class="n">enable_thinking</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">sampling_params</span> <span class="o">=</span> <span class="n">SamplingParams</span><span class="p">(</span>
+            <span class="n">temperature</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">max_tokens</span><span class="o">=</span><span class="n">question</span><span class="o">.</span><span class="n">max_new_tokens</span><span class="p">,</span>
+            <span class="n">seed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_llm</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">formatted_inputs</span><span class="p">,</span> <span class="n">sampling_params</span><span class="p">)</span>
+
+        <span class="n">risk_estimates_batch</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">request_output</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">prompts_batch</span><span class="p">,</span> <span class="n">outputs</span><span class="p">)):</span>
+            <span class="n">generated_text</span> <span class="o">=</span> <span class="n">request_output</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span>
+            <span class="n">response_text</span> <span class="o">=</span> <span class="n">_postprocess_generated_text</span><span class="p">(</span>
+                <span class="n">generated_text</span><span class="p">,</span>
+                <span class="n">enable_thinking</span><span class="o">=</span><span class="n">question</span><span class="o">.</span><span class="n">enable_thinking</span><span class="p">,</span>
+                <span class="n">i</span><span class="o">=</span><span class="n">idx</span><span class="p">,</span>
+                <span class="n">n</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">outputs</span><span class="p">),</span>
+            <span class="p">)</span>
+
+            <span class="n">extracted</span> <span class="o">=</span> <span class="n">question</span><span class="o">.</span><span class="n">extract_probability_from_text</span><span class="p">(</span><span class="n">response_text</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cot_total</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">extracted</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_cot_failed</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">risk_estimate</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="k">if</span> <span class="n">extracted</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">extracted</span>
+            <span class="n">risk_estimates_batch</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">risk_estimate</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_warn_cot_failure_rate</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_log_generation</span><span class="p">():</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="o">+</span> <span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">60</span>
+                    <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;[ChainOfThoughtQA Sample </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_logged_generations_count</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">]&quot;</span>
+                    <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="o">+</span> <span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">60</span>
+                    <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="o">+</span> <span class="s2">&quot;PROMPT:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="o">+</span> <span class="n">prompt</span>
+                    <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="o">+</span> <span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">60</span>
+                    <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="o">+</span> <span class="s2">&quot;GENERATED ANSWER:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="o">+</span> <span class="n">generated_text</span>
+                    <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="o">+</span> <span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">60</span>
+                    <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;EXTRACTED RISK SCORE: </span><span class="si">{</span><span class="n">risk_estimate</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="o">+</span> <span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">60</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_logged_generations_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">risk_estimates_batch</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># DirectNumericQA path: greedy + digit-only constraint</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_risk_estimates_numeric</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">prompts_batch</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">question</span><span class="p">:</span> <span class="n">DirectNumericQA</span><span class="p">,</span>
+        <span class="n">context_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">vllm</span><span class="w"> </span><span class="kn">import</span> <span class="n">SamplingParams</span>
+
+        <span class="n">digit_token_ids</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">({</span>
+            <span class="n">tok_id</span>
+            <span class="k">for</span> <span class="n">token</span><span class="p">,</span> <span class="n">tok_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">get_vocab</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">token</span><span class="o">.</span><span class="n">isdecimal</span><span class="p">()</span> <span class="ow">and</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">tok_id</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vocab_dim</span>
+        <span class="p">})</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">digit_token_ids</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;No digit tokens found in tokenizer vocabulary; cannot run &quot;</span>
+                <span class="s2">&quot;DirectNumericQA on this model.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">sampling_params</span> <span class="o">=</span> <span class="n">SamplingParams</span><span class="p">(</span>
+            <span class="n">temperature</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">max_tokens</span><span class="o">=</span><span class="n">question</span><span class="o">.</span><span class="n">num_forward_passes</span><span class="p">,</span>
+            <span class="n">logprobs</span><span class="o">=</span><span class="n">_TOPK_LOGPROBS</span><span class="p">,</span>
+            <span class="n">allowed_token_ids</span><span class="o">=</span><span class="n">digit_token_ids</span><span class="p">,</span>
+            <span class="n">seed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_llm</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">prompts_batch</span><span class="p">,</span> <span class="n">sampling_params</span><span class="p">)</span>
+
+        <span class="n">risk_estimates_batch</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">request_output</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">:</span>
+            <span class="n">per_pass_topk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_per_pass_topk</span><span class="p">(</span><span class="n">request_output</span><span class="p">)</span>
+            <span class="n">risk_estimate</span> <span class="o">=</span> <span class="n">decode_topk_logprobs_to_risk_estimate</span><span class="p">(</span>
+                <span class="n">per_pass_topk</span><span class="p">,</span>
+                <span class="n">tokenizer_vocab</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">get_vocab</span><span class="p">(),</span>
+                <span class="n">vocab_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_vocab_dim</span><span class="p">,</span>
+                <span class="n">question</span><span class="o">=</span><span class="n">question</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">risk_estimates_batch</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">risk_estimate</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">risk_estimates_batch</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># MultipleChoiceQA path: unconstrained next-token logprobs</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_risk_estimates_multiple_choice</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">prompts_batch</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">question</span><span class="p">:</span> <span class="n">MultipleChoiceQA</span><span class="p">,</span>
+        <span class="n">context_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="c1"># Match the transformers contract: MC reads the unconstrained next-token</span>
+        <span class="c1"># softmax (no `allowed_token_ids` mask). The QA decoder&#39;s prefix-variant</span>
+        <span class="c1"># logic + answer-token renormalisation handles candidates not in top-K</span>
+        <span class="c1"># the same way it handles low-mass tokens on the transformers path.</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">vllm</span><span class="w"> </span><span class="kn">import</span> <span class="n">SamplingParams</span>
+
+        <span class="n">sampling_params</span> <span class="o">=</span> <span class="n">SamplingParams</span><span class="p">(</span>
+            <span class="n">temperature</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="n">max_tokens</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">logprobs</span><span class="o">=</span><span class="n">_TOPK_LOGPROBS</span><span class="p">,</span>
+            <span class="n">seed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_llm</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">prompts_batch</span><span class="p">,</span> <span class="n">sampling_params</span><span class="p">)</span>
+
+        <span class="n">risk_estimates_batch</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">request_output</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">:</span>
+            <span class="n">per_pass_topk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_per_pass_topk</span><span class="p">(</span><span class="n">request_output</span><span class="p">)</span>
+            <span class="n">risk_estimate</span> <span class="o">=</span> <span class="n">decode_topk_logprobs_to_risk_estimate</span><span class="p">(</span>
+                <span class="n">per_pass_topk</span><span class="p">,</span>
+                <span class="n">tokenizer_vocab</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">get_vocab</span><span class="p">(),</span>
+                <span class="n">vocab_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_vocab_dim</span><span class="p">,</span>
+                <span class="n">question</span><span class="o">=</span><span class="n">question</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">risk_estimates_batch</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">risk_estimate</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">risk_estimates_batch</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="c1"># vLLM output parsing</span>
+    <span class="c1"># ------------------------------------------------------------------</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extract_per_pass_topk</span><span class="p">(</span><span class="n">request_output</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert vLLM&#39;s per-position logprobs into ``[{token_id: logprob}, ...]``.</span>
+
+<span class="sd">        ``request_output.outputs[0].logprobs`` is a list (one entry per</span>
+<span class="sd">        generated token) of dicts ``{token_id: Logprob(logprob, ...)}``. We</span>
+<span class="sd">        only need the ``logprob`` field; the rest is metadata.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">completion</span> <span class="o">=</span> <span class="n">request_output</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">position_logprobs</span> <span class="o">=</span> <span class="n">completion</span><span class="o">.</span><span class="n">logprobs</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="n">per_pass</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">pos</span> <span class="ow">in</span> <span class="n">position_logprobs</span><span class="p">:</span>
+            <span class="n">per_pass</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="nb">int</span><span class="p">(</span><span class="n">tok_id</span><span class="p">):</span> <span class="nb">float</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">lp</span><span class="p">,</span> <span class="s2">&quot;logprob&quot;</span><span class="p">,</span> <span class="n">lp</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">tok_id</span><span class="p">,</span> <span class="n">lp</span> <span class="ow">in</span> <span class="n">pos</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">})</span>
+        <span class="k">return</span> <span class="n">per_pass</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

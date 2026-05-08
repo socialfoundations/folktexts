@@ -1,0 +1,339 @@
+
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Updates &mdash; folktexts 0.5.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=fd6457a4" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=41710f8f" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=1dd76d02"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="_static/custom.js?v=882eb7ae"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="folktexts" href="source/modules.html" />
+    <link rel="prev" title="README.md" href="readme.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  <a href="index.html" class="icon icon-home">
+    folktexts
+  </a>
+    <div class="version">0.5.0</div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">🏠 Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="readme.html">📖 Readme file</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">📝 Updates</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#v0-5-0-rename-reasoning-cot-chain-of-thought">v0.5.0 — rename <code class="docutils literal notranslate"><span class="pre">reasoning_*</span></code> → <code class="docutils literal notranslate"><span class="pre">cot_*</span></code> / <code class="docutils literal notranslate"><span class="pre">chain_of_thought_*</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#renames-hard-cut-no-aliases">Renames (hard cut, no aliases)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#migration">Migration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#notes">Notes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#v0-4-0-vllm-backend">v0.4.0 — vLLM backend</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#what-s-new">What’s new</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#architecture">Architecture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cluster-runtime-requirements-b200-hopper-vllm-0-20-1-wheel">Cluster runtime requirements (B200 / Hopper / vllm 0.20.1 wheel)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#validation">Validation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#backwards-compatibility">Backwards compatibility</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#migration-notes">Migration notes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="source/modules.html">⚙️ API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebooks.html">📓 Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Updates</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/updates.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="updates">
+<h1>Updates<a class="headerlink" href="#updates" title="Link to this heading"></a></h1>
+<p>Release notes summarising user-visible changes between versions. Older changes
+not yet listed here can be reconstructed from the git log.</p>
+<section id="v0-5-0-rename-reasoning-cot-chain-of-thought">
+<h2>v0.5.0 — rename <code class="docutils literal notranslate"><span class="pre">reasoning_*</span></code> → <code class="docutils literal notranslate"><span class="pre">cot_*</span></code> / <code class="docutils literal notranslate"><span class="pre">chain_of_thought_*</span></code><a class="headerlink" href="#v0-5-0-rename-reasoning-cot-chain-of-thought" title="Link to this heading"></a></h2>
+<p>Two distinct concepts shared the word “reasoning” in the public API: the
+free-form chain-of-thought prompt template and the HF chat-template
+<code class="docutils literal notranslate"><span class="pre">enable_thinking</span></code> kwarg. They’re orthogonal — <code class="docutils literal notranslate"><span class="pre">enable_thinking=True</span></code>
+requires the CoT prompt path, but the CoT prompt path runs on any model
+with no thinking-mode support — so we renamed the CoT side to drop the
+ambiguity. <code class="docutils literal notranslate"><span class="pre">enable_thinking</span></code> is unchanged because that name matches the HF
+kwarg and stays aligned with it.</p>
+<section id="renames-hard-cut-no-aliases">
+<h3>Renames (hard cut, no aliases)<a class="headerlink" href="#renames-hard-cut-no-aliases" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Before</p></th>
+<th class="head"><p>After</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ReasoningQA</span></code> class</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ChainOfThoughtQA</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">BenchmarkConfig.reasoning_prompting</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BenchmarkConfig.cot_prompting</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>CLI flag <code class="docutils literal notranslate"><span class="pre">--reasoning-prompting</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--cot-prompting</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">TaskMetadata.reasoning_qa</span></code> / <code class="docutils literal notranslate"><span class="pre">use_reasoning_qa</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">TaskMetadata.cot_qa</span></code> / <code class="docutils literal notranslate"><span class="pre">use_cot_qa</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>The previous symbols raise <code class="docutils literal notranslate"><span class="pre">AttributeError</span></code> / <code class="docutils literal notranslate"><span class="pre">TypeError</span></code> rather than
+warning + forwarding — update callsites in one commit.</p>
+</section>
+<section id="migration">
+<h3>Migration<a class="headerlink" href="#migration" title="Link to this heading"></a></h3>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="c1"># Before</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.qa_interface</span><span class="w"> </span><span class="kn">import</span> <span class="n">ReasoningQA</span>
+<span class="n">config</span> <span class="o">=</span> <span class="n">BenchmarkConfig</span><span class="p">(</span><span class="n">reasoning_prompting</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">enable_thinking</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># After</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.qa_interface</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChainOfThoughtQA</span>
+<span class="n">config</span> <span class="o">=</span> <span class="n">BenchmarkConfig</span><span class="p">(</span><span class="n">cot_prompting</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">enable_thinking</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Before</span>
+run_acs_benchmark<span class="w"> </span>--model<span class="w"> </span>&lt;m&gt;<span class="w"> </span>--task<span class="w"> </span>ACSIncome<span class="w"> </span>--data-dir<span class="w"> </span>&lt;d&gt;<span class="w"> </span>--reasoning-prompting
+<span class="c1"># After</span>
+run_acs_benchmark<span class="w"> </span>--model<span class="w"> </span>&lt;m&gt;<span class="w"> </span>--task<span class="w"> </span>ACSIncome<span class="w"> </span>--data-dir<span class="w"> </span>&lt;d&gt;<span class="w"> </span>--cot-prompting
+</pre></div>
+</div>
+</section>
+<section id="notes">
+<h3>Notes<a class="headerlink" href="#notes" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">enable_thinking</span></code> is unchanged</strong> (dataclass field, CLI flag, and class
+attribute on <code class="docutils literal notranslate"><span class="pre">ChainOfThoughtQA</span></code>). It still requires <code class="docutils literal notranslate"><span class="pre">cot_prompting=True</span></code>
+and warns + auto-enables CoT mode if you forget.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">ChainOfThoughtQA.max_new_tokens=8000</span></code></strong> value is preserved.</p></li>
+<li><p><strong>Result JSON files</strong> (<code class="docutils literal notranslate"><span class="pre">results.bench-*.json</span></code>) written before the rename
+carry <code class="docutils literal notranslate"><span class="pre">&quot;config&quot;:</span> <span class="pre">{&quot;reasoning_prompting&quot;:</span> <span class="pre">true,</span> <span class="pre">...}</span></code>. They remain
+readable: sweep helpers (<code class="docutils literal notranslate"><span class="pre">scripts/cot_e2e_sweep.py</span></code>, <code class="docutils literal notranslate"><span class="pre">cot_sweep.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">audit_cot_failures.py</span></code>, <code class="docutils literal notranslate"><span class="pre">extended_sweep.py</span></code>, <code class="docutils literal notranslate"><span class="pre">multi_seed_stability.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">validate_pr26.py</span></code>) accept either key when scanning existing results.</p></li>
+<li><p><strong>Hash stability</strong>: not preserved. <code class="docutils literal notranslate"><span class="pre">BenchmarkConfig.__hash__</span></code> uses
+<code class="docutils literal notranslate"><span class="pre">dataclasses.asdict(self)</span></code>, so the hash includes the field name. New
+runs write to fresh <code class="docutils literal notranslate"><span class="pre">results.bench-{hash}.json</span></code> paths; pre-rename
+cached paths stay readable but won’t be short-circuited by a hash
+match.</p></li>
+</ul>
+</section>
+</section>
+<section id="v0-4-0-vllm-backend">
+<h2>v0.4.0 — vLLM backend<a class="headerlink" href="#v0-4-0-vllm-backend" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">folktexts</span></code> v0.4.0 introduces local inference via <a class="reference external" href="https://docs.vllm.ai/">vLLM</a> alongside the existing
+HuggingFace <code class="docutils literal notranslate"><span class="pre">transformers</span></code> backend, typically delivering a 5–30× throughput
+improvement on GPU benchmarks while preserving the full score-extraction
+contract (multiple-choice, direct-numeric, and chain-of-thought prompting).</p>
+<section id="what-s-new">
+<h3>What’s new<a class="headerlink" href="#what-s-new" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">VLLMClassifier</span></code></strong>: a new top-K-logprobs classifier in
+<code class="docutils literal notranslate"><span class="pre">folktexts.classifier.vllm_classifier</span></code>, parallel to
+<code class="docutils literal notranslate"><span class="pre">TransformersLLMClassifier</span></code>. Both feed the same QA decoders, so result
+semantics are unchanged.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">load_vllm_model</span></code></strong> in <code class="docutils literal notranslate"><span class="pre">folktexts.llm_utils</span></code>: helper that initialises a
+vLLM <code class="docutils literal notranslate"><span class="pre">LLM</span></code> engine + tokenizer with sensible defaults for this benchmark
+(BF16, <code class="docutils literal notranslate"><span class="pre">gpu_memory_utilization=0.85</span></code>, <code class="docutils literal notranslate"><span class="pre">logprobs_mode=&quot;processed_logprobs&quot;</span></code>).</p></li>
+<li><p><strong>CLI flag <code class="docutils literal notranslate"><span class="pre">--inference-backend</span> <span class="pre">{transformers,vllm}</span></code></strong>: selects the local
+backend. <strong>Default is now <code class="docutils literal notranslate"><span class="pre">vllm</span></code>.</strong> Pass <code class="docutils literal notranslate"><span class="pre">--inference-backend</span> <span class="pre">transformers</span></code>
+to fall back to the previous path; the transformers code is unchanged and
+remains a fully supported alternative.</p></li>
+<li><p><strong>vLLM-specific CLI flags</strong>: <code class="docutils literal notranslate"><span class="pre">--gpu-memory-utilization</span></code>, <code class="docutils literal notranslate"><span class="pre">--max-model-len</span></code>,
+<code class="docutils literal notranslate"><span class="pre">--vllm-dtype</span></code>, <code class="docutils literal notranslate"><span class="pre">--tensor-parallel-size</span></code>. The CLI auto-derives a
+<code class="docutils literal notranslate"><span class="pre">max_model_len</span></code> from <code class="docutils literal notranslate"><span class="pre">--context-size</span> <span class="pre">+</span> <span class="pre">ChainOfThoughtQA.max_new_tokens</span> <span class="pre">+</span> <span class="pre">256</span></code>
+when the user does not pass <code class="docutils literal notranslate"><span class="pre">--max-model-len</span></code> explicitly.</p></li>
+<li><p><strong>Optional install group <code class="docutils literal notranslate"><span class="pre">[vllm]</span></code></strong>: <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">folktexts[vllm]</span></code> pulls in
+the vLLM wheel. The base install is unchanged for users on the transformers
+path.</p></li>
+</ul>
+</section>
+<section id="architecture">
+<h3>Architecture<a class="headerlink" href="#architecture" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Two classifiers, one decoder.</strong> <code class="docutils literal notranslate"><span class="pre">VLLMClassifier</span></code>,
+<code class="docutils literal notranslate"><span class="pre">TransformersLLMClassifier</span></code>, and <code class="docutils literal notranslate"><span class="pre">WebAPILLMClassifier</span></code> all hand answers to
+the QA-decoder methods on <code class="docutils literal notranslate"><span class="pre">MultipleChoiceQA</span></code>, <code class="docutils literal notranslate"><span class="pre">DirectNumericQA</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">ChainOfThoughtQA</span></code>. The new helper <code class="docutils literal notranslate"><span class="pre">decode_topk_logprobs_to_risk_estimate</span></code> in
+<code class="docutils literal notranslate"><span class="pre">folktexts.llm_utils</span></code> factors out the top-K decoding logic shared by vLLM
+and the WebAPI; the transformers path (which has full-vocab logits)
+bypasses this helper, as before.</p></li>
+<li><p><strong>Backend dispatch.</strong> <code class="docutils literal notranslate"><span class="pre">Benchmark.make_*_benchmark(...)</span></code> accepts a
+<code class="docutils literal notranslate"><span class="pre">backend=</span></code> argument (<code class="docutils literal notranslate"><span class="pre">&quot;transformers&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;vllm&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;webapi&quot;</span></code>, or
+<code class="docutils literal notranslate"><span class="pre">None</span></code> for autodetect). When <code class="docutils literal notranslate"><span class="pre">None</span></code>, autodetect uses
+<code class="docutils literal notranslate"><span class="pre">str</span> <span class="pre">→</span> <span class="pre">webapi</span></code>, duck-typed <code class="docutils literal notranslate"><span class="pre">LLM-shaped</span> <span class="pre">→</span> <span class="pre">vllm</span></code>, else <code class="docutils literal notranslate"><span class="pre">transformers</span></code>.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">VLLMClassifier.__hash__</span></code></strong> includes a <code class="docutils literal notranslate"><span class="pre">&quot;vllm&quot;</span></code> tag so cached result
+paths (<code class="docutils literal notranslate"><span class="pre">results.bench-{hash}.json</span></code>) cannot collide with transformers runs
+of the same model. Predictions can drift by ~1e-3 across backends due to
+attention-kernel differences; mixing them in one CSV would be a silent
+mistake.</p></li>
+<li><p><strong>Numeric mode</strong> uses vLLM’s <code class="docutils literal notranslate"><span class="pre">allowed_token_ids</span></code> to restrict generation to
+digit tokens (mirroring the transformers <code class="docutils literal notranslate"><span class="pre">digits_only=True</span></code> mask).
+Multiple-choice mode runs unmasked; the QA decoder’s prefix-variant
+matching handles renormalisation across answer letters.</p></li>
+</ul>
+</section>
+<section id="cluster-runtime-requirements-b200-hopper-vllm-0-20-1-wheel">
+<h3>Cluster runtime requirements (B200 / Hopper / vllm 0.20.1 wheel)<a class="headerlink" href="#cluster-runtime-requirements-b200-hopper-vllm-0-20-1-wheel" title="Link to this heading"></a></h3>
+<p>The vLLM 0.20.1 wheel is built against CUDA 13. On clusters where the
+default toolkit is older, two environment steps are required for any
+vLLM invocation:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">source</span><span class="w"> </span>/etc/profile.d/modules.sh
+module<span class="w"> </span>load<span class="w"> </span>cuda/13.2<span class="w">          </span><span class="c1"># provides libcudart.so.13</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">VLLM_USE_DEEP_GEMM</span><span class="o">=</span><span class="m">0</span><span class="w">    </span><span class="c1"># skips an FP8 warmup that needs deep_gemm</span>
+<span class="w">                               </span><span class="c1"># (not on PyPI); harmless on BF16 models</span>
+</pre></div>
+</div>
+<p>Without these, <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">vllm._C</span></code> and engine init both crash on Hopper+
+GPUs.</p>
+</section>
+<section id="validation">
+<h3>Validation<a class="headerlink" href="#validation" title="Link to this heading"></a></h3>
+<p>The migration was validated across 38 cross-backend cells covering the
+paper’s Table 1 (8 models × 2-4 modes), a modern + thinking-model sweep
+(<code class="docutils literal notranslate"><span class="pre">gemma-3-1b-it</span></code>, <code class="docutils literal notranslate"><span class="pre">Qwen3-1.7B</span></code>, <code class="docutils literal notranslate"><span class="pre">Qwen3-4B</span></code>, <code class="docutils literal notranslate"><span class="pre">Qwen3-4B-Instruct-2507</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Qwen3-4B-Thinking-2507</span></code>), and a chat-template extension on
+<code class="docutils literal notranslate"><span class="pre">Mistral-7B-Instruct-v0.2</span></code> and <code class="docutils literal notranslate"><span class="pre">Yi-34B-Chat</span></code>. Multi-seed stability was
+verified across 4 seeds × 2 backends on Llama-3-8B-Instruct and
+Qwen3-Thinking-2507.</p>
+<p><strong>36/38 cells fall within the strict gates</strong> <code class="docutils literal notranslate"><span class="pre">|ΔAUC|</span> <span class="pre">≤</span> <span class="pre">0.015</span></code> and
+<code class="docutils literal notranslate"><span class="pre">|ΔECE|</span> <span class="pre">≤</span> <span class="pre">0.025</span></code>. The two remaining outliers are characterised:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Llama-3-8B</span></code> base × <code class="docutils literal notranslate"><span class="pre">numeric</span></code> (zero-shot): vLLM <code class="docutils literal notranslate"><span class="pre">+0.017</span></code> AUC, <code class="docutils literal notranslate"><span class="pre">−0.041</span></code>
+ECE — vLLM is slightly <em>better</em>. The model is essentially near-random
+on this prompt (TF AUC 0.559); the delta is within the kernel-noise
+band of a near-random model.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Qwen3-1.7B</span></code> × <code class="docutils literal notranslate"><span class="pre">chat-MCQ</span></code>: vLLM <code class="docutils literal notranslate"><span class="pre">+0.190</span></code> AUC, <code class="docutils literal notranslate"><span class="pre">+0.265</span></code> ECE — vLLM
+is <em>much</em> better. The transformers path collapses to 3 unique scores
+on this combination; vLLM produces 425 unique scores with broad
+spread. The bug is on the transformers side and does not reproduce on
+Qwen3-4B / Qwen3-4B-Instruct / Qwen3-4B-Thinking-2507.</p></li>
+</ul>
+<p>Phase 7 robustness checks (1-row DataFrame, sequential model swap in
+the same Python process, near- and over-cap inputs, tied-logit
+cross-backend agreement, and OOM clean failure) all pass.</p>
+</section>
+<section id="backwards-compatibility">
+<h3>Backwards compatibility<a class="headerlink" href="#backwards-compatibility" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>The CLI accepts the same flags as before plus the new
+<code class="docutils literal notranslate"><span class="pre">--inference-backend</span></code> / <code class="docutils literal notranslate"><span class="pre">--gpu-memory-utilization</span></code> /
+<code class="docutils literal notranslate"><span class="pre">--max-model-len</span></code> / <code class="docutils literal notranslate"><span class="pre">--vllm-dtype</span></code> / <code class="docutils literal notranslate"><span class="pre">--tensor-parallel-size</span></code>. All new
+flags have safe defaults; existing scripts work unchanged on the
+vLLM backend, or on the transformers backend with
+<code class="docutils literal notranslate"><span class="pre">--inference-backend</span> <span class="pre">transformers</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Benchmark.make_*_benchmark(...)</span></code> accepts an optional <code class="docutils literal notranslate"><span class="pre">backend=</span></code> kwarg.
+Existing callers that pass <code class="docutils literal notranslate"><span class="pre">model=</span></code> as a HuggingFace <code class="docutils literal notranslate"><span class="pre">PreTrainedModel</span></code>
+continue to be routed to <code class="docutils literal notranslate"><span class="pre">TransformersLLMClassifier</span></code>.</p></li>
+<li><p>Result CSVs from previous runs (transformers) are not invalidated; the
+new vLLM hash tag means vLLM runs save to a fresh path rather than
+overwriting transformers numbers.</p></li>
+</ul>
+</section>
+<section id="migration-notes">
+<h3>Migration notes<a class="headerlink" href="#migration-notes" title="Link to this heading"></a></h3>
+<p>If you previously installed <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> and want to use the new vLLM
+backend:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span><span class="s1">&#39;folktexts[vllm]&#39;</span>
+<span class="c1"># or, from a checkout:</span>
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.<span class="o">[</span>vllm<span class="o">]</span>
+</pre></div>
+</div>
+<p>Then either accept the new default (<code class="docutils literal notranslate"><span class="pre">vllm</span></code>) or stay on transformers
+explicitly:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_acs_benchmark<span class="w"> </span>--model<span class="w"> </span>&lt;path&gt;<span class="w"> </span>--task<span class="w"> </span>ACSIncome<span class="w"> </span>--data-dir<span class="w"> </span>&lt;path&gt;<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--inference-backend<span class="w"> </span>transformers
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="readme.html" class="btn btn-neutral float-left" title="README.md" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="source/modules.html" class="btn btn-neutral float-right" title="folktexts" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
