@@ -168,16 +168,17 @@ bench_results = bench.run(results_root_dir="results")
 </details>
 
 <details>
-<summary><strong>Reasoning prompting (chain-of-thought)</strong> (click to expand)</summary>
+<summary><strong>Chain-of-thought prompting</strong> (click to expand)</summary>
 
-The model generates reasoning text before emitting a probability, which is then
-extracted via regex. `enable_thinking=True` activates the Qwen3-style thinking-mode
-chat template and strips the `<think>` block before extraction.
+The model generates free-form reasoning text before emitting a probability,
+which is then extracted via regex. `enable_thinking=True` is an independent
+toggle that activates the Qwen3-style thinking-mode chat template and strips
+the `<think>` block before extraction; it requires `cot_prompting=True`.
 
 ```py
 from folktexts.benchmark import Benchmark, BenchmarkConfig
 
-config = BenchmarkConfig(reasoning_prompting=True, enable_thinking=True)
+config = BenchmarkConfig(cot_prompting=True, enable_thinking=True)
 bench = Benchmark.make_benchmark(
     task="ACSIncome", dataset=dataset,
     model=llm, tokenizer=tokenizer, config=config,
@@ -217,13 +218,13 @@ conjunction with the `run_acs_benchmark` command line script, or with the
 | `--results-dir` | Path to directory under which benchmark results will be saved. | `results` |
 | `--data-dir` | Root folder to find datasets in (or download ACS data to). | `~/data` |
 | `--numeric-risk-prompting` | Whether to use verbalized numeric risk prompting, i.e., directly query model for a probability estimate. **By default** will use standard multiple-choice Q&A, and extract risk scores from internal token probabilities. | Boolean flag (`True` if present, `False` otherwise) |
-| `--use-chat-template` | Format prompts using the tokenizer's chat template (recommended for instruct/chat models). Pair with `--system-prompt` and/or `--chat-prompt` to override the defaults. Mutually exclusive with `--reasoning-prompting`. **By default** uses zero-shot prompting without a chat template. | Boolean flag (`True` if present, `False` otherwise) |
-| `--reasoning-prompting` | Use reasoning-based prompting (chain-of-thought): the model generates reasoning text before outputting a probability estimate, which is extracted from the generated text via regex. | Boolean flag (`True` if present, `False` otherwise) |
-| `--enable-thinking` | Enable thinking mode for tokenizers that support it (e.g. Qwen3). Only applies with `--reasoning-prompting`; calls `apply_chat_template(enable_thinking=True)` and strips the `<think>` block before extraction. | Boolean flag (`True` if present, `False` otherwise) |
+| `--use-chat-template` | Format prompts using the tokenizer's chat template (recommended for instruct/chat models). Pair with `--system-prompt` and/or `--chat-prompt` to override the defaults. Mutually exclusive with `--cot-prompting`. **By default** uses zero-shot prompting without a chat template. | Boolean flag (`True` if present, `False` otherwise) |
+| `--cot-prompting` | Use chain-of-thought (CoT) prompting: the model generates free-form reasoning text before outputting a probability estimate, which is extracted from the generated text via regex. | Boolean flag (`True` if present, `False` otherwise) |
+| `--enable-thinking` | Enable thinking mode for tokenizers that support it (e.g. Qwen3). Only applies with `--cot-prompting`; calls `apply_chat_template(enable_thinking=True)` and strips the `<think>` block before extraction. | Boolean flag (`True` if present, `False` otherwise) |
 | `--use-web-api-model` | Whether the given `--model` name corresponds to a web-hosted model or not. **By default** this is False (assumes a local model). If this flag is provided, `--model` must contain a [litellm](https://docs.litellm.ai) model identifier ([examples here](https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models)). | Boolean flag (`True` if present, `False` otherwise) |
 | `--inference-backend` | Local inference backend. **Default** `vllm` for high-throughput continuous batching (requires `pip install 'folktexts[vllm]'` and a CUDA GPU); pass `transformers` to use the HuggingFace path instead. Ignored when `--use-web-api-model` is set. | `vllm`, `transformers` |
 | `--gpu-memory-utilization` | vLLM only. Fraction of GPU VRAM vLLM may pre-allocate for KV cache. Lower if vLLM OOMs at startup. | `0.85` (default) |
-| `--max-model-len` | vLLM only. Maximum tokens (input + output) per request. Defaults to `--context-size + ReasoningQA.max_new_tokens + 256` for reasoning runs (8000 + 256 = 8256 with the default budget), otherwise `--context-size + 1 + 256`. Override on tighter VRAM. | `2048`, `8192` |
+| `--max-model-len` | vLLM only. Maximum tokens (input + output) per request. Defaults to `--context-size + ChainOfThoughtQA.max_new_tokens + 256` for CoT runs (8000 + 256 = 8256 with the default budget), otherwise `--context-size + 1 + 256`. Override on tighter VRAM. | `2048`, `8192` |
 | `--vllm-dtype` | vLLM only. Compute dtype. | `auto`, `bfloat16`, `float16` |
 | `--tensor-parallel-size` | vLLM only. Number of GPUs to shard the model across; auto-detects from `CUDA_VISIBLE_DEVICES`. | `1`, `2` |
 | `--subsampling` | Which fraction of the dataset to use for the benchmark. **By default** will use the whole test set. | `0.01` |
@@ -234,7 +235,7 @@ conjunction with the `run_acs_benchmark` command line script, or with the
 <summary><strong>Full list of options</strong> (click to expand)</summary>
 
 ```
-usage: run_acs_benchmark [-h] --model MODEL --results-dir RESULTS_DIR --data-dir DATA_DIR [--task TASK] [--few-shot FEW_SHOT] [--batch-size BATCH_SIZE] [--context-size CONTEXT_SIZE] [--fit-threshold FIT_THRESHOLD] [--subsampling SUBSAMPLING] [--seed SEED] [--use-web-api-model] [--inference-backend {transformers,vllm}] [--gpu-memory-utilization GPU_MEMORY_UTILIZATION] [--max-model-len MAX_MODEL_LEN] [--vllm-dtype VLLM_DTYPE] [--tensor-parallel-size TENSOR_PARALLEL_SIZE] [--dont-correct-order-bias] [--numeric-risk-prompting] [--reasoning-prompting] [--enable-thinking] [--reuse-few-shot-examples] [--balance-few-shot-examples] [--use-chat-template] [--chat-prompt CHAT_PROMPT] [--system-prompt SYSTEM_PROMPT]
+usage: run_acs_benchmark [-h] --model MODEL --results-dir RESULTS_DIR --data-dir DATA_DIR [--task TASK] [--few-shot FEW_SHOT] [--batch-size BATCH_SIZE] [--context-size CONTEXT_SIZE] [--fit-threshold FIT_THRESHOLD] [--subsampling SUBSAMPLING] [--seed SEED] [--use-web-api-model] [--inference-backend {transformers,vllm}] [--gpu-memory-utilization GPU_MEMORY_UTILIZATION] [--max-model-len MAX_MODEL_LEN] [--vllm-dtype VLLM_DTYPE] [--tensor-parallel-size TENSOR_PARALLEL_SIZE] [--dont-correct-order-bias] [--numeric-risk-prompting] [--cot-prompting] [--enable-thinking] [--reuse-few-shot-examples] [--balance-few-shot-examples] [--use-chat-template] [--chat-prompt CHAT_PROMPT] [--system-prompt SYSTEM_PROMPT]
                          [--use-feature-subset USE_FEATURE_SUBSET] [--use-population-filter USE_POPULATION_FILTER] [--max-api-rpm MAX_API_RPM] [--logger-level {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
 
 Benchmark risk scores produced by a language model on ACS data.
@@ -262,7 +263,7 @@ options:
   --gpu-memory-utilization GPU_MEMORY_UTILIZATION
                         [float] vLLM gpu_memory_utilization (default 0.85). Lower if vLLM OOMs at startup.
   --max-model-len MAX_MODEL_LEN
-                        [int] vLLM max_model_len (input + output tokens). If unset, derived from --context-size + ReasoningQA.max_new_tokens for the prompting mode (currently 8000 for reasoning/thinking, 1 otherwise).
+                        [int] vLLM max_model_len (input + output tokens). If unset, derived from --context-size + ChainOfThoughtQA.max_new_tokens for the prompting mode (currently 8000 for CoT/thinking, 1 otherwise).
   --vllm-dtype VLLM_DTYPE
                         [str] vLLM compute dtype (auto/bfloat16/float16/float32).
   --tensor-parallel-size TENSOR_PARALLEL_SIZE
@@ -271,9 +272,8 @@ options:
                         [bool] Whether to avoid correcting ordering bias, by default will correct it
   --numeric-risk-prompting
                         [bool] Whether to prompt for numeric risk-estimates instead of multiple-choice Q&A
-  --reasoning-prompting
-                        [bool] Whether to use reasoning-based prompting (chain-of-thought) where the model reasons before outputting a probability
-  --enable-thinking     [bool] Whether to enable thinking mode for models that support it (e.g., Qwen3). Only applies with --reasoning-prompting
+  --cot-prompting       [bool] Whether to use chain-of-thought (CoT) prompting where the model reasons step-by-step before outputting a probability
+  --enable-thinking     [bool] Whether to enable thinking mode for tokenizers that support it (e.g., Qwen3). Only applies with --cot-prompting
   --reuse-few-shot-examples
                         [bool] Whether to reuse the same samples for few-shot prompting (or sample new ones every time)
   --balance-few-shot-examples

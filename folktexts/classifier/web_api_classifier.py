@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 
 from folktexts.llm_utils import decode_topk_logprobs_to_risk_estimate
-from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA, ReasoningQA
+from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA, ChainOfThoughtQA
 from folktexts.task import TaskMetadata
 
 from .base import LLMClassifier
@@ -128,7 +128,7 @@ class WebAPILLMClassifier(LLMClassifier):
         self,
         prompts_batch: list[str],
         *,
-        question: MultipleChoiceQA | DirectNumericQA | ReasoningQA,
+        question: MultipleChoiceQA | DirectNumericQA | ChainOfThoughtQA,
         context_size: int = None,
     ) -> list[dict]:
         """Query the web API with a batch of prompts and returns the json response.
@@ -139,7 +139,7 @@ class WebAPILLMClassifier(LLMClassifier):
         ----------
         prompts_batch : list[str]
             A batch of string prompts to query the model with.
-        question : MultipleChoiceQA | DirectNumericQA | ReasoningQA
+        question : MultipleChoiceQA | DirectNumericQA | ChainOfThoughtQA
             The question (`QAInterface`) object to use for querying the model.
         context_size : int, optional
             The maximum context size to consider for each input (in tokens).
@@ -149,8 +149,8 @@ class WebAPILLMClassifier(LLMClassifier):
         responses_batch : list[dict]
             The returned JSON responses for each prompt in the batch.
         """
-        # Handle ReasoningQA with longer text generation
-        if isinstance(question, ReasoningQA):
+        # Handle ChainOfThoughtQA with longer text generation
+        if isinstance(question, ChainOfThoughtQA):
             api_call_params = dict(
                 temperature=0,  # Deterministic for reproducibility
                 max_tokens=question.max_new_tokens,
@@ -188,16 +188,16 @@ class WebAPILLMClassifier(LLMClassifier):
                 top_logprobs=20,
             )
 
-        # Check for unsupported parameters (only for non-ReasoningQA)
-        if not isinstance(question, ReasoningQA):
+        # Check for unsupported parameters (only for non-ChainOfThoughtQA)
+        if not isinstance(question, ChainOfThoughtQA):
             if set(api_call_params.keys()) - self.supported_params:
                 raise RuntimeError(
                     f"Unsupported API parameters for model '{self.model_name}': "
                     f"{set(api_call_params.keys()) - self.supported_params}"
                 )
 
-        # Get system prompt depending on Q&A type (if not already set for ReasoningQA)
-        if not isinstance(question, ReasoningQA):
+        # Get system prompt depending on Q&A type (if not already set for ChainOfThoughtQA)
+        if not isinstance(question, ChainOfThoughtQA):
             if isinstance(question, DirectNumericQA):
                 system_prompt = "Your response must start with a number representing the estimated probability."
                 # system_prompt = (
@@ -237,7 +237,7 @@ class WebAPILLMClassifier(LLMClassifier):
     def _decode_risk_estimate_from_api_response(
         self,
         response: dict,
-        question: MultipleChoiceQA | DirectNumericQA | ReasoningQA,
+        question: MultipleChoiceQA | DirectNumericQA | ChainOfThoughtQA,
     ) -> float:
         """Decode model output from API response to get risk estimate.
 
@@ -245,7 +245,7 @@ class WebAPILLMClassifier(LLMClassifier):
         ----------
         response : dict
             The response from the API call.
-        question : MultipleChoiceQA | DirectNumericQA | ReasoningQA
+        question : MultipleChoiceQA | DirectNumericQA | ChainOfThoughtQA
             The question (`QAInterface`) object to use for querying the model.
 
         Returns
@@ -256,10 +256,10 @@ class WebAPILLMClassifier(LLMClassifier):
         # Get response message
         response_message: str = response.choices[0].message.content
 
-        # Handle ReasoningQA by extracting probability from generated text
-        if isinstance(question, ReasoningQA):
+        # Handle ChainOfThoughtQA by extracting probability from generated text
+        if isinstance(question, ChainOfThoughtQA):
             risk_estimate = question.get_answer_from_model_output(response_message)
-            logging.debug(f"ReasoningQA extracted probability: {risk_estimate:.2%}")
+            logging.debug(f"ChainOfThoughtQA extracted probability: {risk_estimate:.2%}")
             return risk_estimate
 
         # Get top-K logprobs per forward pass (keyed by decoded token string).
@@ -324,7 +324,7 @@ class WebAPILLMClassifier(LLMClassifier):
         self,
         prompts_batch: list[str],
         *,
-        question: MultipleChoiceQA | DirectNumericQA | ReasoningQA,
+        question: MultipleChoiceQA | DirectNumericQA | ChainOfThoughtQA,
         context_size: int = None,
     ) -> np.ndarray:
         """Query model with a batch of prompts and return risk estimates.
@@ -333,7 +333,7 @@ class WebAPILLMClassifier(LLMClassifier):
         ----------
         prompts_batch : list[str]
             A batch of string prompts to query the model with.
-        question : MultipleChoiceQA | DirectNumericQA | ReasoningQA
+        question : MultipleChoiceQA | DirectNumericQA | ChainOfThoughtQA
             The question (`QAInterface`) object to use for querying the model.
         context_size : int, optional
             The maximum context size to consider for each input (in tokens).

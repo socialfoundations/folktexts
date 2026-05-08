@@ -26,7 +26,7 @@ from .prompting import (
     resolve_chat_defaults,
     tokenizer_supports_system_prompt,
 )
-from .qa_interface import ReasoningQA
+from .qa_interface import ChainOfThoughtQA
 from .task import TaskMetadata
 
 DEFAULT_SEED = 42
@@ -43,15 +43,17 @@ class BenchmarkConfig:
     numeric_risk_prompting : bool, optional
         Whether to prompt for numeric risk-estimates instead of multiple-choice
         Q&A, by default False.
-    reasoning_prompting : bool, optional
-        Whether to use reasoning-based prompting (chain-of-thought) where the
-        model generates reasoning text before outputting a probability estimate,
-        by default False.
+    cot_prompting : bool, optional
+        Whether to use chain-of-thought prompting: the model generates
+        free-form reasoning text and ends with a `Probability: X%` line that
+        is recovered via regex. Works on any model regardless of chat
+        template. By default False.
     enable_thinking : bool, optional
-        Whether to enable thinking mode for models that support it (e.g., Qwen3).
-        Only applies when `reasoning_prompting=True`. When enabled, uses the
-        tokenizer's `apply_chat_template` with `enable_thinking=True`. Default
-        is False.
+        Whether to enable thinking mode for tokenizers that support it (e.g.,
+        Qwen3). Only applies when `cot_prompting=True`. When enabled, calls
+        `apply_chat_template(..., enable_thinking=True)` and the resulting
+        `<think>...</think>` block is stripped before regex extraction.
+        Default is False.
     few_shot : int | None, optional
         Whether to use few-shot prompting with a given number of examples, by
         default None.
@@ -90,7 +92,7 @@ class BenchmarkConfig:
     """
 
     numeric_risk_prompting: bool = False
-    reasoning_prompting: bool = False
+    cot_prompting: bool = False
     enable_thinking: bool = False
     few_shot: int | None = None
     reuse_few_shot_examples: bool = False
@@ -490,11 +492,11 @@ class Benchmark:
         config = config.update(**kwargs)
 
         # Fetch ACS task and dataset
-        # NOTE: Only set use_numeric_qa if not using reasoning mode (enable_thinking
-        # or reasoning_prompting), since ReasoningQA will override the Q&A mode anyway.
+        # NOTE: Only set use_numeric_qa if not using CoT mode (cot_prompting or
+        # enable_thinking), since ChainOfThoughtQA will override the Q&A mode anyway.
         use_numeric_qa = (
             config.numeric_risk_prompting
-            and not config.reasoning_prompting
+            and not config.cot_prompting
             and not config.enable_thinking
         )
         acs_task = ACSTaskMetadata.get_task(name=task_name, use_numeric_qa=use_numeric_qa)
@@ -543,26 +545,42 @@ class Benchmark:
 
     @staticmethod
     def _configure_task_question(task: TaskMetadata, config: BenchmarkConfig) -> None:
-        """Pick the Q&A interface (reasoning / numeric / multiple-choice) on `task`."""
-        if config.reasoning_prompting or config.enable_thinking:
-            if config.enable_thinking and not config.reasoning_prompting:
+        """Pick the Q&A interface (CoT / numeric / multiple-choice) on `task`.
+
+        `TaskMetadata.get_task` returns a cached singleton, so this method must
+        also *clear* prior Q&A state when switching to plain MC: without an
+        explicit reset, a chat_mcq config (none of cot/enable_thinking/numeric
+        set) leaves whatever a previous CoT or numeric cell wrote on the task,
+        and `task.question` keeps returning the stale interface — silently
+        dispatching `ChainOfThoughtQA` (max_new_tokens=8000) for what should be
+        a 1-token MC prediction.
+        """
+        if config.cot_prompting or config.enable_thinking:
+            if config.enable_thinking and not config.cot_prompting:
                 logging.warning(
-                    "enable_thinking=True requires ReasoningQA interface; "
-                    "implicitly enabling reasoning_prompting mode."
+                    "enable_thinking=True requires the chain-of-thought QA "
+                    "interface; implicitly enabling cot_prompting mode."
                 )
             base_question = task.direct_numeric_qa
             if base_question is None:
                 raise ValueError(
                     f"Task '{task.name}' does not have a question defined. "
-                    f"Cannot create ReasoningQA for reasoning_prompting or enable_thinking mode."
+                    f"Cannot create ChainOfThoughtQA for cot_prompting or enable_thinking mode."
                 )
-            task.set_question(ReasoningQA(
+            task.set_question(ChainOfThoughtQA(
                 column=base_question.column,
                 text=base_question.text,
                 enable_thinking=config.enable_thinking,
             ))
         elif config.numeric_risk_prompting:
             task.use_numeric_qa = True
+        else:
+            # Plain multiple-choice — clear any leftover CoT/numeric state on
+            # the cached singleton. Both flags must be reset explicitly: the
+            # `use_numeric_qa = False` setter doesn't touch `_use_cot_qa`, and
+            # vice versa.
+            task.use_cot_qa = False
+            task.use_numeric_qa = False
 
     @staticmethod
     def _validate_config(config: BenchmarkConfig) -> None:
@@ -573,13 +591,13 @@ class Benchmark:
                 "Please choose one or the other."
             )
 
-        if config.use_chat_template and (config.reasoning_prompting or config.enable_thinking):
+        if config.use_chat_template and (config.cot_prompting or config.enable_thinking):
             raise ValueError(
-                "Cannot combine `use_chat_template=True` with `reasoning_prompting` "
-                "or `enable_thinking`: the reasoning path applies the tokenizer's "
+                "Cannot combine `use_chat_template=True` with `cot_prompting` "
+                "or `enable_thinking`: the CoT path applies the tokenizer's "
                 "chat template internally inside `generate_text_batch`, so an "
                 "outer `encode_row_prompt_chat` would double-wrap the prompt. "
-                "Drop `--use-chat-template` when running with reasoning."
+                "Drop `--use-chat-template` when running with chain-of-thought."
             )
 
         if not config.use_chat_template and (

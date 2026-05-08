@@ -41,7 +41,7 @@ from folktexts.qa_interface import (  # noqa: E402
     Choice,
     DirectNumericQA,
     MultipleChoiceQA,
-    ReasoningQA,
+    ChainOfThoughtQA,
 )
 
 
@@ -242,10 +242,10 @@ class TestDirectNumericPath:
 
 
 # --------------------------------------------------------------------------
-# Reasoning path
+# CoT path
 # --------------------------------------------------------------------------
 
-class TestReasoningPath:
+class TestCoTPath:
     def test_extracts_probability_from_generated_text(self):
         vocab = {"a": 0, "b": 1}
         tokenizer = _StubTokenizer(vocab, vocab_size=10)
@@ -258,7 +258,7 @@ class TestReasoningPath:
         # enable_thinking=False ⇒ chat template applied (no thinking-block strip).
         # _apply_chat_template_batch falls back to raw prompts when the tokenizer
         # has no chat_template attribute.
-        question = ReasoningQA(column="PINCP", text="dummy", enable_thinking=False)
+        question = ChainOfThoughtQA(column="PINCP", text="dummy", enable_thinking=False)
         risks = clf._query_prompt_risk_estimates_batch(
             prompts_batch=["dummy prompt"], question=question,
         )
@@ -273,14 +273,14 @@ class TestReasoningPath:
         llm = _StubLLM(script=[[request_output]])
         clf = _make_classifier(llm, tokenizer, vocab_dim=10)
 
-        question = ReasoningQA(column="PINCP", text="dummy", enable_thinking=False)
+        question = ChainOfThoughtQA(column="PINCP", text="dummy", enable_thinking=False)
         risks = clf._query_prompt_risk_estimates_batch(
             prompts_batch=["dummy"], question=question,
         )
         assert risks[0] == pytest.approx(0.5, abs=1e-6)
         # Failure tracked so the warning logic can fire downstream.
-        assert clf._reasoning_failed == 1
-        assert clf._reasoning_total == 1
+        assert clf._cot_failed == 1
+        assert clf._cot_total == 1
 
     def test_strips_thinking_block_when_enabled(self):
         vocab = {"a": 0}
@@ -298,12 +298,12 @@ class TestReasoningPath:
         llm = _StubLLM(script=[[request_output]])
         clf = _make_classifier(llm, tokenizer, vocab_dim=10)
 
-        question = ReasoningQA(column="PINCP", text="dummy", enable_thinking=True)
+        question = ChainOfThoughtQA(column="PINCP", text="dummy", enable_thinking=True)
         risks = clf._query_prompt_risk_estimates_batch(
             prompts_batch=["dummy"], question=question,
         )
         assert risks[0] == pytest.approx(0.85, abs=1e-6)
-        assert clf._reasoning_failed == 0
+        assert clf._cot_failed == 0
 
 
 # --------------------------------------------------------------------------

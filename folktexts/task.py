@@ -11,7 +11,7 @@ import pandas as pd
 
 from ._utils import hash_dict
 from .col_to_text import ColumnToText
-from .qa_interface import DirectNumericQA, MultipleChoiceQA, QAInterface, ReasoningQA
+from .qa_interface import ChainOfThoughtQA, DirectNumericQA, MultipleChoiceQA, QAInterface
 from .threshold import Threshold
 
 
@@ -43,8 +43,8 @@ class TaskMetadata:
     direct_numeric_qa: DirectNumericQA = None
     """The direct numeric question and answer interface for this task."""
 
-    reasoning_qa: ReasoningQA = None
-    """The reasoning-based question and answer interface for this task."""
+    cot_qa: ChainOfThoughtQA = None
+    """The chain-of-thought (CoT) question and answer interface for this task."""
 
     description: str = None
     """A description of the task, including the population to which the task pertains to."""
@@ -52,8 +52,8 @@ class TaskMetadata:
     _use_numeric_qa: bool = False
     """Whether to use numeric Q&A instead of multiple-choice Q&A prompts. Default is False."""
 
-    _use_reasoning_qa: bool = False
-    """Whether to use reasoning Q&A (chain-of-thought) prompts. Default is False."""
+    _use_cot_qa: bool = False
+    """Whether to use chain-of-thought (CoT) Q&A prompts. Default is False."""
 
     # Class-level task storage
     _tasks: ClassVar[dict[str, "TaskMetadata"]] = field(default={}, init=False, repr=False)
@@ -150,15 +150,15 @@ class TaskMetadata:
         if isinstance(question, MultipleChoiceQA):
             self.multiple_choice_qa = question
             self._use_numeric_qa = False
-            self._use_reasoning_qa = False
+            self._use_cot_qa = False
         elif isinstance(question, DirectNumericQA):
             self.direct_numeric_qa = question
             self._use_numeric_qa = True
-            self._use_reasoning_qa = False
-        elif isinstance(question, ReasoningQA):
-            self.reasoning_qa = question
+            self._use_cot_qa = False
+        elif isinstance(question, ChainOfThoughtQA):
+            self.cot_qa = question
             self._use_numeric_qa = False
-            self._use_reasoning_qa = True
+            self._use_cot_qa = True
         else:
             raise ValueError(f"Invalid question type: {type(question).__name__}")
 
@@ -177,23 +177,23 @@ class TaskMetadata:
                 f"{'numeric' if use_numeric_qa else 'multiple-choice'}.")
         self._use_numeric_qa = use_numeric_qa
         if use_numeric_qa:
-            self._use_reasoning_qa = False
+            self._use_cot_qa = False
 
     @property
-    def use_reasoning_qa(self) -> bool:
-        """Getter for whether to use reasoning Q&A (chain-of-thought) prompts."""
-        return self._use_reasoning_qa
+    def use_cot_qa(self) -> bool:
+        """Getter for whether to use chain-of-thought (CoT) Q&A prompts."""
+        return self._use_cot_qa
 
-    @use_reasoning_qa.setter
-    def use_reasoning_qa(self, use_reasoning_qa: bool):
-        """Setter for whether to use reasoning Q&A (chain-of-thought) prompts."""
+    @use_cot_qa.setter
+    def use_cot_qa(self, use_cot_qa: bool):
+        """Setter for whether to use chain-of-thought (CoT) Q&A prompts."""
         # Only log if value is actually changing
-        if use_reasoning_qa != self._use_reasoning_qa:
+        if use_cot_qa != self._use_cot_qa:
             logging.info(
                 f"Changing Q&A mode for task '{self.name}' to "
-                f"{'reasoning' if use_reasoning_qa else 'standard'}.")
-        self._use_reasoning_qa = use_reasoning_qa
-        if use_reasoning_qa:
+                f"{'chain-of-thought' if use_cot_qa else 'standard'}.")
+        self._use_cot_qa = use_cot_qa
+        if use_cot_qa:
             self._use_numeric_qa = False
 
     @classmethod
@@ -233,9 +233,9 @@ class TaskMetadata:
     def question(self) -> QAInterface:
         """Getter for the Q&A interface for this task."""
 
-        # Resolve Q&A type: reasoning > numeric > multiple-choice
-        if self._use_reasoning_qa:
-            q = self.reasoning_qa
+        # Resolve Q&A type: CoT > numeric > multiple-choice
+        if self._use_cot_qa:
+            q = self.cot_qa
         elif self._use_numeric_qa:
             q = self.direct_numeric_qa
         else:
