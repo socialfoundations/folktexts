@@ -3,12 +3,70 @@
 Release notes summarising user-visible changes between versions. Older changes
 not yet listed here can be reconstructed from the git log.
 
+## Unreleased — rename `reasoning_*` → `cot_*` / `chain_of_thought_*`
+
+Two distinct concepts shared the word "reasoning" in the public API: the
+free-form chain-of-thought prompt template and the HF chat-template
+`enable_thinking` kwarg. They're orthogonal — `enable_thinking=True`
+requires the CoT prompt path, but the CoT prompt path runs on any model
+with no thinking-mode support — so we renamed the CoT side to drop the
+ambiguity. `enable_thinking` is unchanged because that name matches the HF
+kwarg and stays aligned with it.
+
+### Renames (hard cut, no aliases)
+
+| Before                                | After                                  |
+|---------------------------------------|----------------------------------------|
+| `ReasoningQA` class                   | `ChainOfThoughtQA`                     |
+| `BenchmarkConfig.reasoning_prompting` | `BenchmarkConfig.cot_prompting`        |
+| CLI flag `--reasoning-prompting`      | `--cot-prompting`                      |
+| `TaskMetadata.reasoning_qa` / `use_reasoning_qa` | `TaskMetadata.cot_qa` / `use_cot_qa` |
+
+The previous symbols raise `AttributeError` / `TypeError` rather than
+warning + forwarding — update callsites in one commit.
+
+### Migration
+
+```py
+# Before
+from folktexts.qa_interface import ReasoningQA
+config = BenchmarkConfig(reasoning_prompting=True, enable_thinking=True)
+
+# After
+from folktexts.qa_interface import ChainOfThoughtQA
+config = BenchmarkConfig(cot_prompting=True, enable_thinking=True)
+```
+
+```bash
+# Before
+run_acs_benchmark --model <m> --task ACSIncome --data-dir <d> --reasoning-prompting
+# After
+run_acs_benchmark --model <m> --task ACSIncome --data-dir <d> --cot-prompting
+```
+
+### Notes
+
+- **`enable_thinking` is unchanged** (dataclass field, CLI flag, and class
+  attribute on `ChainOfThoughtQA`). It still requires `cot_prompting=True`
+  and warns + auto-enables CoT mode if you forget.
+- **`ChainOfThoughtQA.max_new_tokens=8000`** value is preserved.
+- **Result JSON files** (`results.bench-*.json`) written before the rename
+  carry `"config": {"reasoning_prompting": true, ...}`. They remain
+  readable: sweep helpers (`scripts/cot_e2e_sweep.py`, `cot_sweep.py`,
+  `audit_cot_failures.py`, `extended_sweep.py`, `multi_seed_stability.py`,
+  `validate_pr26.py`) accept either key when scanning existing results.
+- **Hash stability**: not preserved. `BenchmarkConfig.__hash__` uses
+  `dataclasses.asdict(self)`, so the hash includes the field name. New
+  runs write to fresh `results.bench-{hash}.json` paths; pre-rename
+  cached paths stay readable but won't be short-circuited by a hash
+  match.
+
 ## v0.4.0 — vLLM backend
 
 `folktexts` v0.4.0 introduces local inference via [vLLM] alongside the existing
 HuggingFace `transformers` backend, typically delivering a 5–30× throughput
 improvement on GPU benchmarks while preserving the full score-extraction
-contract (multiple-choice, direct-numeric, and reasoning prompting).
+contract (multiple-choice, direct-numeric, and chain-of-thought prompting).
 
 [vLLM]: https://docs.vllm.ai/
 
@@ -27,7 +85,7 @@ contract (multiple-choice, direct-numeric, and reasoning prompting).
   remains a fully supported alternative.
 - **vLLM-specific CLI flags**: `--gpu-memory-utilization`, `--max-model-len`,
   `--vllm-dtype`, `--tensor-parallel-size`. The CLI auto-derives a
-  `max_model_len` from `--context-size + ReasoningQA.max_new_tokens + 256`
+  `max_model_len` from `--context-size + ChainOfThoughtQA.max_new_tokens + 256`
   when the user does not pass `--max-model-len` explicitly.
 - **Optional install group `[vllm]`**: `pip install folktexts[vllm]` pulls in
   the vLLM wheel. The base install is unchanged for users on the transformers
@@ -38,7 +96,7 @@ contract (multiple-choice, direct-numeric, and reasoning prompting).
 - **Two classifiers, one decoder.** `VLLMClassifier`,
   `TransformersLLMClassifier`, and `WebAPILLMClassifier` all hand answers to
   the QA-decoder methods on `MultipleChoiceQA`, `DirectNumericQA`, and
-  `ReasoningQA`. The new helper `decode_topk_logprobs_to_risk_estimate` in
+  `ChainOfThoughtQA`. The new helper `decode_topk_logprobs_to_risk_estimate` in
   `folktexts.llm_utils` factors out the top-K decoding logic shared by vLLM
   and the WebAPI; the transformers path (which has full-vocab logits)
   bypasses this helper, as before.
