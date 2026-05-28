@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Runs the LLM calibration benchmark from the command line."""
 
+from __future__ import annotations
+
 import json
 import logging
 import os
