@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Runs the LLM calibration benchmark from the command line.
-"""
+"""Runs the LLM calibration benchmark from the command line."""
+
 import json
 import logging
 import os
 import sys
 from argparse import ArgumentParser
 from pathlib import Path
+from typing import Any
+
+from folktexts._utils import ParseDict
+from folktexts.prompting import DEFAULT_PROMPT_STYLE, PROMPT_DEFAULT
 
 DEFAULT_ACS_TASK = "ACSIncome"
 
@@ -23,24 +27,69 @@ DEFAULT_TENSOR_PARALLEL_SIZE = 1
 def setup_arg_parser() -> ArgumentParser:
 
     # Init parser
-    parser = ArgumentParser(description="Benchmark risk scores produced by a language model on ACS data.")
+    parser = ArgumentParser(
+        description="Benchmark risk scores produced by a language model on ACS data."
+    )
 
     # Define a custom argument type for a list of strings
     def list_of_strings(arg):
-        return arg.split(',')
+        return arg.split(",")
 
     # List of command-line arguments, with type and helper string
-    cli_args = [
-        ("--model",         str, "[str] Model name or path to model saved on disk"),
-        ("--results-dir",   str, "[str] Directory under which this experiment's results will be saved"),
-        ("--data-dir",      str, "[str] Root folder to find datasets on"),
-        ("--task",          str, "[str] Name of the ACS task to run the experiment on", False, DEFAULT_ACS_TASK),
-        ("--few-shot",      int, "[int] Use few-shot prompting with the given number of shots", False),
-        ("--batch-size",    int, "[int] The batch size to use for inference", False, DEFAULT_BATCH_SIZE),
-        ("--context-size",  int, "[int] The maximum context size when prompting the LLM", False, DEFAULT_CONTEXT_SIZE),
-        ("--fit-threshold", int, "[int] Whether to fit the prediction threshold, and on how many samples", False),
-        ("--subsampling",   float, "[float] Which fraction of the dataset to use (if omitted will use all data)", False),
-        ("--seed",          int, "[int] Random seed -- to set for reproducibility", False, DEFAULT_SEED),
+    cli_args: list[Any] = [
+        ("--model", str, "[str] Model name or path to model saved on disk"),
+        (
+            "--results-dir",
+            str,
+            "[str] Directory under which this experiment's results will be saved",
+        ),
+        ("--data-dir", str, "[str] Root folder to find datasets on"),
+        (
+            "--task",
+            str,
+            "[str] Name of the ACS task to run the experiment on",
+            False,
+            DEFAULT_ACS_TASK,
+        ),
+        (
+            "--few-shot",
+            int,
+            "[int] Use few-shot prompting with the given number of shots",
+            False,
+        ),
+        (
+            "--batch-size",
+            int,
+            "[int] The batch size to use for inference",
+            False,
+            DEFAULT_BATCH_SIZE,
+        ),
+        (
+            "--context-size",
+            int,
+            "[int] The maximum context size when prompting the LLM",
+            False,
+            DEFAULT_CONTEXT_SIZE,
+        ),
+        (
+            "--fit-threshold",
+            int,
+            "[int] Whether to fit the prediction threshold, and on how many samples",
+            False,
+        ),
+        (
+            "--subsampling",
+            float,
+            "[float] Which fraction of the dataset to use (if omitted will use all data)",
+            False,
+        ),
+        (
+            "--seed",
+            int,
+            "[int] Random seed -- to set for reproducibility",
+            False,
+            DEFAULT_SEED,
+        ),
     ]
 
     for arg in cli_args:
@@ -48,8 +97,8 @@ def setup_arg_parser() -> ArgumentParser:
             arg[0],
             type=arg[1],
             help=arg[2],
-            required=(arg[3] if len(arg) > 3 else True),    # NOTE: required by default
-            default=(arg[4] if len(arg) > 4 else None),     # default value if provided
+            required=(arg[3] if len(arg) > 3 else True),  # NOTE: required by default
+            default=(arg[4] if len(arg) > 4 else None),  # default value if provided
         )
 
     # Add special arguments (e.g., boolean flags or multiple-choice args)
@@ -149,10 +198,29 @@ def setup_arg_parser() -> ArgumentParser:
     )
 
     parser.add_argument(
-        "--balance-few-shot-examples",
-        help="[bool] Whether to sample evenly from all classes in few-shot prompting",
-        action="store_true",
-        default=False,
+        "--compose-few-shot-examples",
+        help=(
+            "[str|list] How to select samples in few-shot prompting: random, balanced or list of speicified "
+            "class counts. Defaults to random."
+        ),
+        default="random",
+    )
+
+    parser.add_argument(
+        "--example-order",
+        help=(
+            "[str] Comma-separated permutation of few-shot example indices, e.g. '2,0,1'. "
+            "Only used when --few-shot is set."
+        ),
+    )
+
+    parser.add_argument(
+        "--variation",
+        help="[dict] Dictionary specifying variations of data point serialization.",
+        nargs="*",
+        action=ParseDict,
+        required=False,
+        default={},
     )
 
     parser.add_argument(
@@ -167,7 +235,7 @@ def setup_arg_parser() -> ArgumentParser:
         type=str,
         help="[str] Custom assistant prefill text to use with chat templates",
         required=False,
-        default=None,
+        default=PROMPT_DEFAULT,
     )
 
     parser.add_argument(
@@ -175,7 +243,7 @@ def setup_arg_parser() -> ArgumentParser:
         type=str,
         help="[str] Custom system prompt text to use with chat templates",
         required=False,
-        default=None,
+        default=PROMPT_DEFAULT,
     )
 
     # Optionally, receive a list of features to use (subset of original list)
@@ -227,33 +295,44 @@ def main():
     logging.info(f"Current python executable: '{sys.executable}'")
     logging.info(f"Received the following cmd-line args: {pretty_args_str}")
 
+    # Parse prompt variation dict
+    prompt_variation_dict = DEFAULT_PROMPT_STYLE
+    if args.variation != {}:
+        # update with args.variation
+        prompt_variation_dict = {**prompt_variation_dict, **args.variation}
+
     # Parse population filter if provided
     population_filter_dict = None
     if args.use_population_filter:
         from folktexts.cli._utils import cmd_line_args_to_kwargs
+
         population_filter_dict = cmd_line_args_to_kwargs(args.use_population_filter)
 
     # Load model and tokenizer
     backend = None  # webapi when --use-web-api-model; otherwise the local choice
-    # > Web-hosted LLM
+    # Web-hosted LLM
     if args.use_web_api_model:
         model = args.model
         tokenizer = None
         backend = "webapi"
 
-    # > Local LLM via vLLM (default)
+    # Local LLM via vLLM (default)
     elif args.inference_backend == "vllm":
         from folktexts.llm_utils import load_vllm_model
+
         tensor_parallel_size = args.tensor_parallel_size
         if tensor_parallel_size is None:
             cuda_visible = os.environ.get("CUDA_VISIBLE_DEVICES", "")
-            tensor_parallel_size = max(1, len([d for d in cuda_visible.split(",") if d.strip()]))
+            tensor_parallel_size = max(
+                1, len([d for d in cuda_visible.split(",") if d.strip()])
+            )
         max_model_len = args.max_model_len
         if max_model_len is None:
             # CoT runs need much more output budget than baseline. Pull from
             # ChainOfThoughtQA.max_new_tokens so this stays in sync if the CoT
-            # budget is bumped (Qwen3-Thinking needs ≥ 8k to close </think>).
+            # budget is bumped (Qwen3-Thinking needs ≥ 8k to close </think.
             from folktexts.qa_interface import ChainOfThoughtQA
+
             cot_max_new_tokens = (
                 ChainOfThoughtQA.max_new_tokens
                 if (args.cot_prompting or args.enable_thinking)
@@ -271,21 +350,34 @@ def main():
         )
         backend = "vllm"
 
-    # > Local LLM via HuggingFace transformers (opt-in fallback)
+    # Local LLM via HuggingFace transformers (opt-in fallback)
     else:
         from folktexts.llm_utils import load_model_tokenizer
+
         model, tokenizer = load_model_tokenizer(args.model)
         backend = "transformers"
 
+    # Build FewShotConfig if few-shot prompting is requested
+    from folktexts.prompting import FewShotConfig
+
+    few_shot_config = None
+    if args.few_shot:
+        few_shot_config = FewShotConfig(
+            n_shots=args.few_shot,
+            compose=args.compose_few_shot_examples,
+            reuse_examples=args.reuse_few_shot_examples,
+            example_order=args.example_order,
+        )
+
     # Fill ACS Benchmark config
     from folktexts.benchmark import BenchmarkConfig
+
     config = BenchmarkConfig(
-        few_shot=args.few_shot,
+        few_shot_config=few_shot_config,
+        prompt_variation=prompt_variation_dict,
         numeric_risk_prompting=args.numeric_risk_prompting,
         cot_prompting=args.cot_prompting,
         enable_thinking=args.enable_thinking,
-        reuse_few_shot_examples=args.reuse_few_shot_examples,
-        balance_few_shot_examples=args.balance_few_shot_examples,
         use_chat_template=args.use_chat_template,
         chat_prompt=args.chat_prompt,
         system_prompt=args.system_prompt,
@@ -299,6 +391,7 @@ def main():
 
     # Create ACS Benchmark object
     from folktexts.benchmark import Benchmark
+
     bench = Benchmark.make_acs_benchmark(
         task_name=args.task,
         model=model,
@@ -313,6 +406,7 @@ def main():
 
     # Set-up results directory
     from folktexts.cli._utils import get_or_create_results_dir
+
     results_dir = get_or_create_results_dir(
         model_name=Path(args.model).name,
         task_name=args.task,
@@ -326,10 +420,12 @@ def main():
 
     # Save results
     import pprint
+
     pprint.pprint(bench.results, indent=4, sort_dicts=True)
 
     # Finish
     from folktexts._utils import get_current_timestamp
+
     print(f"\nFinished experiment successfully at {get_current_timestamp()}\n")
 
 

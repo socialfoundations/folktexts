@@ -1,14 +1,17 @@
 """Common set of utility functions and constants used across the project."""
+
 from __future__ import annotations
 
 import hashlib
 import json
 import logging
 import operator
+from argparse import Action
 from contextlib import contextmanager
 from datetime import datetime
 from functools import partial, reduce
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -23,7 +26,8 @@ def safe_division(a: float, b: float, *, worst_result: float):
     if b == 0 or not is_valid_number(a) or not is_valid_number(b):
         logging.debug(
             f"Using `worst_result={worst_result}` in place of the following "
-            f"division: {a} / {b}")
+            f"division: {a} / {b}"
+        )
         return worst_result
     else:
         return a / b
@@ -102,3 +106,65 @@ def suppress_logging(new_level):
         yield
     finally:
         logger.setLevel(previous_level)
+
+
+def is_float(element: Any) -> bool:
+    # If you expect None to be passed:
+    if element is None:
+        return False
+    try:
+        float(element)
+        return True
+    except ValueError:
+        return False
+
+
+def is_int(element: Any) -> bool:
+    # If you expect None to be passed:
+    if element is None:
+        return False
+    try:
+        int(element)
+        return True
+    except ValueError:
+        return False
+
+
+def is_str(element: Any) -> bool:
+    try:
+        str(element)
+        return str(element) not in ["True", "False"]
+    except ValueError:
+        return False
+
+
+def is_bool(element: Any) -> bool:
+    try:
+        bool(element)
+        return True
+    except ValueError:
+        return False
+
+
+class ParseDict(Action):
+    """argparse Action that parses 'key1=val1;key2=val2' strings into a dict."""
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        setattr(namespace, self.dest, dict())
+        # assume dict to be passed as 'key1=val1;key2=val2'
+        logging.debug(f"ParseDict received values: {values}")
+        if len(values) > 1:
+            logging.error(f"ParseDict received more than one value: {values}")
+        value_list = values[0].split(";")
+        for pair in value_list:
+            key, _, value = pair.partition("=")
+            assert value != "", f"Some value could not be parsed, received {pair}."
+            if is_int(value):
+                value = int(value)
+            elif is_float(value):
+                value = float(value)
+            elif is_str(value):
+                value = str(value)
+            elif is_bool(value):
+                value = bool(value)
+            getattr(namespace, self.dest)[key] = value
