@@ -1,30 +1,32 @@
-"""Unit tests for `qa_interface` — pinning the contracts changed in the
-prefill-duplication and vocab-dim fixes.
+"""Unit tests for `qa_interface`.
 
-Two structural properties this file guards:
+Structural properties this file guards:
 
 1. `get_question_prompt(with_answer_prefill: bool)` — `True` (default) keeps
    the legacy zero-shot string byte-for-byte; `False` removes the answer
    prefill so the chat-template path can supply it as the assistant turn
    without duplicating it in the user message.
 
-2. `_get_numeric_tokens(tokenizer_vocab, vocab_dim)` — filters digit / decimal
+2. `get_answer_prefix()` — the answer prefill string returned by each QA
+   subclass independently of the full question prompt.
+
+3. `_get_numeric_tokens(tokenizer_vocab, vocab_dim)` — filters digit / decimal
    tokens whose ids fall outside `[0, vocab_dim)`. The caller (`get_answer_from_model_output`)
    derives `vocab_dim` from the actual logits axis (`last_token_probs.shape[-1]`),
    so out-of-range vocab entries no longer trip an `IndexError` deep in the
    probability lookup.
 """
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-
 from folktexts.qa_interface import Choice, DirectNumericQA, MultipleChoiceQA
 
+# ----------------------------------------------------------------------
+# DirectNumericQA.get_question_prompt
+# ----------------------------------------------------------------------
 
-# ----------------------------------------------------------------------
-# DirectNumericQA.get_question_prompt — `with_answer_prefill` plumbing
-# ----------------------------------------------------------------------
 
 class TestDirectNumericQAGetQuestionPrompt:
     def _q(self, answer_probability: bool = True) -> DirectNumericQA:
@@ -37,10 +39,7 @@ class TestDirectNumericQAGetQuestionPrompt:
     def test_default_matches_legacy_zero_shot_string(self):
         # Pin byte-for-byte equality with the pre-refactor zero-shot output
         # so the paper-reproducing path is provably untouched.
-        expected = (
-            "Question: What is this person's estimated yearly income?\n"
-            "Answer (between 0 and 1): 0."
-        )
+        expected = "Question: What is this person's estimated yearly income?\nAnswer (between 0 and 1): 0."
         assert self._q().get_question_prompt() == expected
         assert self._q().get_question_prompt(with_answer_prefill=True) == expected
 
@@ -68,8 +67,9 @@ class TestDirectNumericQAGetQuestionPrompt:
 
 
 # ----------------------------------------------------------------------
-# MultipleChoiceQA.get_question_prompt — `with_answer_prefill` plumbing
+# MultipleChoiceQA.get_question_prompt
 # ----------------------------------------------------------------------
+
 
 class TestMultipleChoiceQAGetQuestionPrompt:
     def _q(self) -> MultipleChoiceQA:
@@ -83,12 +83,7 @@ class TestMultipleChoiceQAGetQuestionPrompt:
         )
 
     def test_default_matches_legacy_zero_shot_string(self):
-        expected = (
-            "Question: Is this person's income above $50k?\n"
-            "A. No.\n"
-            "B. Yes.\n"
-            "Answer:"
-        )
+        expected = "Question: Is this person's income above $50k?\nA. No.\nB. Yes.\nAnswer:"
         assert self._q().get_question_prompt() == expected
         assert self._q().get_question_prompt(with_answer_prefill=True) == expected
 
@@ -99,16 +94,39 @@ class TestMultipleChoiceQAGetQuestionPrompt:
         assert "B. Yes." in out
         # The trailing "Answer:" prefill is the only thing that should drop.
         assert not out.rstrip().endswith("Answer:")
-        assert out == (
-            "Question: Is this person's income above $50k?\n"
-            "A. No.\n"
-            "B. Yes."
+        assert out == ("Question: Is this person's income above $50k?\nA. No.\nB. Yes.")
+
+
+# ----------------------------------------------------------------------
+# get_answer_prefix — the answer prefill string for each QA subclass
+# ----------------------------------------------------------------------
+
+
+class TestGetAnswerPrefix:
+    def test_numeric_answer_probability_true(self):
+        q = DirectNumericQA(column="x", text="dummy", answer_probability=True)
+        assert q.get_answer_prefix() == "Answer (between 0 and 1): 0."
+
+    def test_numeric_answer_probability_false(self):
+        q = DirectNumericQA(column="x", text="dummy", answer_probability=False)
+        assert q.get_answer_prefix() == "Answer: "
+
+    def test_mc_answer_prefix(self):
+        q = MultipleChoiceQA(
+            column="x",
+            text="dummy",
+            choices=(
+                Choice(text="No", data_value=0, numeric_value=0.0),
+                Choice(text="Yes", data_value=1, numeric_value=1.0),
+            ),
         )
+        assert q.get_answer_prefix() == "Answer:"
 
 
 # ----------------------------------------------------------------------
 # DirectNumericQA._get_numeric_tokens — vocab_dim filter
 # ----------------------------------------------------------------------
+
 
 class TestGetNumericTokensVocabDimFilter:
     """The filter prevents an `IndexError` on tokenizers (e.g. Gemma-3) where
@@ -165,7 +183,7 @@ class TestGetNumericTokensVocabDimFilter:
         vocab = {str(i): i for i in range(20)}
         vocab["100"] = 30
         vocab["200"] = 70  # out-of-range
-        vocab["."] = 50    # out-of-range
+        vocab["."] = 50  # out-of-range
         vocab_dim = 40
         nums = self._q()._get_numeric_tokens(vocab, vocab_dim=vocab_dim)
         assert all(0 <= tid < vocab_dim for tid in nums.values())
@@ -174,6 +192,7 @@ class TestGetNumericTokensVocabDimFilter:
 # ----------------------------------------------------------------------
 # DirectNumericQA.get_answer_from_model_output — derives vocab_dim from probs
 # ----------------------------------------------------------------------
+
 
 class TestGetAnswerFromModelOutputDerivesVocabDim:
     """The caller no longer has to thread `vocab_dim` in: it is derived from
