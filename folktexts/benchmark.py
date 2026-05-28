@@ -1,25 +1,32 @@
-"""A benchmark class for measuring and evaluating LLM calibration.
-"""
+"""A benchmark class for measuring and evaluating LLM calibration."""
+
 from __future__ import annotations
 
 import dataclasses
 import logging
 from functools import partial
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from ._io import load_json, save_json
-from ._utils import hash_dict, is_valid_number, get_current_timestamp
-from .acs.acs_dataset import ACSDataset
-from .acs.acs_tasks import ACSTaskMetadata
-from .classifier import LLMClassifier, TransformersLLMClassifier, VLLMClassifier, WebAPILLMClassifier
+from ._utils import get_current_timestamp, hash_dict, is_valid_number
+from .acs import ACSDataset, ACSTaskMetadata
+from .classifier import (
+    LLMClassifier,
+    TransformersLLMClassifier,
+    VLLMClassifier,
+    WebAPILLMClassifier,
+)
 from .dataset import Dataset
 from .evaluation import evaluate_predictions
 from .plotting import render_evaluation_plots, render_fairness_plots
 from .prompting import (
+    PROMPT_DEFAULT,
+    FewShotConfig,
+    PromptConfig,
     encode_row_prompt,
     encode_row_prompt_chat,
     encode_row_prompt_few_shot,
@@ -54,26 +61,24 @@ class BenchmarkConfig:
         `apply_chat_template(..., enable_thinking=True)` and the resulting
         `<think>...</think>` block is stripped before regex extraction.
         Default is False.
-    few_shot : int | None, optional
-        Whether to use few-shot prompting with a given number of examples, by
-        default None.
-    reuse_few_shot_examples : bool, optional
-        Whether to reuse the same samples for few-shot prompting (or sample new
-        ones every time), by default False.
-    balance_few_shot_examples : bool, optional
-        Whether to balance the samples for few-shot prompting with respect to
-        their labels, by default False.
+    few_shot_config : FewShotConfig | None, optional
+        Few-shot prompting configuration (number of shots, composition, example
+        order, reuse). ``None`` means zero-shot prompting.
     use_chat_template : bool, optional
         Whether to format prompts using the tokenizer's chat template, by
         default False. Only supported for local transformers models.
     chat_prompt : str | None, optional
-        The assistant prefill text to use with chat templates. If None, uses
-        the appropriate default for the prompting mode (ANTHROPIC_CHAT_PROMPT
-        for multiple-choice, NUMERIC_CHAT_PROMPT for numeric).
+        The assistant prefill text to use with chat templates. Defaults to
+        ``PROMPT_DEFAULT``, which selects the appropriate default from the QA
+        subclass (``ANTHROPIC_CHAT_PROMPT`` for MC, ``NUMERIC_CHAT_PROMPT`` for
+        numeric, ``None`` for CoT). Pass ``None`` explicitly to disable the
+        assistant prefill entirely.
     system_prompt : str | None, optional
-        Custom system prompt text to use with chat templates. If None, uses
-        the appropriate default for the prompting mode (SYSTEM_PROMPT for
-        multiple-choice, NUMERIC_SYSTEM_PROMPT for numeric).
+        System prompt text to use with chat templates. Defaults to
+        ``PROMPT_DEFAULT``, which selects the appropriate default from the QA
+        subclass (``SYSTEM_PROMPT`` for MC, ``NUMERIC_SYSTEM_PROMPT`` for
+        numeric, ``None`` for CoT). Pass ``None`` explicitly to disable the
+        system role (e.g. for Gemma-style tokenizers that reject it).
     batch_size : int | None, optional
         The batch size to use for inference.
     context_size : int | None, optional
@@ -89,23 +94,25 @@ class BenchmarkConfig:
         `{"column_name": "value"}`.
     seed : int, optional
         Random seed -- to set for reproducibility.
+    prompt_variation : dict | None, optional
+        Dictionary of prompt style overrides (e.g. ``{"format": "bullet",
+        "connector": "is"}``). ``None`` means no variation is applied.
     """
 
     numeric_risk_prompting: bool = False
     cot_prompting: bool = False
     enable_thinking: bool = False
-    few_shot: int | None = None
-    reuse_few_shot_examples: bool = False
-    balance_few_shot_examples: bool = False
+    few_shot_config: FewShotConfig | None = None
     use_chat_template: bool = False
-    chat_prompt: str | None = None
-    system_prompt: str | None = None
+    chat_prompt: str | None = PROMPT_DEFAULT  # type: ignore[assignment]
+    system_prompt: str | None = PROMPT_DEFAULT  # type: ignore[assignment]
     batch_size: int | None = None
     context_size: int | None = None
     correct_order_bias: bool = True
     feature_subset: list[str] | None = None
     population_filter: dict | None = None
     seed: int = DEFAULT_SEED
+    prompt_variation: dict | None = None
 
     @classmethod
     def default_config(cls, **changes):
@@ -133,21 +140,41 @@ class BenchmarkConfig:
         """Load the configuration from disk."""
         obj = load_json(path)
         if isinstance(obj, dict):
+            if isinstance(obj.get("few_shot_config"), dict):
+                obj["few_shot_config"] = FewShotConfig(**obj["few_shot_config"])
+            # Restore PROMPT_DEFAULT sentinel from its serialized form.
+            for key in ("system_prompt", "chat_prompt"):
+                if obj.get(key) == "default":
+                    obj[key] = PROMPT_DEFAULT
             return cls(**obj)
         else:
             raise ValueError(f"Invalid configuration file '{path}'.")
 
     def save_to_disk(self, path: str | Path):
         """Save the configuration to disk."""
-        save_json(dataclasses.asdict(self), path)
+        d = dataclasses.asdict(self)
+        for key in ("system_prompt", "chat_prompt"):
+            if getattr(self, key) is PROMPT_DEFAULT:
+                d[key] = "default"
+        save_json(d, path)
 
     def __hash__(self) -> int:
         """Generates a unique hash for the configuration."""
         cfg = dataclasses.asdict(self)
-        cfg["feature_subset"] = tuple(cfg["feature_subset"]) if cfg["feature_subset"] else None
+        for key in ("system_prompt", "chat_prompt"):
+            if getattr(self, key) is PROMPT_DEFAULT:
+                cfg[key] = "default"
+        cfg["feature_subset"] = (
+            tuple(cfg["feature_subset"]) if cfg["feature_subset"] else None
+        )
         cfg["population_filter_hash"] = (
-            hash_dict(cfg["population_filter"])
-            if cfg["population_filter"] else None
+            hash_dict(cfg["population_filter"]) if cfg["population_filter"] else None
+        )
+        cfg["prompt_variation"] = (
+            hash_dict(cfg["prompt_variation"]) if cfg["prompt_variation"] else None
+        )
+        cfg["few_shot_config"] = (
+            hash(self.few_shot_config) if self.few_shot_config else None
         )
         return int(hash_dict(cfg), 16)
 
@@ -158,17 +185,15 @@ class Benchmark:
     """
     Standardized configurations for the ACS data to use for benchmarking.
     """
-    ACS_DATASET_CONFIGS = {
+    ACS_DATASET_CONFIGS: dict[str, Any] = {
         # ACS survey configs
         "survey_year": "2018",
         "horizon": "1-Year",
         "survey": "person",
-
         # Data split configs
         "test_size": 0.1,
         "val_size": 0.1,
         "subsampling": None,
-
         # Fixed random seed
         "seed": 42,
     }
@@ -199,7 +224,7 @@ class Benchmark:
         self.config = config
 
         self._y_test_scores: Optional[np.ndarray] = None
-        self._results_root_dir: Optional[Path] = DEFAULT_ROOT_RESULTS_DIR
+        self._results_root_dir: Path = DEFAULT_ROOT_RESULTS_DIR
         self._results: Optional[dict] = None
         self._plots: Optional[dict] = None
 
@@ -215,6 +240,11 @@ class Benchmark:
     @property
     def configs_dict(self) -> dict:
         cnf = dataclasses.asdict(self.config)
+        q = self.task.question
+        if getattr(self.config, "system_prompt") is PROMPT_DEFAULT:
+            cnf["system_prompt"] = q.default_system_prompt
+        if getattr(self.config, "chat_prompt") is PROMPT_DEFAULT:
+            cnf["chat_prompt"] = q.default_chat_prompt
 
         # Add info on model, task, and dataset
         cnf["model_name"] = self.model_name
@@ -229,13 +259,6 @@ class Benchmark:
 
     @property
     def results(self):
-        # Add benchmark configs to the results
-        self._results["config"] = self.configs_dict
-        self._results["benchmark_hash"] = hash(self)
-        self._results["results_dir"] = self.results_dir.as_posix()
-        self._results["results_root_dir"] = self.results_root_dir.as_posix()
-        self._results["current_time"] = get_current_timestamp()
-
         return self._results
 
     @property
@@ -279,7 +302,11 @@ class Benchmark:
         assert data_split in ("train", "val", "test")
         return self.results_dir / f"{self.dataset.name}.{data_split}_predictions.csv"
 
-    def run(self, results_root_dir: str | Path, fit_threshold: int | bool = 0) -> float:
+    def run(
+        self,
+        results_root_dir: str | Path,
+        fit_threshold: int | bool = 0,
+    ) -> dict:
         """Run the calibration benchmark experiment.
 
         Parameters
@@ -292,8 +319,8 @@ class Benchmark:
 
         Returns
         -------
-        float
-            The benchmark metric value. By default this is the ECE score.
+        dict
+            Dictionary of evaluation results.
         """
         if self._results is not None:
             logging.warning("Benchmark was already run. Overriding previous results.")
@@ -307,6 +334,9 @@ class Benchmark:
 
         # Get sensitive attribute data if available
         s_test = None
+        logging.info(
+            f"Sensitive attribute defined by task: {self.task.sensitive_attribute}"
+        )
         if self.task.sensitive_attribute is not None:
             s_test = self.dataset.get_sensitive_attribute_data().loc[y_test.index]
 
@@ -317,7 +347,9 @@ class Benchmark:
             predictions_save_path=test_predictions_save_path,
             labels=y_test,  # used only to save alongside predictions in disk
         )
-        self._y_test_scores = self.llm_clf._get_positive_class_scores(self._y_test_scores)
+        self._y_test_scores = self.llm_clf._get_positive_class_scores(
+            self._y_test_scores
+        )
 
         # If requested, fit the threshold on a small portion of the train set
         if fit_threshold:
@@ -326,6 +358,7 @@ class Benchmark:
             elif not is_valid_number(fit_threshold) or fit_threshold <= 0:
                 raise ValueError(f"Invalid fit_threshold={fit_threshold}")
 
+            self.llm_clf._threshold_fitted_on = fit_threshold
             logging.info(f"Fitting threshold on {fit_threshold} train samples")
             X_train, y_train = self.dataset.sample_n_train_examples(fit_threshold)
             self.llm_clf.fit(X_train, y_train)
@@ -339,17 +372,28 @@ class Benchmark:
             model_name=self.llm_clf.model_name,
         )
 
+        self._results["threshold_fitted_on"] = self.llm_clf._threshold_fitted_on
+        if self.task.sensitive_attribute is not None:
+            self._results["sensitive_attribute"] = self.task.sensitive_attribute
+
         # Save predictions save path
         self._results["predictions_path"] = test_predictions_save_path.as_posix()
+
+        # Add benchmark metadata
+        self._results["config"] = self.configs_dict
+        self._results["benchmark_hash"] = hash(self)
+        self._results["results_dir"] = self.results_dir.as_posix()
+        self._results["results_root_dir"] = self.results_root_dir.as_posix()
+        self._results["current_time"] = get_current_timestamp()
 
         # Log main results
         msg = (
             f"\n** Test results **\n"
             f"Model: {self.llm_clf.model_name};\n"
             f"\t ECE:       {self._results['ece']:.1%};\n"
-            f"\t ROC AUC :  {self.results['roc_auc']:.1%};\n"
-            f"\t Accuracy:  {self.results['accuracy']:.1%};\n"
-            f"\t Bal. acc.: {self.results['balanced_accuracy']:.1%};\n"
+            f"\t ROC AUC :  {self._results['roc_auc']:.1%};\n"
+            f"\t Accuracy:  {self._results['accuracy']:.1%};\n"
+            f"\t Bal. acc.: {self._results['balanced_accuracy']:.1%};\n"
         )
         logging.info(msg)
 
@@ -377,7 +421,7 @@ class Benchmark:
         plots_paths : dict[str, str]
             The paths to the saved plots.
         """
-        if self._results is None:
+        if self._results is None or self._y_test_scores is None:
             raise ValueError("No results to plot. Run the benchmark first.")
 
         imgs_dir = Path(self.results_dir) / "imgs"
@@ -397,22 +441,24 @@ class Benchmark:
         if self.task.sensitive_attribute is not None:
             s_test = self.dataset.get_sensitive_attribute_data().loc[y_test.index]
 
-            plots_paths.update(render_fairness_plots(
-                y_true=y_test.to_numpy(),
-                y_pred_scores=self._y_test_scores,
-                sensitive_attribute=s_test,
-                eval_results=self.results,
-                model_name=self.llm_clf.model_name,
-                group_value_map=self.task.sensitive_attribute_value_map(),
-                imgs_dir=imgs_dir,
-                show_plots=show_plots,
-            ))
+            plots_paths.update(
+                render_fairness_plots(
+                    y_true=y_test.to_numpy(),
+                    y_pred_scores=self._y_test_scores,
+                    sensitive_attribute=s_test,
+                    eval_results=self.results,
+                    model_name=self.llm_clf.model_name,
+                    group_value_map=self.task.sensitive_attribute_value_map(),
+                    imgs_dir=imgs_dir,
+                    show_plots=show_plots,
+                )
+            )
 
         self._results["plots"] = plots_paths
 
         return plots_paths
 
-    def save_results(self, results_root_dir: str | Path = None):
+    def save_results(self, results_root_dir: str | Path | None = None):
         """Save the benchmark results to disk.
 
         Parameters
@@ -426,7 +472,7 @@ class Benchmark:
 
         # Update results directory if provided
         if results_root_dir is not None:
-            self.results_root_dir = results_root_dir
+            self.results_root_dir = Path(results_root_dir)
 
         # Save results to disk
         results_file_name = f"results.bench-{hash(self)}.json"
@@ -441,9 +487,9 @@ class Benchmark:
         task_name: str,
         *,
         model: AutoModelForCausalLM | str,
-        tokenizer: AutoTokenizer = None,
-        data_dir: str | Path = None,
-        max_api_rpm: int = None,
+        tokenizer: AutoTokenizer | None = None,
+        data_dir: str | Path | None = None,
+        max_api_rpm: int | None = None,
         config: BenchmarkConfig = BenchmarkConfig.default_config(),
         backend: str | None = None,
         model_name_or_path: str | Path | None = None,
@@ -485,7 +531,8 @@ class Benchmark:
                 logging.warning(
                     f"Received non-standard ACS argument '{arg}' (using "
                     f"{arg}={kwargs[arg]} instead of default {arg}={cls.ACS_DATASET_CONFIGS[arg]}). "
-                    f"This may affect reproducibility.")
+                    f"This may affect reproducibility."
+                )
                 acs_dataset_configs[arg] = kwargs.pop(arg)
 
         # Update config with any additional kwargs
@@ -499,12 +546,13 @@ class Benchmark:
             and not config.cot_prompting
             and not config.enable_thinking
         )
-        acs_task = ACSTaskMetadata.get_task(name=task_name, use_numeric_qa=use_numeric_qa)
+        acs_task = ACSTaskMetadata.get_task(
+            name=task_name, use_numeric_qa=use_numeric_qa
+        )
 
         acs_dataset = ACSDataset.make_from_task(
-            task=acs_task,
-            cache_dir=data_dir,
-            **acs_dataset_configs)
+            task=acs_task, cache_dir=data_dir, **acs_dataset_configs
+        )
 
         return cls.make_benchmark(
             task=acs_task,
@@ -567,11 +615,13 @@ class Benchmark:
                     f"Task '{task.name}' does not have a question defined. "
                     f"Cannot create ChainOfThoughtQA for cot_prompting or enable_thinking mode."
                 )
-            task.set_question(ChainOfThoughtQA(
-                column=base_question.column,
-                text=base_question.text,
-                enable_thinking=config.enable_thinking,
-            ))
+            task.set_question(
+                ChainOfThoughtQA(
+                    column=base_question.column,
+                    text=base_question.text,
+                    enable_thinking=config.enable_thinking,
+                )
+            )
         elif config.numeric_risk_prompting:
             task.use_numeric_qa = True
         else:
@@ -585,13 +635,15 @@ class Benchmark:
     @staticmethod
     def _validate_config(config: BenchmarkConfig) -> None:
         """Reject incompatible config combinations and warn on no-op overrides."""
-        if config.few_shot and config.use_chat_template:
+        if config.few_shot_config and config.use_chat_template:
             raise ValueError(
                 "Cannot use both few-shot prompting and chat template formatting. "
                 "Please choose one or the other."
             )
 
-        if config.use_chat_template and (config.cot_prompting or config.enable_thinking):
+        if config.use_chat_template and (
+            config.cot_prompting or config.enable_thinking
+        ):
             raise ValueError(
                 "Cannot combine `use_chat_template=True` with `cot_prompting` "
                 "or `enable_thinking`: the CoT path applies the tokenizer's "
@@ -616,8 +668,15 @@ class Benchmark:
         task: TaskMetadata,
         tokenizer: AutoTokenizer,
         config: BenchmarkConfig,
-    ):
-        """Build the chat-template `encode_row_prompt_chat` partial, honoring tokenizer quirks."""
+        prompt_config: PromptConfig,
+    ) -> tuple:
+        """Build the chat-template `encode_row_prompt_chat` partial, honoring tokenizer quirks.
+
+        Returns
+        -------
+        tuple[Callable, PromptConfig]
+            The encode function and the (possibly patched) prompt_config actually used.
+        """
         if tokenizer is None:
             raise ValueError(
                 "Chat template formatting requires a local tokenizer. "
@@ -626,7 +685,7 @@ class Benchmark:
         print("Using chat template prompting.")
 
         system_prompt, chat_prompt = resolve_chat_defaults(
-            numeric=config.numeric_risk_prompting,
+            question=task.question,
             system_prompt=config.system_prompt,
             chat_prompt=config.chat_prompt,
         )
@@ -634,7 +693,7 @@ class Benchmark:
         # one (e.g. Gemma). Warn loudly when this discards a user-supplied
         # value so it isn't silently lost.
         if not tokenizer_supports_system_prompt(tokenizer):
-            if config.system_prompt is not None:
+            if config.system_prompt is not PROMPT_DEFAULT and config.system_prompt is not None:
                 logging.warning(
                     "Tokenizer's chat template rejects the `system` role; "
                     "the user-supplied `system_prompt` will be discarded. "
@@ -647,14 +706,18 @@ class Benchmark:
                     "running without a system prompt."
                 )
             system_prompt = None
+            # patch prompt config so the caller also gets the updated version
+            prompt_config = dataclasses.replace(
+                prompt_config, system_prompt=system_prompt
+            )
 
         return partial(
             encode_row_prompt_chat,
             task=task,
             tokenizer=tokenizer,
-            system_prompt=system_prompt,
             chat_prompt=chat_prompt,
-        )
+            prompt_config=prompt_config,
+        ), prompt_config
 
     @classmethod
     def _build_encode_row_function(
@@ -664,24 +727,49 @@ class Benchmark:
         dataset: Dataset,
         tokenizer: AutoTokenizer,
         config: BenchmarkConfig,
-    ):
-        """Pick the prompting function based on config (few-shot, chat-template, or zero-shot)."""
-        if config.few_shot:
-            print(f"Using few-shot prompting (n={config.few_shot})!")
+        prompt_config: PromptConfig | None = None,
+    ) -> tuple:
+        """Pick the prompting function based on config (few-shot, chat-template, or zero-shot).
+
+        Returns
+        -------
+        tuple[Callable, PromptConfig]
+            The encode function and the prompt_config actually used (may differ from
+            the input when the Gemma path drops the system prompt).
+        """
+        # Build PromptConfig once from the variation dict.
+        if prompt_config is None:
+            prompt_config = PromptConfig.from_dict(
+                pv=config.prompt_variation or {},
+                task=task,
+                question=task.question,
+            )
+
+        if config.few_shot_config:
+            logging.info(
+                f"Using few-shot prompting (n={config.few_shot_config.n_shots})."
+            )
             return partial(
                 encode_row_prompt_few_shot,
                 task=task,
-                n_shots=config.few_shot,
                 dataset=dataset,
-                reuse_examples=config.reuse_few_shot_examples,
-                class_balancing=config.balance_few_shot_examples,
-            )
+                few_shot_config=config.few_shot_config,
+                prompt_config=prompt_config,
+            ), prompt_config
 
         if config.use_chat_template:
-            return cls._build_chat_encode_row_function(task=task, tokenizer=tokenizer, config=config)
+            # _build_chat_encode_row_function already returns (encode_fn, prompt_config)
+            return cls._build_chat_encode_row_function(
+                task=task,
+                tokenizer=tokenizer,
+                config=config,
+                prompt_config=prompt_config,
+            )
 
-        print("Using zero-shot prompting.")
-        return partial(encode_row_prompt, task=task)
+        logging.info("Using zero-shot prompting.")
+        return partial(
+            encode_row_prompt, task=task, prompt_config=prompt_config
+        ), prompt_config
 
     @classmethod
     def make_benchmark(
@@ -690,8 +778,8 @@ class Benchmark:
         task: TaskMetadata | str,
         dataset: Dataset,
         model: AutoModelForCausalLM | str,
-        tokenizer: AutoTokenizer = None,    # WebAPI models have no local tokenizer
-        max_api_rpm: int = None,
+        tokenizer: AutoTokenizer | None = None,  # WebAPI models have no local tokenizer
+        max_api_rpm: int | None = None,
         config: BenchmarkConfig = BenchmarkConfig.default_config(),
         backend: str | None = None,
         model_name_or_path: str | Path | None = None,
@@ -729,30 +817,47 @@ class Benchmark:
         config = config.update(**kwargs)
 
         # Handle TaskMetadata object and configure its Q&A mode from the config.
-        task = TaskMetadata.get_task(task) if isinstance(task, str) else task
+        if isinstance(task, str):
+            task = TaskMetadata.get_task(task)
         cls._configure_task_question(task, config)
 
         if config.feature_subset is not None and len(config.feature_subset) > 0:
             task = task.create_task_with_feature_subset(config.feature_subset)
             dataset.task = task
 
+        assert isinstance(task, TaskMetadata)
+
         # Check dataset is compatible with task
         if dataset.task is not task and dataset.task.name != task.name:
             raise ValueError(
-                f"Dataset task '{dataset.task.name}' does not match the "
-                f"provided task '{task.name}'.")
+                f"Dataset task '{dataset.task.name}' does not match the provided task '{task.name}'."
+            )
 
         if config.population_filter is not None:
             dataset = dataset.filter(config.population_filter)
 
         cls._validate_config(config)
 
-        encode_row_function = cls._build_encode_row_function(
-            task=task, dataset=dataset, tokenizer=tokenizer, config=config,
+        # Build PromptConfig once from the variation dict. Uses updated question type.
+        prompt_config = PromptConfig.from_dict(
+            pv=config.prompt_variation or {},
+            task=task,
+            question=task.question,
+        )
+
+        encode_row_function, prompt_config = cls._build_encode_row_function(
+            task=task,
+            dataset=dataset,
+            tokenizer=tokenizer,
+            config=config,
+            prompt_config=prompt_config,
         )
 
         # Parse LLMClassifier parameters
-        llm_inference_kwargs = {"correct_order_bias": config.correct_order_bias}
+        llm_inference_kwargs: dict[str, Any] = {
+            "correct_order_bias": config.correct_order_bias,
+            "prompt_config": prompt_config,  # may be patched (e.g. Gemma drops system_prompt)
+        }
         if config.batch_size is not None:
             llm_inference_kwargs["batch_size"] = config.batch_size
         if config.context_size is not None:
@@ -783,6 +888,9 @@ class Benchmark:
             logging.info(f"Using local vLLM model: {llm_clf.model_name}")
 
         else:  # transformers
+            assert tokenizer is not None, (
+                "Tokenizer must be provided for local transformers models."
+            )
             llm_clf = TransformersLLMClassifier(
                 model=model,
                 tokenizer=tokenizer,
@@ -791,6 +899,9 @@ class Benchmark:
                 **llm_inference_kwargs,
             )
             logging.info(f"Using local transformers model: {llm_clf.model_name}")
+
+        logging.info("Exemplary row encoding")
+        logging.info(llm_clf.encode_row(dataset.sample_n_train_examples(n=1)[0]))
 
         return cls(
             llm_clf=llm_clf,
