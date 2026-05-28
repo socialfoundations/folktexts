@@ -1,5 +1,4 @@
-"""Module for using a language model through a web API for risk classification.
-"""
+"""Module for using a language model through a web API for risk classification."""
 
 from __future__ import annotations
 
@@ -13,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 from folktexts.llm_utils import decode_topk_logprobs_to_risk_estimate
-from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA, ChainOfThoughtQA
+from folktexts.qa_interface import ChainOfThoughtQA, DirectNumericQA, MultipleChoiceQA
 from folktexts.task import TaskMetadata
 
 from .base import LLMClassifier
@@ -26,11 +25,10 @@ class WebAPILLMClassifier(LLMClassifier):
         self,
         model_name: str,
         task: TaskMetadata | str,
-        custom_prompt_prefix: str = None,
         encode_row: Callable[[pd.Series], str] = None,
         threshold: float = 0.5,
         correct_order_bias: bool = True,
-        max_api_rpm: int = 5000,    # NOTE: OpenAI Tier 1 limit is only 500 RPM !
+        max_api_rpm: int = 5000,  # NOTE: OpenAI Tier 1 limit is only 500 RPM !
         seed: int = 42,
         **inference_kwargs,
     ):
@@ -42,9 +40,6 @@ class WebAPILLMClassifier(LLMClassifier):
             The model ID to be resolved by `litellm`.
         task : TaskMetadata | str
             The task metadata object or name of an already created task.
-        custom_prompt_prefix : str, optional
-            A custom prompt prefix to supply to the model before the encoded
-            row data, by default None.
         encode_row : Callable[[pd.Series], str], optional
             The function used to encode tabular rows into natural text. If not
             provided, will use the default encoding function for the task.
@@ -66,7 +61,6 @@ class WebAPILLMClassifier(LLMClassifier):
         super().__init__(
             model_name=model_name,
             task=task,
-            custom_prompt_prefix=custom_prompt_prefix,
             encode_row=encode_row,
             threshold=threshold,
             correct_order_bias=correct_order_bias,
@@ -95,16 +89,21 @@ class WebAPILLMClassifier(LLMClassifier):
 
         # Set-up litellm API client
         import litellm
+
         litellm.success_callback = [self.track_cost_callback]
 
         from litellm import completion
+
         self.text_completion_api = completion
 
         # Get supported parameters
         from litellm import get_supported_openai_params
+
         supported_params = get_supported_openai_params(model=self.model_name)
         if supported_params is None:
-            raise RuntimeError(f"Failed to get supported parameters for model '{self.model_name}'.")
+            raise RuntimeError(
+                f"Failed to get supported parameters for model '{self.model_name}'."
+            )
         self.supported_params = set(supported_params)
 
         # Set litellm logger level to WARNING
@@ -213,7 +212,6 @@ class WebAPILLMClassifier(LLMClassifier):
         # Query model for each prompt in the batch
         responses_batch = []
         for prompt in prompts_batch:
-
             # Construct prompt messages object
             messages = [
                 {"role": "system", "content": system_prompt},
@@ -259,7 +257,9 @@ class WebAPILLMClassifier(LLMClassifier):
         # Handle ChainOfThoughtQA by extracting probability from generated text
         if isinstance(question, ChainOfThoughtQA):
             risk_estimate = question.get_answer_from_model_output(response_message)
-            logging.debug(f"ChainOfThoughtQA extracted probability: {risk_estimate:.2%}")
+            logging.debug(
+                f"ChainOfThoughtQA extracted probability: {risk_estimate:.2%}"
+            )
             return risk_estimate
 
         # Get top-K logprobs per forward pass (keyed by decoded token string).
@@ -294,7 +294,9 @@ class WebAPILLMClassifier(LLMClassifier):
         # Sanity check numeric answers based on global model response:
         if isinstance(question, DirectNumericQA):
             try:
-                numeric_response = re.match(r"[-+]?\d*\.\d+|\d+", response_message).group()
+                numeric_response = re.match(
+                    r"[-+]?\d*\.\d+|\d+", response_message
+                ).group()
                 risk_estimate_full_text = float(numeric_response)
 
                 if not np.isclose(risk_estimate, risk_estimate_full_text, atol=1e-2):
@@ -316,7 +318,8 @@ class WebAPILLMClassifier(LLMClassifier):
             except Exception:
                 logging.info(
                     f"Failed to extract numeric response from message='{response_message}';\n"
-                    f"Falling back on standard risk estimate of {risk_estimate}.")
+                    f"Falling back on standard risk estimate of {risk_estimate}."
+                )
 
         return risk_estimate
 
