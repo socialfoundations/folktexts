@@ -341,7 +341,7 @@ class Dataset:
                         f"Distributing {remaining} extra samples."
                     )
                     for i in range(remaining):
-                        per_label_counts[i] = 1
+                        per_label_counts[i] += 1
             elif isinstance(composition, list):
                 assert len(composition) == len(unique_labels), (
                     "Provide a count for every class; they are assigned in label order."
@@ -351,7 +351,8 @@ class Dataset:
 
             if any(c < k for c, k in zip(counts, per_label_counts)):
                 raise ValueError(
-                    "Not enough samples to draw from:\n\n".join(
+                    "Not enough samples to draw from:\n"
+                    + "\n".join(
                         f"- class {unique_labels[i]}: {counts[i]} available, {per_label_counts[i]} requested"
                         for i in range(len(unique_labels))
                         if counts[i] < per_label_counts[i]
