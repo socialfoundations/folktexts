@@ -107,6 +107,21 @@ class TestOccupationCasing:
         assert acs_occupation[4720] == "Cashiers"
 
 
+class TestSimplifiedValueMaps:
+    def test_out_of_range_codes_render_na_not_none(self):
+        """Low-granularity transforms returned None for unmapped codes -> rendered 'None'."""
+        from folktexts.acs import acs_columns_simplified as s
+
+        assert s.transform_cow(999) == "N/A"
+        assert s.transform_rac1p(999) == "N/A"
+        assert s.transform_occp(999999) == "N/A"
+
+    def test_occp_prefix_mapping_works_after_hoist(self):
+        from folktexts.acs import acs_columns_simplified as s
+
+        assert s.transform_occp(10) == "Management Occupations"
+
+
 class TestVaryOrder:
     def test_reversed(self, acs_income_task, acs_row):
         features = acs_income_task.features
