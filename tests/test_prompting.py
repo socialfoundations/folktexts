@@ -270,8 +270,18 @@ class TestFewShotConfig:
             FewShotConfig(n_shots=-1)
 
     def test_example_order_string_parsed(self):
+        # B3: example_order is normalized to a tuple (a list field is unhashable).
         cfg = FewShotConfig(n_shots=3, example_order="2,0,1")
-        assert cfg.example_order == [2, 0, 1]
+        assert cfg.example_order == (2, 0, 1)
+        assert isinstance(cfg.example_order, tuple)
+
+    def test_example_order_list_converted_to_tuple_and_hashable(self):
+        """B3 regression: example_order was left a list, so hash(FewShotConfig)
+        (reached via BenchmarkConfig.__hash__) raised 'unhashable type: list'."""
+        cfg = FewShotConfig(n_shots=2, example_order=[1, 0])
+        assert cfg.example_order == (1, 0)
+        assert isinstance(cfg.example_order, tuple)
+        hash(cfg)  # must not raise
 
     def test_example_order_invalid_permutation_raises(self):
         with pytest.raises(ValueError, match="permutation"):

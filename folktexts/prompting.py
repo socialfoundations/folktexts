@@ -339,12 +339,16 @@ class FewShotConfig:
         if self.n_shots < 1:
             raise ValueError(f"n_shots must be >= 1; got {self.n_shots}.")
 
+        # Normalize example_order to a tuple: a frozen dataclass must be hashable, and a
+        # list field breaks hash(FewShotConfig) (reached via BenchmarkConfig.__hash__).
         if isinstance(self.example_order, str):
             object.__setattr__(
                 self,
                 "example_order",
-                [int(i) for i in self.example_order.split(",")],
+                tuple(int(i) for i in self.example_order.split(",")),
             )
+        elif self.example_order is not None:
+            object.__setattr__(self, "example_order", tuple(self.example_order))
         if self.example_order is not None:
             if sorted(self.example_order) != list(range(self.n_shots)):
                 raise ValueError(
