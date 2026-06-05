@@ -195,6 +195,20 @@ class TestClassifierOrderBias:
         assert len(captured) == len(X_test)
 
 
+class TestClassifierConstruction:
+    def test_rejects_removed_kwargs(self, tiny_model_and_tokenizer, acs_income_task):
+        """Removed prompt-shaping kwargs (e.g. custom_prompt_prefix) used to be silently
+        swallowed into inference_kwargs; now they raise with a pointer to prompt_config."""
+        model, tokenizer = tiny_model_and_tokenizer
+        with pytest.raises(TypeError, match="custom_prompt_prefix"):
+            TransformersLLMClassifier(
+                model=model,
+                tokenizer=tokenizer,
+                task=acs_income_task,
+                custom_prompt_prefix="extra context",
+            )
+
+
 class TestBenchmarkConfig:
     def test_default_is_hashable(self):
         cfg = BenchmarkConfig()
