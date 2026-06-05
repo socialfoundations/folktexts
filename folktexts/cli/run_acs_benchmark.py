@@ -217,6 +217,17 @@ def setup_arg_parser() -> ArgumentParser:
     )
 
     parser.add_argument(
+        "--few-shot-hide-question",
+        help=(
+            "[bool] In few-shot examples show only the answer (omit the repeated question). "
+            "By default each example includes the question, matching the original behavior. "
+            "Only used when --few-shot is set."
+        ),
+        action="store_true",
+        default=False,
+    )
+
+    parser.add_argument(
         "--variation",
         help="[dict] Dictionary specifying variations of data point serialization.",
         nargs="*",
@@ -380,6 +391,7 @@ def main():
             compose=args.compose_few_shot_examples,
             reuse_examples=args.reuse_few_shot_examples,
             example_order=args.example_order,
+            show_question_in_examples=not args.few_shot_hide_question,
         )
 
     # Fill ACS Benchmark config

@@ -329,12 +329,16 @@ class FewShotConfig:
         per-class counts summing to ``n_shots``.
     reuse_examples : bool, optional
         Whether to reuse the same examples across calls, by default False.
+    show_question_in_examples : bool, optional
+        Whether each in-context example repeats the question (default, matches main) or shows
+        only the answer. Set False for the compact answer-only format. Default is True.
     """
 
     n_shots: int
     example_order: list[int] | str | None = None
     compose: str | list = "random"
     reuse_examples: bool = False
+    show_question_in_examples: bool = True
 
     def __post_init__(self):
         if self.n_shots < 1:
@@ -522,6 +526,7 @@ class PromptConfig:
     def _get_few_shot_task_description(task: TaskMetadata) -> str | None:
         overrides = {
             "respondent": "different survey respondents",
+            "question_phrase": "each question",  # R4: match main's few-shot wording
             "suffix": " for each person",
         }
         if task.name.startswith("ACS"):
@@ -576,6 +581,7 @@ class PromptBuilder:
         examples: list[tuple],  # list of (pd.Series, label)
         question: QAInterface | None = None,
         example_order: list[int] | None = None,
+        show_example_question: bool = True,
     ) -> str:
         if example_order is not None:
             assert len(example_order) == len(examples)
@@ -596,7 +602,9 @@ class PromptBuilder:
                 prefix=prefix,
                 suffix=dataclasses.replace(
                     config.suffix,
-                    show_question=False,
+                    # R6: examples repeat the question by default (matches main); the
+                    # answer-only format is opt-in via FewShotConfig.show_question_in_examples.
+                    show_question=show_example_question,
                     show_label=True,
                     label=ex_label,
                 ),
@@ -753,8 +761,8 @@ def encode_row_prompt_few_shot(
         )
 
     assert few_shot_config.example_order is None or isinstance(
-        few_shot_config.example_order, list
-    )  # mypy
+        few_shot_config.example_order, (list, tuple)
+    )  # mypy (example_order is normalized to a tuple in FewShotConfig)
     logging.debug(f"Composition of few shot examples: {few_shot_config.compose}")
 
     # Take `n_shots` random samples from the train set
@@ -764,8 +772,8 @@ def encode_row_prompt_few_shot(
         composition=few_shot_config.compose,
     )
 
-    X_examples = X_examples.sort_index()
-    y_examples = y_examples.sort_index()
+    # R5: keep the sampled order (do not sort_index) so examples match main; explicit
+    # ordering is available via FewShotConfig.example_order.
     logging.debug(f"ys index: {y_examples.index.tolist()}")
     logging.debug(f"ys: {y_examples.values.tolist()}")
 
@@ -794,6 +802,7 @@ def encode_row_prompt_few_shot(
         examples=examples,
         question=question if prompt_config is not None else None,
         example_order=few_shot_config.example_order,
+        show_example_question=few_shot_config.show_question_in_examples,
     )
     logging.debug(prompt)
     return prompt

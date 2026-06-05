@@ -511,17 +511,56 @@ class TestEncodeRowPromptFewShot:
         assert len(answers) == n_shots, f"Expected {n_shots} answers, got {answers}"
         assert len(set(answers)) == 2, f"Expected both labels in balanced examples, got {set(answers)}"
 
-    def test_question_appears_once_at_end(self, acs_income_task, acs_income_dataset, acs_row):
+    def test_examples_repeat_question_by_default(
+        self, acs_income_task, acs_income_dataset, acs_row
+    ):
+        """R6: by default each in-context example repeats the question (matches main), so
+        the question text appears n_shots + 1 times (one per example + the target row)."""
+        n_shots = 2
         prompt = encode_row_prompt_few_shot(
             acs_row,
             task=acs_income_task,
             dataset=acs_income_dataset,
-            n_shots=2,
-            reuse_examples=False,
+            n_shots=n_shots,
+            reuse_examples=True,
+        )
+        question_text = acs_income_task.question.get_question_prompt()
+        assert prompt.count(question_text) == n_shots + 1
+        assert prompt.endswith(question_text)
+
+    def test_hide_question_in_examples_shows_question_once(
+        self, acs_income_task, acs_income_dataset, acs_row
+    ):
+        """R6: the compact answer-only example format stays available via
+        FewShotConfig.show_question_in_examples=False (question then appears once)."""
+        prompt = encode_row_prompt_few_shot(
+            acs_row,
+            task=acs_income_task,
+            dataset=acs_income_dataset,
+            few_shot_config=FewShotConfig(
+                n_shots=2, reuse_examples=True, show_question_in_examples=False
+            ),
         )
         question_text = acs_income_task.question.get_question_prompt()
         assert prompt.count(question_text) == 1
         assert prompt.endswith(question_text)
+
+    def test_few_shot_task_description_matches_main_wording(
+        self, acs_income_task, acs_income_dataset, acs_row
+    ):
+        """R4: few-shot task description reads 'answer each question ... for each person'
+        (matches main), while a single-row prompt keeps 'answer the question'."""
+        few_shot = encode_row_prompt_few_shot(
+            acs_row,
+            task=acs_income_task,
+            dataset=acs_income_dataset,
+            n_shots=2,
+            reuse_examples=True,
+        )
+        assert "answer each question" in few_shot
+        assert "for each person" in few_shot
+        zero_shot = encode_row_prompt(acs_row, task=acs_income_task)
+        assert "answer the question" in zero_shot
 
 
 class TestOrderBiasCorrection:
