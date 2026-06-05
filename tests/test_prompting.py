@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 
 import pytest
 from folktexts.prompting import (
@@ -632,3 +633,18 @@ class TestOrderBiasCorrection:
             "Permuted question had no effect on few-shot prompt — question override was silently dropped"
         )
         assert permuted_q.get_question_prompt() in prompt_permuted
+
+
+class TestDefaultPromptGolden:
+    """Pin the default rendered prompt so accidental drift from `main` is caught."""
+
+    def test_default_prompt_matches_golden(self, acs_income_task):
+        """The committed golden snapshot (tests/expected_default_prompt.txt) was verified
+        byte-identical to `main`; R1/R2/R4/R5/R6 keep the default prompt == main. A diff
+        here means the default serialization changed — update the golden only intentionally."""
+        import pandas as pd
+
+        here = Path(__file__).parent
+        row = pd.read_csv(here / "acs_income_10rows.csv", index_col=0).iloc[0]
+        expected = (here / "expected_default_prompt.txt").read_text()
+        assert encode_row_prompt(row, task=acs_income_task) == expected
