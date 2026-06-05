@@ -282,6 +282,24 @@ class TestBenchmarkConfig:
         cfg = BenchmarkConfig(prompt_variation=pv)
         assert cfg.prompt_variation == pv
 
+    def test_no_chat_prompt_warning_on_default_prompts(self, caplog):
+        """Spin-off of B1: the chat-only warning used `is not None`, but the defaults
+        are the PROMPT_DEFAULT sentinel (not None), so it fired on every default run."""
+        import logging
+
+        with caplog.at_level(logging.WARNING):
+            Benchmark._validate_config(BenchmarkConfig(use_chat_template=False))
+        assert "will be ignored" not in caplog.text
+
+    def test_chat_prompt_warning_when_user_set_without_chat_template(self, caplog):
+        import logging
+
+        with caplog.at_level(logging.WARNING):
+            Benchmark._validate_config(
+                BenchmarkConfig(use_chat_template=False, system_prompt="custom")
+            )
+        assert "will be ignored" in caplog.text
+
 
 class TestBenchmarkRun:
     """End-to-end tests for Benchmark.make_benchmark() + Benchmark.run().

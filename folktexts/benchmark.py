@@ -656,8 +656,13 @@ class Benchmark:
                 "Drop `--use-chat-template` when running with chain-of-thought."
             )
 
+        def _user_set(v) -> bool:
+            # PROMPT_DEFAULT (unset) and None (explicitly disabled) are not user-provided
+            # values, so they must not trigger the chat-only warning.
+            return v is not None and v is not PROMPT_DEFAULT
+
         if not config.use_chat_template and (
-            config.system_prompt is not None or config.chat_prompt is not None
+            _user_set(config.system_prompt) or _user_set(config.chat_prompt)
         ):
             # Warn loudly: chat-only knobs are silently ignored on the
             # zero-shot / few-shot paths, which is rarely what the user wants.
