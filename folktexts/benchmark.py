@@ -173,8 +173,12 @@ class BenchmarkConfig:
         cfg["prompt_variation"] = (
             hash_dict(cfg["prompt_variation"]) if cfg["prompt_variation"] else None
         )
+        # Hash the few-shot config deterministically. Python's builtin hash() is salted
+        # (PYTHONHASHSEED), so hash(self.few_shot_config) gave result-file names a different
+        # name every process; hash_dict (json-based) is stable. cfg["few_shot_config"] is
+        # already the asdict form from the top-level dataclasses.asdict(self) above.
         cfg["few_shot_config"] = (
-            hash(self.few_shot_config) if self.few_shot_config else None
+            hash_dict(cfg["few_shot_config"]) if cfg["few_shot_config"] else None
         )
         return int(hash_dict(cfg), 16)
 

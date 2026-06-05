@@ -317,9 +317,9 @@ class Dataset:
         X, y : tuple[pd.DataFrame, pd.Series]
             The features and target data for the sampled examples.
         """
-        assert composition in ("random", "balanced") or isinstance(composition, list), (
-            "composition must be 'random', 'balanced', or a list of per-class counts."
-        )
+        assert composition in ("random", "balanced") or isinstance(
+            composition, (list, tuple)
+        ), "composition must be 'random', 'balanced', or a list of per-class counts."
 
         if composition == "random":
             if reuse_examples:
@@ -342,12 +342,13 @@ class Dataset:
                     )
                     for i in range(remaining):
                         per_label_counts[i] += 1
-            elif isinstance(composition, list):
+            elif isinstance(composition, (list, tuple)):
+                # FewShotConfig normalizes per-class `compose` to a tuple, so accept tuples too.
                 assert len(composition) == len(unique_labels), (
                     "Provide a count for every class; they are assigned in label order."
                 )
                 assert sum(composition) == n, "Per-class counts must sum to n."
-                per_label_counts = composition
+                per_label_counts = list(composition)
 
             if any(c < k for c, k in zip(counts, per_label_counts)):
                 raise ValueError(

@@ -207,6 +207,29 @@ class TestBenchmarkConfig:
         cfg = BenchmarkConfig(few_shot_config=FewShotConfig(n_shots=2))
         assert isinstance(hash(cfg), int)
 
+    def test_few_shot_hash_is_deterministic_across_processes(self):
+        """B4 regression: __hash__ hashed few_shot_config with Python's salted builtin
+        hash(), so `results.bench-{hash}.json` got a different name every process. The
+        few-shot hash must be stable across PYTHONHASHSEED values."""
+        import os
+        import subprocess
+        import sys
+
+        code = (
+            "from folktexts.benchmark import BenchmarkConfig;"
+            "from folktexts.prompting import FewShotConfig;"
+            "print(hash(BenchmarkConfig(few_shot_config=FewShotConfig(n_shots=2))))"
+        )
+
+        def _hash_with_seed(seed: int) -> str:
+            return subprocess.check_output(
+                [sys.executable, "-c", code],
+                env={**os.environ, "PYTHONHASHSEED": str(seed)},
+            ).strip()
+
+        hashes = {_hash_with_seed(seed) for seed in (1, 2)}
+        assert len(hashes) == 1, f"few-shot config hash is not deterministic: {hashes}"
+
     def test_hash_with_feature_subset(self):
         cfg = BenchmarkConfig(feature_subset=["AGEP", "WKHP"])
         assert isinstance(hash(cfg), int)
@@ -362,6 +385,26 @@ class TestBenchmarkRun:
             context_size=512,
             few_shot_config=FewShotConfig(
                 n_shots=2, compose="balanced", reuse_examples=True
+            ),
+        )
+        bench.run(results_root_dir=tmp_path)
+        assert bench.results is not None
+
+    def test_run_with_per_class_few_shot(
+        self, tiny_model_and_tokenizer, acs_income_task, acs_income_dataset, tmp_path
+    ):
+        """B4 (related): per-class `compose` is normalized to a tuple by FewShotConfig,
+        but Dataset.sample_n_train_examples used to accept only list/str -> the documented
+        per-class few-shot feature crashed end-to-end. A tuple compose must run."""
+        model, tokenizer = tiny_model_and_tokenizer
+        bench = self._make_bench(
+            model,
+            tokenizer,
+            acs_income_task,
+            acs_income_dataset,
+            context_size=512,
+            few_shot_config=FewShotConfig(
+                n_shots=2, compose=[1, 1], reuse_examples=True
             ),
         )
         bench.run(results_root_dir=tmp_path)
