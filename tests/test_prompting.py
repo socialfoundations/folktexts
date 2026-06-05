@@ -318,6 +318,47 @@ class TestFewShotConfig:
         assert cfg.compose == "balanced"
 
 
+class TestPromptConfigHash:
+    def test_hash_is_deterministic_across_processes(self):
+        """B5 regression: hash(PromptConfig) used Python's salted builtin hash (its stages
+        hold str fields), so the classifier hash -> `results.bench-{hash}.json` name differed
+        every process. The hash must be stable across PYTHONHASHSEED values."""
+        import os
+        import subprocess
+        import sys
+
+        code = (
+            "from folktexts.acs import ACSTaskMetadata;"
+            "from folktexts.prompting import PromptConfig;"
+            "t = ACSTaskMetadata.get_task('ACSIncome');"
+            "print(hash(PromptConfig.default(t)))"
+        )
+
+        def _hash_with_seed(seed: int) -> str:
+            return subprocess.check_output(
+                [sys.executable, "-c", code],
+                env={**os.environ, "PYTHONHASHSEED": str(seed)},
+            ).strip()
+
+        hashes = {_hash_with_seed(seed) for seed in (1, 2)}
+        assert len(hashes) == 1, f"PromptConfig hash is not deterministic: {hashes}"
+
+    def test_equal_configs_hash_equal(self, acs_income_task):
+        a = PromptConfig.default(acs_income_task)
+        b = PromptConfig.default(acs_income_task)
+        assert a == b
+        assert hash(a) == hash(b)
+
+    def test_distinct_styles_have_distinct_hashes(self, acs_income_task):
+        base = PromptConfig.default(acs_income_task)
+        assert hash(base) != hash(
+            PromptConfig.from_dict({"connector": "is:"}, task=acs_income_task)
+        )
+        assert hash(base) != hash(
+            PromptConfig.from_dict({"format": "comma"}, task=acs_income_task)
+        )
+
+
 class TestPromptBuilder:
     def test_build_returns_nonempty_string(self, acs_income_task, acs_row):
         config = PromptConfig.default(acs_income_task)

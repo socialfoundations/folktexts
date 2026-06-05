@@ -39,6 +39,7 @@ from transformers import AutoTokenizer
 
 from folktexts.acs import ACS_TASK_DESCRIPTION, ACS_TASK_DESCRIPTION_DEFAULTS
 
+from ._utils import hash_dict
 from .dataset import Dataset
 from .qa_interface import (
     MultipleChoiceQA,
@@ -391,6 +392,23 @@ class PromptConfig:
     format: VaryFormat
     suffix: VarySuffix
     system_prompt: VarySystemPrompt | None = None
+
+    def __hash__(self) -> int:
+        # Python's builtin hash() of this frozen dataclass is salted (PYTHONHASHSEED): the
+        # stages hold str fields, so hashing them gave a different value every process. That
+        # flows into the classifier hash and made `results.bench-{hash}.json` non-deterministic
+        # across processes. Hash the rendered prompt skeleton + value-line knobs deterministically
+        # instead. `value_map` is excluded (as it already is from equality, via field compare=False)
+        # and is captured by the task hash; the rendered prefix/suffix capture the question text.
+        parts = {
+            "prefix": self.prefix(),
+            "connector": self.connector.connector,
+            "format": self.format.format,
+            "order": list(self.order.order) if self.order.order else None,
+            "suffix": self.suffix(),
+            "system_prompt": self.system_prompt() if self.system_prompt is not None else None,
+        }
+        return int(hash_dict(parts), 16)
 
     @classmethod
     def default(cls, task: TaskMetadata) -> "PromptConfig":
