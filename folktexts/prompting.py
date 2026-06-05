@@ -54,7 +54,7 @@ PROMPT_DEFAULT = object()
 
 DEFAULT_PROMPT_STYLE: dict[str, Any] = {
     "format": "textbullet",
-    "connector": "is",
+    "connector": "is:",  # match main's "<feature> is: <value>"; override via --variation connector=is
     "granularity": "original",
     "order": None,
     "custom_prompt_prefix": None,

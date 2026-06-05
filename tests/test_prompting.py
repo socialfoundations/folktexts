@@ -352,7 +352,7 @@ class TestPromptConfigHash:
     def test_distinct_styles_have_distinct_hashes(self, acs_income_task):
         base = PromptConfig.default(acs_income_task)
         assert hash(base) != hash(
-            PromptConfig.from_dict({"connector": "is:"}, task=acs_income_task)
+            PromptConfig.from_dict({"connector": "="}, task=acs_income_task)
         )
         assert hash(base) != hash(
             PromptConfig.from_dict({"format": "comma"}, task=acs_income_task)
@@ -389,6 +389,20 @@ class TestEncodeRowPrompt:
     def test_contains_task_description(self, acs_income_task, acs_row):
         prompt = encode_row_prompt(acs_row, task=acs_income_task)
         assert "survey" in prompt.lower()
+
+    def test_default_connector_matches_main(self, acs_income_task, acs_row):
+        """R1: the default feature connector renders '<feature> is: <value>' (byte-identical
+        to main). The colon-less style remains available via --variation connector=is."""
+        default_prompt = encode_row_prompt(acs_row, task=acs_income_task)
+        assert " is: " in default_prompt
+        colon_less = encode_row_prompt(
+            acs_row,
+            task=acs_income_task,
+            prompt_config=PromptConfig.from_dict(
+                {"connector": "is"}, task=acs_income_task
+            ),
+        )
+        assert " is: " not in colon_less
 
     def test_different_formats_produce_different_prompts(self, acs_income_task, acs_row):
         prompt_bullet = encode_row_prompt(
