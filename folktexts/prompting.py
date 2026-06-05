@@ -202,16 +202,25 @@ class VaryValueMap:
 
 @dataclass(frozen=True)
 class VaryOrder:
-    order: list | None = None  # list[str] of column names; None → keep original
+    order: tuple | list | str | None = None  # column names; None → keep original
 
-    """ 
+    """
     A stage for reordering the feature items.
     Parameters
     ----------
-    order : list | None, optional
-        A list of column names specifying the desired order of features in the prompt. 
-        If None, the original order is preserved. Default is None.
+    order : tuple | list | str | None, optional
+        Column names specifying the desired order of features in the prompt (a tuple/list,
+        or a comma-separated string). If None, the original order is preserved. Default is None.
     """
+
+    def __post_init__(self):
+        # Frozen dataclasses must be hashable: PromptConfig.__hash__ reaches hash(VaryOrder),
+        # and a list field raises "unhashable type: 'list'". Normalize to a tuple
+        # (as FewShotConfig already does for `compose`).
+        if isinstance(self.order, str):
+            object.__setattr__(self, "order", tuple(c.strip() for c in self.order.split(",")))
+        elif self.order is not None:
+            object.__setattr__(self, "order", tuple(self.order))
 
     def __call__(self, items: list[FeatureItem]) -> list[FeatureItem]:
         if not self.order:

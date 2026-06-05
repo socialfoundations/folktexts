@@ -112,6 +112,25 @@ class TestVaryOrder:
     def test_alias(self):
         assert VaryFeatureOrder is VaryOrder
 
+    def test_order_list_is_normalized_to_tuple_and_hashable(self, acs_income_task):
+        """B2 regression: VaryOrder.order was a plain list, so the frozen-dataclass
+        hash (PromptConfig.__hash__ → hash(VaryOrder)) raised 'unhashable type: list'."""
+        cols = acs_income_task.features[:2]
+        vo = VaryOrder(order=cols)
+        assert vo.order == tuple(cols)
+        hash(vo)  # must not raise
+
+    def test_order_string_is_parsed_to_tuple(self, acs_income_task):
+        cols = acs_income_task.features[:2]
+        vo = VaryOrder(order=",".join(cols))
+        assert vo.order == tuple(cols)
+
+    def test_prompt_config_with_order_is_hashable(self, acs_income_task):
+        """B2 repro: hashing a PromptConfig built from `--variation order=...` crashed."""
+        cols = acs_income_task.features[:2]
+        config = PromptConfig.from_dict({"order": ",".join(cols)}, task=acs_income_task)
+        hash(config)  # must not raise
+
 
 class TestVaryConnector:
     @pytest.mark.parametrize(
