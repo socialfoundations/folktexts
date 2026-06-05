@@ -267,6 +267,26 @@ class TestBenchmarkConfig:
         loaded = BenchmarkConfig.load_from_disk(path)
         assert loaded.few_shot_config is None
 
+    def test_load_legacy_few_shot_keys(self, tmp_path):
+        """Back-compat: pre-refactor configs used flat few_shot/reuse/balance keys and
+        had no few_shot_config; loading them used to raise TypeError. Stray result-file
+        metadata (e.g. roc_auc) must also be tolerated."""
+        legacy = {
+            "numeric_risk_prompting": False,
+            "few_shot": 3,
+            "reuse_few_shot_examples": True,
+            "balance_few_shot_examples": True,
+            "seed": 7,
+            "roc_auc": 0.81,  # stray metadata -> ignored, not a TypeError
+        }
+        path = tmp_path / "legacy.json"
+        path.write_text(json.dumps(legacy))
+        cfg = BenchmarkConfig.load_from_disk(path)
+        assert cfg.few_shot_config == FewShotConfig(
+            n_shots=3, reuse_examples=True, compose="balanced"
+        )
+        assert cfg.seed == 7
+
     def test_update_ignores_unknown_keys(self):
         cfg = BenchmarkConfig()
         updated = cfg.update(nonexistent_key="value")

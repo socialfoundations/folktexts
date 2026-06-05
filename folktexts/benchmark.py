@@ -137,18 +137,39 @@ class BenchmarkConfig:
 
     @classmethod
     def load_from_disk(cls, path: str | Path):
-        """Load the configuration from disk."""
+        """Load the configuration from disk (tolerant of pre-refactor JSON)."""
         obj = load_json(path)
-        if isinstance(obj, dict):
-            if isinstance(obj.get("few_shot_config"), dict):
-                obj["few_shot_config"] = FewShotConfig(**obj["few_shot_config"])
-            # Restore PROMPT_DEFAULT sentinel from its serialized form.
-            for key in ("system_prompt", "chat_prompt"):
-                if obj.get(key) == "default":
-                    obj[key] = PROMPT_DEFAULT
-            return cls(**obj)
-        else:
+        if not isinstance(obj, dict):
             raise ValueError(f"Invalid configuration file '{path}'.")
+
+        # Back-compat: translate the pre-refactor flat few-shot keys into a FewShotConfig.
+        legacy_n_shots = obj.pop("few_shot", None)
+        legacy_reuse = obj.pop("reuse_few_shot_examples", False)
+        legacy_balance = obj.pop("balance_few_shot_examples", False)
+        if legacy_n_shots and obj.get("few_shot_config") is None:
+            obj["few_shot_config"] = FewShotConfig(
+                n_shots=legacy_n_shots,
+                reuse_examples=legacy_reuse,
+                compose="balanced" if legacy_balance else "random",
+            )
+
+        if isinstance(obj.get("few_shot_config"), dict):
+            obj["few_shot_config"] = FewShotConfig(**obj["few_shot_config"])
+        # Restore PROMPT_DEFAULT sentinel from its serialized form.
+        for key in ("system_prompt", "chat_prompt"):
+            if obj.get(key) == "default":
+                obj[key] = PROMPT_DEFAULT
+
+        # Drop any remaining unknown keys (removed fields, or result-file metadata)
+        # so old config/result JSON still loads instead of raising TypeError.
+        valid = {f.name for f in dataclasses.fields(cls)}
+        unknown = set(obj) - valid
+        if unknown:
+            logging.warning(
+                f"Ignoring unknown config keys when loading '{path}': {sorted(unknown)}"
+            )
+            obj = {k: v for k, v in obj.items() if k in valid}
+        return cls(**obj)
 
     def save_to_disk(self, path: str | Path):
         """Save the configuration to disk."""
