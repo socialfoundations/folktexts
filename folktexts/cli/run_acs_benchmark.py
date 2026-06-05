@@ -285,6 +285,17 @@ def setup_arg_parser() -> ArgumentParser:
     return parser
 
 
+def _loggable_args(args) -> dict:
+    """Return the parsed args as a JSON-serializable dict for logging.
+
+    ``--chat-prompt``/``--system-prompt`` default to the ``PROMPT_DEFAULT`` sentinel
+    (``object()``), which ``json.dumps`` cannot serialize. Resolve it to ``"default"``
+    for logging only (mirrors ``BenchmarkConfig.__hash__``/``save_to_disk``); the sentinel
+    itself still flows unchanged into ``BenchmarkConfig``.
+    """
+    return {k: ("default" if v is PROMPT_DEFAULT else v) for k, v in vars(args).items()}
+
+
 def main():
     """Prepare and launch the LLM-as-classifier experiment using ACS data."""
 
@@ -293,7 +304,7 @@ def main():
     args = parser.parse_args()
 
     logging.getLogger().setLevel(level=args.logger_level)
-    pretty_args_str = json.dumps(vars(args), indent=4, sort_keys=True)
+    pretty_args_str = json.dumps(_loggable_args(args), indent=4, sort_keys=True)
     logging.info(f"Current python executable: '{sys.executable}'")
     logging.info(f"Received the following cmd-line args: {pretty_args_str}")
 

@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from folktexts.cli._utils import cmd_line_args_to_kwargs, get_or_create_results_dir
-from folktexts.cli.run_acs_benchmark import setup_arg_parser
+from folktexts.cli.run_acs_benchmark import _loggable_args, setup_arg_parser
+from folktexts.prompting import PROMPT_DEFAULT
 
 # ----------------------------------------------------------------------
 # get_or_create_results_dir
@@ -165,3 +168,21 @@ class TestSetupArgParser:
         for level in ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
             args = self._parse(self._required() + ["--logger-level", level])
             assert args.logger_level == level
+
+    def test_default_args_are_json_serializable(self):
+        """B1 regression: --chat-prompt/--system-prompt default to the PROMPT_DEFAULT
+        sentinel, so main()'s ``json.dumps(vars(args))`` crashed on every default run.
+        ``_loggable_args`` must resolve the sentinel so the args-logging step succeeds."""
+        args = self._parse(self._required())
+        assert args.chat_prompt is PROMPT_DEFAULT
+        assert args.system_prompt is PROMPT_DEFAULT
+
+        # The raw namespace is not serializable (the original bug)...
+        with pytest.raises(TypeError):
+            json.dumps(vars(args))
+
+        # ...but the dict used for logging is, with the sentinel shown as "default".
+        loggable = _loggable_args(args)
+        json.dumps(loggable)  # must not raise
+        assert loggable["chat_prompt"] == "default"
+        assert loggable["system_prompt"] == "default"
