@@ -96,6 +96,16 @@ class TestVaryValueMap:
         assert acs_income_task.cols_to_text["AGEP"]._value_map is original_map
 
 
+class TestOccupationCasing:
+    def test_occupation_is_sentence_cased_like_main(self):
+        """R2: multi-word occupations render in sentence case (matching main),
+        e.g. 'Chief executives and legislators', not 'Chief Executives And Legislators'."""
+        from folktexts.acs.acs_columns import acs_occupation
+
+        assert acs_occupation[10] == "Chief executives and legislators"
+        assert acs_occupation[4720] == "Cashiers"
+
+
 class TestVaryOrder:
     def test_reversed(self, acs_income_task, acs_row):
         features = acs_income_task.features
