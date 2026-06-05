@@ -37,9 +37,9 @@ import pandas as pd
 from jinja2 import TemplateError
 from transformers import AutoTokenizer
 
-from folktexts._utils import hash_dict
 from folktexts.acs import ACS_TASK_DESCRIPTION, ACS_TASK_DESCRIPTION_DEFAULTS
 
+from ._utils import hash_dict
 from .dataset import Dataset
 from .qa_interface import (
     MultipleChoiceQA,
@@ -54,7 +54,7 @@ PROMPT_DEFAULT = object()
 
 DEFAULT_PROMPT_STYLE: dict[str, Any] = {
     "format": "textbullet",
-    "connector": "is",
+    "connector": "is:",  # match main's "<feature> is: <value>"; override via --variation connector=is
     "granularity": "original",
     "order": None,
     "custom_prompt_prefix": None,
@@ -223,23 +223,26 @@ class VaryValueMap:
 
 @dataclass(frozen=True)
 class VaryOrder:
-    order: tuple[str, ...] | None = None  # tuple[str] of column names; None → keep original
+    order: tuple | list | str | None = None  # column names; None → keep original
 
     """
     A stage for reordering the feature items.
     Parameters
     ----------
-    order : tuple[str, ...] | None, optional
-        A tuple of column names specifying the desired order of features in the prompt.
-        If None, the original order is preserved. Default is None.
+    order : tuple | list | str | None, optional
+        Column names specifying the desired order of features in the prompt (a tuple/list,
+        or a comma-separated string). If None, the original order is preserved. Default is None.
     """
 
     def __post_init__(self):
+        # Frozen dataclasses must be hashable: PromptConfig.__hash__ reaches hash(VaryOrder),
+        # and a list field raises "unhashable type: 'list'". Normalize to a tuple
+        # (as FewShotConfig already does for `compose`).
         if isinstance(self.order, str):
             object.__setattr__(
                 self, "order", tuple(col.strip() for col in self.order.split(","))
             )
-        elif isinstance(self.order, list):
+        elif self.order is not None:
             object.__setattr__(self, "order", tuple(self.order))
 
     def __hash__(self) -> int:
@@ -360,25 +363,32 @@ class FewShotConfig:
         per-class counts summing to ``n_shots``.
     reuse_examples : bool, optional
         Whether to reuse the same examples across calls, by default False.
+    show_question_in_examples : bool, optional
+        Whether each in-context example repeats the question (default, matches main) or shows
+        only the answer. Set False for the compact answer-only format. Default is True.
     """
 
     n_shots: int
     example_order: tuple[int, ...] | str | None = None
     compose: str | list = "random"
     reuse_examples: bool = False
+    show_question_in_examples: bool = True
 
     def __post_init__(self):
         if self.n_shots < 1:
             raise ValueError(f"n_shots must be >= 1; got {self.n_shots}.")
 
+        # Normalize example_order to a tuple: a frozen dataclass must be hashable, and a
+        # list field breaks hash(FewShotConfig) (reached via BenchmarkConfig.__hash__).
         if isinstance(self.example_order, str):
             object.__setattr__(
                 self,
                 "example_order",
                 tuple(int(i) for i in self.example_order.split(",")),
             )
-        elif isinstance(self.example_order, list):
+        elif self.example_order is not None:
             object.__setattr__(self, "example_order", tuple(self.example_order))
+
         if self.example_order is not None:
             if sorted(self.example_order) != list(range(self.n_shots)):
                 raise ValueError(
@@ -428,27 +438,28 @@ class PromptConfig:
     suffix: VarySuffix
     system_prompt: VarySystemPrompt | None = None
 
+    def __hash__(self) -> int:
+        # Python's builtin hash() of this frozen dataclass is salted (PYTHONHASHSEED): the
+        # stages hold str fields, so hashing them gave a different value every process. That
+        # flows into the classifier hash and made `results.bench-{hash}.json` non-deterministic
+        # across processes. Hash the rendered prompt skeleton + value-line knobs deterministically
+        # instead. `value_map` is excluded (as it already is from equality, via field compare=False)
+        # and is captured by the task hash; the rendered prefix/suffix capture the question text.
+        parts = {
+            "prefix": self.prefix(),
+            "connector": self.connector.connector,
+            "format": self.format.format,
+            "order": list(self.order.order) if self.order.order else None,
+            "suffix": self.suffix(),
+            "system_prompt": self.system_prompt()
+            if self.system_prompt is not None
+            else None,
+        }
+        return int(hash_dict(parts), 16)
+
     @classmethod
     def default(cls, task: TaskMetadata) -> "PromptConfig":
         return cls.from_dict({}, task=task)
-
-    def __hash__(self) -> int:
-        return int(
-            hash_dict(
-                {
-                    "prefix": hash(self.prefix),
-                    "value_map": hash(self.value_map),
-                    "order": hash(self.order),
-                    "connector": hash(self.connector),
-                    "format": hash(self.format),
-                    "suffix": hash(self.suffix),
-                    "system_prompt": hash(self.system_prompt)
-                    if self.system_prompt is not None
-                    else None,
-                }
-            ),
-            16,
-        )
 
     @classmethod
     def from_dict(
@@ -542,7 +553,15 @@ class PromptConfig:
         for key, desc in descriptions.items():
             if key in task.name:
                 return desc
-        raise ValueError(f"Cannot determine task description for task '{task.name}'")
+
+        # Fall back to the task's own description field for non-ACS tasks.
+        if task.description is not None:
+            return task.description
+
+        raise ValueError(
+            f"Cannot determine task description for task '{task.name}'. "
+            f"Set a 'description' field on the TaskMetadata object."
+        )
 
     @staticmethod
     def _get_simplified_value_maps(task: TaskMetadata) -> dict:
@@ -558,6 +577,7 @@ class PromptConfig:
     def _get_few_shot_task_description(task: TaskMetadata) -> str | None:
         overrides = {
             "respondent": "different survey respondents",
+            "question_phrase": "each question",  # R4: match main's few-shot wording
             "suffix": " for each person",
         }
         if task.name.startswith("ACS"):
@@ -611,7 +631,8 @@ class PromptBuilder:
         config: PromptConfig,
         examples: list[tuple],  # list of (pd.Series, label)
         question: QAInterface | None = None,
-        example_order: tuple[int, ...] | None = None,
+        example_order: list[int] | None = None,
+        show_example_question: bool = True,
     ) -> str:
         if example_order is not None:
             assert len(example_order) == len(examples)
@@ -632,7 +653,9 @@ class PromptBuilder:
                 prefix=prefix,
                 suffix=dataclasses.replace(
                     config.suffix,
-                    show_question=False,
+                    # R6: examples repeat the question by default (matches main); the
+                    # answer-only format is opt-in via FewShotConfig.show_question_in_examples.
+                    show_question=show_example_question,
                     show_label=True,
                     label=ex_label,
                 ),
@@ -789,8 +812,8 @@ def encode_row_prompt_few_shot(
         )
 
     assert few_shot_config.example_order is None or isinstance(
-        few_shot_config.example_order, tuple
-    )  # mypy
+        few_shot_config.example_order, (list, tuple)
+    )  # mypy (example_order is normalized to a tuple in FewShotConfig)
     logging.debug(f"Composition of few shot examples: {few_shot_config.compose}")
 
     # Take `n_shots` random samples from the train set
@@ -800,8 +823,8 @@ def encode_row_prompt_few_shot(
         composition=few_shot_config.compose,
     )
 
-    X_examples = X_examples.sort_index()
-    y_examples = y_examples.sort_index()
+    # R5: keep the sampled order (do not sort_index) so examples match main; explicit
+    # ordering is available via FewShotConfig.example_order.
     logging.debug(f"ys index: {y_examples.index.tolist()}")
     logging.debug(f"ys: {y_examples.values.tolist()}")
 
@@ -830,6 +853,7 @@ def encode_row_prompt_few_shot(
         examples=examples,
         question=question if prompt_config is not None else None,
         example_order=few_shot_config.example_order,
+        show_example_question=few_shot_config.show_question_in_examples,
     )
     logging.debug(prompt)
     return prompt

@@ -94,7 +94,17 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         self._correct_order_bias = correct_order_bias
         self._seed = seed
 
-        # Default inference kwargs
+        # Default inference kwargs. Reject unknown kwargs instead of silently swallowing
+        # them: prompt-shaping args removed in the refactor (e.g. `custom_prompt_prefix`)
+        # would otherwise land here unused and silently change behavior.
+        unknown = set(inference_kwargs) - set(self.DEFAULT_INFERENCE_KWARGS)
+        if unknown:
+            raise TypeError(
+                f"Unexpected keyword argument(s) {sorted(unknown)}. Valid inference kwargs "
+                f"are {sorted(self.DEFAULT_INFERENCE_KWARGS)}; prompt-shaping options removed "
+                f"in the refactor (e.g. 'custom_prompt_prefix') are now set via `prompt_config` "
+                f"or the CLI `--variation` flag."
+            )
         self._inference_kwargs = self.DEFAULT_INFERENCE_KWARGS.copy()
         self._inference_kwargs.update(inference_kwargs)
 

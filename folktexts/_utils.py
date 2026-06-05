@@ -131,40 +131,39 @@ def is_int(element: Any) -> bool:
 
 
 def is_str(element: Any) -> bool:
-    try:
-        str(element)
-        return str(element) not in ["True", "False"]
-    except ValueError:
-        return False
+    return isinstance(element, str)
 
 
 def is_bool(element: Any) -> bool:
-    try:
-        bool(element)
-        return True
-    except ValueError:
-        return False
+    return isinstance(element, str) and element.strip().lower() in ("true", "false")
+
+
+def _parse_cli_scalar(value: str):
+    """Coerce a CLI string to int/float/bool when unambiguous, else keep it a str."""
+    if is_int(value):
+        return int(value)
+    if is_float(value):
+        return float(value)
+    if value.strip().lower() in ("true", "false"):
+        return value.strip().lower() == "true"
+    return value
 
 
 class ParseDict(Action):
     """argparse Action that parses 'key1=val1;key2=val2' strings into a dict."""
 
     def __call__(self, parser, namespace, values, option_string=None):
-        setattr(namespace, self.dest, dict())
-        # assume dict to be passed as 'key1=val1;key2=val2'
+        # nargs="*" passes a list; accept a bare string defensively.
+        if isinstance(values, str):
+            values = [values]
         logging.debug(f"ParseDict received values: {values}")
-        if len(values) > 1:
-            logging.error(f"ParseDict received more than one value: {values}")
-        value_list = values[0].split(";")
-        for pair in value_list:
-            key, _, value = pair.partition("=")
-            assert value != "", f"Some value could not be parsed, received {pair}."
-            if is_int(value):
-                value = int(value)
-            elif is_float(value):
-                value = float(value)
-            elif is_str(value):
-                value = str(value)
-            elif is_bool(value):
-                value = bool(value)
-            getattr(namespace, self.dest)[key] = value
+        # Accept both '--variation a=b;c=d' and '--variation a=b c=d'; no args -> {}.
+        pairs = [pair for value in (values or []) for pair in value.split(";") if pair]
+        result: dict = {}
+        for pair in pairs:
+            key, sep, value = pair.partition("=")
+            assert sep and value != "", (
+                f"Could not parse '{pair}'; expected 'key=value'."
+            )
+            result[key] = _parse_cli_scalar(value)
+        setattr(namespace, self.dest, result)

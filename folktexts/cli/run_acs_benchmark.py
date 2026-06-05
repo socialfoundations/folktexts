@@ -218,6 +218,17 @@ def setup_arg_parser() -> ArgumentParser:
     )
 
     parser.add_argument(
+        "--few-shot-hide-question",
+        help=(
+            "[bool] In few-shot examples show only the answer (omit the repeated question). "
+            "By default each example includes the question, matching the original behavior. "
+            "Only used when --few-shot is set."
+        ),
+        action="store_true",
+        default=False,
+    )
+
+    parser.add_argument(
         "--variation",
         help="[dict] Dictionary specifying variations of data point serialization.",
         nargs="*",
@@ -286,6 +297,17 @@ def setup_arg_parser() -> ArgumentParser:
     return parser
 
 
+def _loggable_args(args) -> dict:
+    """Return the parsed args as a JSON-serializable dict for logging.
+
+    ``--chat-prompt``/``--system-prompt`` default to the ``PROMPT_DEFAULT`` sentinel
+    (``object()``), which ``json.dumps`` cannot serialize. Resolve it to ``"default"``
+    for logging only (mirrors ``BenchmarkConfig.__hash__``/``save_to_disk``); the sentinel
+    itself still flows unchanged into ``BenchmarkConfig``.
+    """
+    return {k: ("default" if v is PROMPT_DEFAULT else v) for k, v in vars(args).items()}
+
+
 def main():
     """Prepare and launch the LLM-as-classifier experiment using ACS data."""
 
@@ -300,11 +322,7 @@ def main():
             setattr(args, _key, base64.b64decode(_val[4:]).decode())
 
     logging.getLogger().setLevel(level=args.logger_level)
-    pretty_args_str = json.dumps(
-        {k: ("default" if v is PROMPT_DEFAULT else v) for k, v in vars(args).items()},
-        indent=4,
-        sort_keys=True,
-    )
+    pretty_args_str = json.dumps(_loggable_args(args), indent=4, sort_keys=True)
     logging.info(f"Current python executable: '{sys.executable}'")
     logging.info(f"Received the following cmd-line args: {pretty_args_str}")
 
@@ -380,6 +398,7 @@ def main():
             compose=args.compose_few_shot_examples,
             reuse_examples=args.reuse_few_shot_examples,
             example_order=args.example_order,
+            show_question_in_examples=not args.few_shot_hide_question,
         )
 
     # Fill ACS Benchmark config

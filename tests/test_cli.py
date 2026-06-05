@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import pytest
-
 import json
 
+import pytest
+
 from folktexts.cli._utils import cmd_line_args_to_kwargs, get_or_create_results_dir
-from folktexts.cli.run_acs_benchmark import PROMPT_DEFAULT, setup_arg_parser
+from folktexts.cli.run_acs_benchmark import _loggable_args, setup_arg_parser
+from folktexts.prompting import PROMPT_DEFAULT
 
 # ----------------------------------------------------------------------
 # get_or_create_results_dir
@@ -155,6 +156,32 @@ class TestSetupArgParser:
         assert args.variation.get("format") == "bullet"
         assert args.variation.get("connector") == "is"
 
+    def test_variation_bool_false_is_false(self):
+        """ParseDict regression: 'False'/'false' used to coerce to Python True."""
+        args = self._parse(self._required() + ["--variation", "show_question=False"])
+        assert args.variation["show_question"] is False
+        args2 = self._parse(self._required() + ["--variation", "show_question=true"])
+        assert args2.variation["show_question"] is True
+
+    def test_variation_space_separated_pairs(self):
+        """ParseDict regression: only values[0] was read, dropping later pairs."""
+        args = self._parse(
+            self._required() + ["--variation", "format=bullet", "connector=is"]
+        )
+        assert args.variation.get("format") == "bullet"
+        assert args.variation.get("connector") == "is"
+
+    def test_variation_empty_is_empty_dict(self):
+        """ParseDict regression: an argless --variation raised IndexError on values[0]."""
+        args = self._parse(self._required() + ["--variation"])
+        assert args.variation == {}
+
+    def test_variation_numeric_coercion(self):
+        args = self._parse(self._required() + ["--variation", "a=3;b=0.5;c=is:"])
+        assert args.variation["a"] == 3 and isinstance(args.variation["a"], int)
+        assert args.variation["b"] == 0.5 and isinstance(args.variation["b"], float)
+        assert args.variation["c"] == "is:"
+
     def test_subsampling_arg(self):
         args = self._parse(self._required() + ["--subsampling", "0.1"])
         assert args.subsampling == pytest.approx(0.1)
@@ -169,9 +196,19 @@ class TestSetupArgParser:
             assert args.logger_level == level
 
     def test_default_args_are_json_serializable(self):
-        """Sentinel values like PROMPT_DEFAULT must survive the json.dumps call in main()."""
+        """B1 regression: --chat-prompt/--system-prompt default to the PROMPT_DEFAULT
+        sentinel, so main()'s ``json.dumps(vars(args))`` crashed on every default run.
+        ``_loggable_args`` must resolve the sentinel so the args-logging step succeeds."""
         args = self._parse(self._required())
-        # mirrors what main() does before any real work runs
-        json.dumps(
-            {k: ("default" if v is PROMPT_DEFAULT else v) for k, v in vars(args).items()}
-        )
+        assert args.chat_prompt is PROMPT_DEFAULT
+        assert args.system_prompt is PROMPT_DEFAULT
+
+        # The raw namespace is not serializable (the original bug)...
+        with pytest.raises(TypeError):
+            json.dumps(vars(args))
+
+        # ...but the dict used for logging is, with the sentinel shown as "default".
+        loggable = _loggable_args(args)
+        json.dumps(loggable)  # must not raise
+        assert loggable["chat_prompt"] == "default"
+        assert loggable["system_prompt"] == "default"

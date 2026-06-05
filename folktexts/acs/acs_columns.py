@@ -95,9 +95,15 @@ acs_occupation = ColumnToText(
     value_map=partial(
         parse_pums_code,
         file=ACS_CODEBOOK_DIR / "OCCP.txt",
+        # Strip the leading "XXX-" category prefix, then sentence-case to match main
+        # (R2): keeps this cleaner split-based parse but restores main's exact casing
+        # ("Retail salespersons", not "Retail Salespersons") for byte-identical prompts.
         postprocess=lambda x: (
             x.split("-", 1)[1] if len(x.split("-", 1)) == 2 else x.split("-", 1)[0]
-        ),
+        )
+        .lower()
+        .capitalize()
+        .strip(),
     ),
 )
 

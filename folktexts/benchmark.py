@@ -137,18 +137,39 @@ class BenchmarkConfig:
 
     @classmethod
     def load_from_disk(cls, path: str | Path):
-        """Load the configuration from disk."""
+        """Load the configuration from disk (tolerant of pre-refactor JSON)."""
         obj = load_json(path)
-        if isinstance(obj, dict):
-            if isinstance(obj.get("few_shot_config"), dict):
-                obj["few_shot_config"] = FewShotConfig(**obj["few_shot_config"])
-            # Restore PROMPT_DEFAULT sentinel from its serialized form.
-            for key in ("system_prompt", "chat_prompt"):
-                if obj.get(key) == "default":
-                    obj[key] = PROMPT_DEFAULT
-            return cls(**obj)
-        else:
+        if not isinstance(obj, dict):
             raise ValueError(f"Invalid configuration file '{path}'.")
+
+        # Back-compat: translate the pre-refactor flat few-shot keys into a FewShotConfig.
+        legacy_n_shots = obj.pop("few_shot", None)
+        legacy_reuse = obj.pop("reuse_few_shot_examples", False)
+        legacy_balance = obj.pop("balance_few_shot_examples", False)
+        if legacy_n_shots and obj.get("few_shot_config") is None:
+            obj["few_shot_config"] = FewShotConfig(
+                n_shots=legacy_n_shots,
+                reuse_examples=legacy_reuse,
+                compose="balanced" if legacy_balance else "random",
+            )
+
+        if isinstance(obj.get("few_shot_config"), dict):
+            obj["few_shot_config"] = FewShotConfig(**obj["few_shot_config"])
+        # Restore PROMPT_DEFAULT sentinel from its serialized form.
+        for key in ("system_prompt", "chat_prompt"):
+            if obj.get(key) == "default":
+                obj[key] = PROMPT_DEFAULT
+
+        # Drop any remaining unknown keys (removed fields, or result-file metadata)
+        # so old config/result JSON still loads instead of raising TypeError.
+        valid = {f.name for f in dataclasses.fields(cls)}
+        unknown = set(obj) - valid
+        if unknown:
+            logging.warning(
+                f"Ignoring unknown config keys when loading '{path}': {sorted(unknown)}"
+            )
+            obj = {k: v for k, v in obj.items() if k in valid}
+        return cls(**obj)
 
     def save_to_disk(self, path: str | Path):
         """Save the configuration to disk."""
@@ -173,8 +194,12 @@ class BenchmarkConfig:
         cfg["prompt_variation"] = (
             hash_dict(cfg["prompt_variation"]) if cfg["prompt_variation"] else None
         )
+        # Hash the few-shot config deterministically. Python's builtin hash() is salted
+        # (PYTHONHASHSEED), so hash(self.few_shot_config) gave result-file names a different
+        # name every process; hash_dict (json-based) is stable. cfg["few_shot_config"] is
+        # already the asdict form from the top-level dataclasses.asdict(self) above.
         cfg["few_shot_config"] = (
-            hash(self.few_shot_config) if self.few_shot_config else None
+            hash_dict(cfg["few_shot_config"]) if cfg["few_shot_config"] else None
         )
         return int(hash_dict(cfg), 16)
 
@@ -240,11 +265,13 @@ class Benchmark:
     @property
     def configs_dict(self) -> dict:
         cnf = dataclasses.asdict(self.config)
-        q = self.task.question
-        if getattr(self.config, "system_prompt") is PROMPT_DEFAULT:
-            cnf["system_prompt"] = q.default_system_prompt
-        if getattr(self.config, "chat_prompt") is PROMPT_DEFAULT:
-            cnf["chat_prompt"] = q.default_chat_prompt
+        # Use "default" (same token as save_to_disk) so load_from_disk can restore
+        # PROMPT_DEFAULT correctly. Resolving to q.default_system_prompt would write
+        # null for tasks like ChainOfThoughtQA, which load_from_disk cannot distinguish
+        # from an explicit None (disable-role), breaking benchmark reproduction.
+        for key in ("system_prompt", "chat_prompt"):
+            if getattr(self.config, key) is PROMPT_DEFAULT:
+                cnf[key] = "default"
 
         # Add info on model, task, and dataset
         cnf["model_name"] = self.model_name
@@ -652,8 +679,13 @@ class Benchmark:
                 "Drop `--use-chat-template` when running with chain-of-thought."
             )
 
+        def _user_set(v) -> bool:
+            # PROMPT_DEFAULT (unset) and None (explicitly disabled) are not user-provided
+            # values, so they must not trigger the chat-only warning.
+            return v is not None and v is not PROMPT_DEFAULT
+
         if not config.use_chat_template and (
-            config.system_prompt is not None or config.chat_prompt is not None
+            _user_set(config.system_prompt) or _user_set(config.chat_prompt)
         ):
             # Warn loudly: chat-only knobs are silently ignored on the
             # zero-shot / few-shot paths, which is rarely what the user wants.
@@ -682,7 +714,7 @@ class Benchmark:
                 "Chat template formatting requires a local tokenizer. "
                 "It is not supported for web API models."
             )
-        print("Using chat template prompting.")
+        logging.info("Using chat template prompting.")
 
         system_prompt, chat_prompt = resolve_chat_defaults(
             question=task.question,
@@ -750,14 +782,27 @@ class Benchmark:
             )
 
         if config.few_shot_config:
+            few_shot_config = config.few_shot_config
+            # When correcting order bias, encode_row is called once per answer-key
+            # permutation for each row. With reuse_examples=False (the default) each
+            # call re-samples fresh training examples, so the averaged score conflates
+            # example-selection variance with ordering variance. Force reuse so that
+            # all permutations of the same row see identical few-shot context.
+            if config.correct_order_bias and not few_shot_config.reuse_examples:
+                logging.warning(
+                    "correct_order_bias=True with reuse_examples=False: forcing "
+                    "reuse_examples=True so all answer-order permutations use the "
+                    "same few-shot examples."
+                )
+                few_shot_config = dataclasses.replace(few_shot_config, reuse_examples=True)
             logging.info(
-                f"Using few-shot prompting (n={config.few_shot_config.n_shots})."
+                f"Using few-shot prompting (n={few_shot_config.n_shots})."
             )
             return partial(
                 encode_row_prompt_few_shot,
                 task=task,
                 dataset=dataset,
-                few_shot_config=config.few_shot_config,
+                few_shot_config=few_shot_config,
                 prompt_config=prompt_config,
             ), prompt_config
 
@@ -907,7 +952,10 @@ class Benchmark:
 
         logging.info("Exemplary row encoding")
         logging.info(
-            llm_clf.encode_row(dataset.sample_n_train_examples(n=1)[0].iloc[0])
+            # reuse_examples=True avoids advancing the dataset's RNG at construction
+            # time, which would shift the random stream for all subsequent few-shot
+            # example draws and threshold fitting.
+            llm_clf.encode_row(dataset.sample_n_train_examples(n=1, reuse_examples=True)[0].iloc[0])
         )
 
         return cls(
