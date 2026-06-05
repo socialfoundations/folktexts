@@ -252,7 +252,13 @@ class VaryOrder:
         if not self.order:
             return items
         index = {item.col: item for item in items}
-        return [index[col] for col in self.order if col in index]
+        ordered_cols = set(self.order)
+        # Put the specified columns first (in the given order), then append any
+        # remaining columns that weren't mentioned — dropping nothing.
+        return (
+            [index[col] for col in self.order if col in index]
+            + [item for item in items if item.col not in ordered_cols]
+        )
 
 
 VaryFeatureOrder = VaryOrder  # alias for backward compatibility
@@ -260,7 +266,7 @@ VaryFeatureOrder = VaryOrder  # alias for backward compatibility
 
 @dataclass(frozen=True)
 class VaryConnector:
-    connector: str = "is"
+    connector: str = "is:"  # match DEFAULT_PROMPT_STYLE; "is" (no colon) is a valid override
 
     """
     A stage for connecting feature labels to their values in the prompt.
@@ -710,6 +716,7 @@ class PromptBuilder:
 def encode_row_prompt(
     row: pd.Series,
     task: TaskMetadata,
+    *,
     question: QAInterface = None,
     prompt_config: PromptConfig | None = None,
 ) -> str:
@@ -753,6 +760,7 @@ def encode_row_prompt_few_shot(
     row: pd.Series,
     task: TaskMetadata,
     dataset: Dataset,
+    *,
     n_shots: int = None,
     question: QAInterface = None,
     reuse_examples: bool = False,
