@@ -156,6 +156,32 @@ class TestSetupArgParser:
         assert args.variation.get("format") == "bullet"
         assert args.variation.get("connector") == "is"
 
+    def test_variation_bool_false_is_false(self):
+        """ParseDict regression: 'False'/'false' used to coerce to Python True."""
+        args = self._parse(self._required() + ["--variation", "show_question=False"])
+        assert args.variation["show_question"] is False
+        args2 = self._parse(self._required() + ["--variation", "show_question=true"])
+        assert args2.variation["show_question"] is True
+
+    def test_variation_space_separated_pairs(self):
+        """ParseDict regression: only values[0] was read, dropping later pairs."""
+        args = self._parse(
+            self._required() + ["--variation", "format=bullet", "connector=is"]
+        )
+        assert args.variation.get("format") == "bullet"
+        assert args.variation.get("connector") == "is"
+
+    def test_variation_empty_is_empty_dict(self):
+        """ParseDict regression: an argless --variation raised IndexError on values[0]."""
+        args = self._parse(self._required() + ["--variation"])
+        assert args.variation == {}
+
+    def test_variation_numeric_coercion(self):
+        args = self._parse(self._required() + ["--variation", "a=3;b=0.5;c=is:"])
+        assert args.variation["a"] == 3 and isinstance(args.variation["a"], int)
+        assert args.variation["b"] == 0.5 and isinstance(args.variation["b"], float)
+        assert args.variation["c"] == "is:"
+
     def test_subsampling_arg(self):
         args = self._parse(self._required() + ["--subsampling", "0.1"])
         assert args.subsampling == pytest.approx(0.1)
