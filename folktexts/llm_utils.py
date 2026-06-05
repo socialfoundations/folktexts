@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import torch
+from jinja2 import TemplateError
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 if TYPE_CHECKING:
@@ -23,6 +24,7 @@ def _apply_chat_template_batch(
     *,
     tokenizer: AutoTokenizer,
     enable_thinking: bool | None,
+    system_prompt: str | None = None,
 ) -> list[str]:
     """Apply tokenizer chat template to a list of prompts, if requested.
 
@@ -35,6 +37,9 @@ def _apply_chat_template_batch(
     enable_thinking : bool | None
         If None, no chat template is applied. If True/False, chat template is
         applied and (if supported) the `enable_thinking` kwarg is forwarded.
+    system_prompt : str | None, optional
+        System prompt to prepend as a system role message. Ignored when
+        ``enable_thinking`` is None (no chat template applied).
 
     Returns
     -------
@@ -59,29 +64,46 @@ def _apply_chat_template_batch(
 
     processed: list[str] = []
     for text in inputs:
-        messages = [{"role": "user", "content": text}]
-        try:
-            processed.append(
-                tokenizer.apply_chat_template(
-                    messages,
-                    tokenize=False,
-                    add_generation_prompt=True,
-                    enable_thinking=enable_thinking,
-                )
+        # Two features may be unsupported by a given tokenizer; track each
+        # independently and strip on the first exception that names it.
+        use_system = system_prompt is not None
+        use_thinking = enable_thinking  # set to None if TypeError is raised
+
+        while True:
+            msgs = (
+                [{"role": "system", "content": system_prompt}, {"role": "user", "content": text}]
+                if use_system
+                else [{"role": "user", "content": text}]
             )
-        except TypeError:
-            if enable_thinking:
-                logging.warning(
-                    "Tokenizer does not support 'enable_thinking' parameter. "
-                    "Falling back to standard chat template."
+            kw = {} if use_thinking is None else {"enable_thinking": use_thinking}
+            try:
+                processed.append(
+                    tokenizer.apply_chat_template(
+                        msgs, tokenize=False, add_generation_prompt=True, **kw
+                    )
                 )
-            processed.append(
-                tokenizer.apply_chat_template(
-                    messages,
-                    tokenize=False,
-                    add_generation_prompt=True,
-                )
-            )
+                break
+            except TypeError:
+                # `enable_thinking` kwarg not accepted — strip it and retry.
+                if use_thinking is not None:
+                    if use_thinking:
+                        logging.warning(
+                            "Tokenizer does not support 'enable_thinking'; "
+                            "falling back to standard chat template."
+                        )
+                    use_thinking = None
+                else:
+                    raise
+            except (TemplateError, ValueError):
+                # System role rejected (e.g. Gemma) — drop it and retry.
+                if use_system:
+                    logging.warning(
+                        "Tokenizer does not support system role; dropping system "
+                        "prompt for CoT generation."
+                    )
+                    use_system = False
+                else:
+                    raise
 
     logging.debug(f"Applied chat template (enable_thinking={enable_thinking})")
     return processed
@@ -363,6 +385,7 @@ def generate_text_batch(
     max_new_tokens: int = 1024,
     context_size: int = None,
     enable_thinking: bool = None,
+    system_prompt: str | None = None,
 ) -> list[str]:
     """Generate text completions for a batch of prompts.
 
@@ -391,6 +414,9 @@ def generate_text_batch(
         - False: Apply chat template WITHOUT thinking mode (for instruction-tuned models)
         - True: Apply chat template WITH thinking mode, and extract response
           content after </think> marker (for thinking models like Qwen3)
+    system_prompt : str | None, optional
+        System prompt to inject as a system role message when applying the
+        chat template. Ignored when ``enable_thinking`` is None.
 
     Returns
     -------
@@ -410,6 +436,7 @@ def generate_text_batch(
             text_inputs,
             tokenizer=tokenizer,
             enable_thinking=enable_thinking,
+            system_prompt=system_prompt,
         )
 
         tokenized = tokenizer(

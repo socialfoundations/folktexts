@@ -281,6 +281,11 @@ class VLLMClassifier(LLMClassifier):
             prompts_batch,
             tokenizer=self._tokenizer,
             enable_thinking=question.enable_thinking,
+            system_prompt=(
+                self.prompt_config.system_prompt()
+                if self.prompt_config.system_prompt is not None
+                else None
+            ),
         )
 
         sampling_params = SamplingParams(

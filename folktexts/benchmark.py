@@ -693,7 +693,10 @@ class Benchmark:
         # one (e.g. Gemma). Warn loudly when this discards a user-supplied
         # value so it isn't silently lost.
         if not tokenizer_supports_system_prompt(tokenizer):
-            if config.system_prompt is not PROMPT_DEFAULT and config.system_prompt is not None:
+            if (
+                config.system_prompt is not PROMPT_DEFAULT
+                and config.system_prompt is not None
+            ):
                 logging.warning(
                     "Tokenizer's chat template rejects the `system` role; "
                     "the user-supplied `system_prompt` will be discarded. "
@@ -743,6 +746,7 @@ class Benchmark:
                 pv=config.prompt_variation or {},
                 task=task,
                 question=task.question,
+                system_prompt=config.system_prompt,
             )
 
         if config.few_shot_config:
@@ -843,6 +847,7 @@ class Benchmark:
             pv=config.prompt_variation or {},
             task=task,
             question=task.question,
+            system_prompt=config.system_prompt,
         )
 
         encode_row_function, prompt_config = cls._build_encode_row_function(
@@ -901,7 +906,9 @@ class Benchmark:
             logging.info(f"Using local transformers model: {llm_clf.model_name}")
 
         logging.info("Exemplary row encoding")
-        logging.info(llm_clf.encode_row(dataset.sample_n_train_examples(n=1)[0]))
+        logging.info(
+            llm_clf.encode_row(dataset.sample_n_train_examples(n=1)[0].iloc[0])
+        )
 
         return cls(
             llm_clf=llm_clf,

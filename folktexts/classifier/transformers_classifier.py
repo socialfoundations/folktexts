@@ -181,6 +181,11 @@ class TransformersLLMClassifier(LLMClassifier):
                 max_new_tokens=question.max_new_tokens,
                 context_size=context_size or self.inference_kwargs["context_size"],
                 enable_thinking=question.enable_thinking,
+                system_prompt=(
+                    self.prompt_config.system_prompt()
+                    if self.prompt_config.system_prompt is not None
+                    else None
+                ),
             )
 
             # Extract probability from generated text and log each sample

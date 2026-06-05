@@ -197,17 +197,15 @@ class WebAPILLMClassifier(LLMClassifier):
 
         # Get system prompt depending on Q&A type (if not already set for ChainOfThoughtQA)
         if not isinstance(question, ChainOfThoughtQA):
-            if isinstance(question, DirectNumericQA):
-                system_prompt = "Your response must start with a number representing the estimated probability."
-                # system_prompt = (
-                #     "You are a highly specialized assistant that always responds with a single number. "
-                #     "For every input, you must analyze the request and respond with only the relevant single number, "
-                #     "without any additional text, explanation, or symbols."
-                # )
-            elif isinstance(question, MultipleChoiceQA):
-                system_prompt = "Please respond with a single letter."
-            else:
-                raise ValueError(f"Unknown question type '{type(question)}'.")
+            # Get system prompt: use the one from PromptConfig if set, otherwise fall back
+            # to the QA subclass default (None disables the system role entirely).
+            if (
+                self.prompt_config is not None
+                and self.prompt_config.system_prompt is not None
+            ):
+                system_prompt = self.prompt_config.system_prompt()
+
+            logging.debug(f"System prompt: {system_prompt}")
 
         # Query model for each prompt in the batch
         responses_batch = []
