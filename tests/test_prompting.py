@@ -252,7 +252,7 @@ class TestFewShotConfig:
 
     def test_example_order_string_parsed(self):
         cfg = FewShotConfig(n_shots=3, example_order="2,0,1")
-        assert cfg.example_order == [2, 0, 1]
+        assert cfg.example_order == (2, 0, 1)
 
     def test_example_order_invalid_permutation_raises(self):
         with pytest.raises(ValueError, match="permutation"):

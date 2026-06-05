@@ -37,6 +37,7 @@ import pandas as pd
 from jinja2 import TemplateError
 from transformers import AutoTokenizer
 
+from folktexts._utils import hash_dict
 from folktexts.acs import ACS_TASK_DESCRIPTION, ACS_TASK_DESCRIPTION_DEFAULTS
 
 from .dataset import Dataset
@@ -100,6 +101,9 @@ class VaryPrefix:
         the encoded features. If None, no custom prefix is added. Default is None.
     """
 
+    def __hash__(self) -> int:
+        return int(hash_dict(dataclasses.asdict(self)), 16)
+
     def __call__(self) -> str:
         parts = []
         if self.add_task_description:
@@ -148,6 +152,9 @@ class VarySuffix:
         if self.show_label and self.label is None:
             raise ValueError("show_label=True requires label to be set.")
 
+    def __hash__(self) -> int:
+        return int(hash_dict(dataclasses.asdict(self)), 16)
+
     def __call__(self) -> str:
         base = (
             self.question.get_question_prompt(
@@ -163,6 +170,7 @@ class VarySuffix:
 @dataclass(frozen=True)
 class VaryValueMap:
     cols_to_text: dict = field(hash=False, compare=False)
+    granularity: str = "original"
 
     """
     A stage for mapping raw feature values to human-readable text.
@@ -170,7 +178,20 @@ class VaryValueMap:
     ----------
     cols_to_text : dict
         A mapping from column names to ColumnToText objects, which provide the logic for converting raw values to text.
+    granularity : str, optional
+        Tag identifying the value-map variant; used for hashing only.
+        ``"original"`` (default) uses the full value maps; ``"low"`` uses
+        simplified maps (set by ``with_low_granularity``).
     """
+
+    def __hash__(self) -> int:
+        # Hash the column names (which identify the task) and the granularity tag (which identifies the value-map variant).
+        return int(
+            hash_dict(
+                {"cols": sorted(self.cols_to_text), "granularity": self.granularity}
+            ),
+            16,
+        )
 
     def __call__(self, items: list[FeatureItem]) -> list[FeatureItem]:
         return [
@@ -197,21 +218,32 @@ class VaryValueMap:
                 modified[col] = c2t_copy
             else:
                 modified[col] = c2t
-        return cls(cols_to_text=modified)
+        return cls(cols_to_text=modified, granularity="low")
 
 
 @dataclass(frozen=True)
 class VaryOrder:
-    order: list | None = None  # list[str] of column names; None → keep original
+    order: tuple[str, ...] | None = None  # tuple[str] of column names; None → keep original
 
-    """ 
+    """
     A stage for reordering the feature items.
     Parameters
     ----------
-    order : list | None, optional
-        A list of column names specifying the desired order of features in the prompt. 
+    order : tuple[str, ...] | None, optional
+        A tuple of column names specifying the desired order of features in the prompt.
         If None, the original order is preserved. Default is None.
     """
+
+    def __post_init__(self):
+        if isinstance(self.order, str):
+            object.__setattr__(
+                self, "order", tuple(col.strip() for col in self.order.split(","))
+            )
+        elif isinstance(self.order, list):
+            object.__setattr__(self, "order", tuple(self.order))
+
+    def __hash__(self) -> int:
+        return int(hash_dict(dataclasses.asdict(self)), 16)
 
     def __call__(self, items: list[FeatureItem]) -> list[FeatureItem]:
         if not self.order:
@@ -235,6 +267,9 @@ class VaryConnector:
         The string to use for connecting feature labels to their values. 
         For example, "is" would produce prompts like "Age is 30", while ":" would produce "Age: 30". Default is "is".
     """
+
+    def __hash__(self) -> int:
+        return int(hash_dict(dataclasses.asdict(self)), 16)
 
     def __call__(self, items: list[FeatureItem]) -> list[FeatureItem]:
         sep = ": " if self.connector == ":" else f" {self.connector} "
@@ -278,6 +313,9 @@ class VaryFormat:
                 f"Unknown format {self.format!r}. Choose from {list(self._TEMPLATES)}"
             )
 
+    def __hash__(self) -> int:
+        return int(hash_dict(dataclasses.asdict(self)), 16)
+
     def __call__(self, items: list[FeatureItem]) -> str:
         template = self._TEMPLATES[self.format]
         return "".join(template(item.connected) for item in items).rstrip(", \n")
@@ -294,6 +332,9 @@ class VarySystemPrompt:
     system_prompt : str
         The system prompt string to include in the chat context. This provides instructions or 
         context to the model before the user prompt. """
+
+    def __hash__(self) -> int:
+        return int(hash_dict(dataclasses.asdict(self)), 16)
 
     def __call__(self) -> str:
         return self.system_prompt
@@ -312,8 +353,8 @@ class FewShotConfig:
     ----------
     n_shots : int
         Number of example questions and answers to prepend.
-    example_order : list[int] | str | None, optional
-        Integer permutation to reorder examples (e.g. ``[2, 0, 1]`` or ``"2,0,1"``). ``None`` keeps the sampled order.
+    example_order : tuple[int, ...] | str | None, optional
+        Integer permutation to reorder examples (e.g. ``(2, 0, 1)`` or ``"2,0,1"``). ``None`` keeps the sampled order.
     compose : str | list, optional
         How to select few-shot samples: ``"random"`` (default), ``"balanced"`` (equal draws per class), or a list of
         per-class counts summing to ``n_shots``.
@@ -322,7 +363,7 @@ class FewShotConfig:
     """
 
     n_shots: int
-    example_order: list[int] | str | None = None
+    example_order: tuple[int, ...] | str | None = None
     compose: str | list = "random"
     reuse_examples: bool = False
 
@@ -334,8 +375,10 @@ class FewShotConfig:
             object.__setattr__(
                 self,
                 "example_order",
-                [int(i) for i in self.example_order.split(",")],
+                tuple(int(i) for i in self.example_order.split(",")),
             )
+        elif isinstance(self.example_order, list):
+            object.__setattr__(self, "example_order", tuple(self.example_order))
         if self.example_order is not None:
             if sorted(self.example_order) != list(range(self.n_shots)):
                 raise ValueError(
@@ -363,6 +406,12 @@ class FewShotConfig:
                 f"compose must be 'random', 'balanced', or a list of counts; got {self.compose!r}."
             )
 
+    def __hash__(self) -> int:
+        # Cannot rely on the frozen-dataclass auto-hash: `compose` as a str
+        # would use PYTHONHASHSEED-dependent str.__hash__, breaking cross-
+        # process benchmark stability.  Serialise via json.dumps + shake-256.
+        return int(hash_dict(dataclasses.asdict(self)), 16)
+
 
 # ---------------------------------------------------------------------------
 # PromptConfig
@@ -382,6 +431,24 @@ class PromptConfig:
     @classmethod
     def default(cls, task: TaskMetadata) -> "PromptConfig":
         return cls.from_dict({}, task=task)
+
+    def __hash__(self) -> int:
+        return int(
+            hash_dict(
+                {
+                    "prefix": hash(self.prefix),
+                    "value_map": hash(self.value_map),
+                    "order": hash(self.order),
+                    "connector": hash(self.connector),
+                    "format": hash(self.format),
+                    "suffix": hash(self.suffix),
+                    "system_prompt": hash(self.system_prompt)
+                    if self.system_prompt is not None
+                    else None,
+                }
+            ),
+            16,
+        )
 
     @classmethod
     def from_dict(
@@ -424,7 +491,7 @@ class PromptConfig:
 
         order = pv.get("order", DEFAULT_PROMPT_STYLE["order"])
         if isinstance(order, str):
-            order = [col.strip() for col in order.split(",")]
+            order = tuple(col.strip() for col in order.split(","))
 
         question = question or task.question
         if system_prompt is PROMPT_DEFAULT:
@@ -544,7 +611,7 @@ class PromptBuilder:
         config: PromptConfig,
         examples: list[tuple],  # list of (pd.Series, label)
         question: QAInterface | None = None,
-        example_order: list[int] | None = None,
+        example_order: tuple[int, ...] | None = None,
     ) -> str:
         if example_order is not None:
             assert len(example_order) == len(examples)
@@ -667,7 +734,7 @@ def encode_row_prompt_few_shot(
     question: QAInterface = None,
     reuse_examples: bool = False,
     compose_few_shot_examples: str | list = "random",
-    example_order: list[int] | str | None = None,
+    example_order: tuple[int, ...] | str | None = None,
     prompt_config: PromptConfig | None = None,
     few_shot_config: FewShotConfig | None = None,
 ) -> str:
@@ -694,7 +761,7 @@ def encode_row_prompt_few_shot(
         How to select few-shot samples: ``"random"`` (default), ``"balanced"``
         (equal draws per class), or a list of per-class counts summing to
         ``n_shots``. Ignored when ``few_shot_config`` is provided.
-    example_order : list[int] | str | None, optional
+    example_order : tuple[int, ...] | str | None, optional
         Integer permutation to reorder examples before building the prompt
         (e.g. ``[2, 0, 1]`` for 3 shots). ``None`` keeps the sampled order.
         Ignored when ``few_shot_config`` is provided.
@@ -722,7 +789,7 @@ def encode_row_prompt_few_shot(
         )
 
     assert few_shot_config.example_order is None or isinstance(
-        few_shot_config.example_order, list
+        few_shot_config.example_order, tuple
     )  # mypy
     logging.debug(f"Composition of few shot examples: {few_shot_config.compose}")
 

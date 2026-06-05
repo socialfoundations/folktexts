@@ -435,3 +435,65 @@ class TestBenchmarkRun:
             model, tokenizer, acs_income_task, acs_income_dataset, seed=2
         )
         assert hash(bench1) != hash(bench2)
+
+    def test_benchmark_hash_stable_across_processes(
+        self, causal_lm_name_or_path, acs_income_task, acs_income_dataset
+    ):
+        """Hash must be identical across Python processes with different PYTHONHASHSEED.
+
+        Tests within a single process always share the same seed, so they cannot
+        catch hash randomization bugs.  This test spawns subprocesses with
+        explicitly different seeds and compares their outputs.
+
+        Covers the full hash chain: TransformersLLMClassifier → PromptConfig →
+        VaryPrefix / VarySuffix / VaryValueMap / VaryOrder / VaryConnector /
+        VaryFormat / VarySystemPrompt, which is where PYTHONHASHSEED bugs live.
+        """
+        import os
+        import subprocess
+        import sys
+        import textwrap
+        from pathlib import Path
+
+        fixture_path = Path(__file__).parent / "acs_income_10rows.csv"
+        if not fixture_path.exists():
+            pytest.skip(
+                f"ACS fixture not found at {fixture_path}. "
+                "Run `python tests/create_acs_fixture.py` to generate it."
+            )
+
+        # Hash the full Benchmark (includes classifier → PromptConfig → Vary* chain)
+        # using the tiny model and the fixture CSV so it's fast.
+        bench_script = textwrap.dedent("""
+        import pandas as pd
+        from folktexts.acs import ACSTaskMetadata
+        from folktexts.dataset import Dataset
+        from folktexts.llm_utils import load_model_tokenizer
+        from folktexts.classifier import TransformersLLMClassifier
+        from folktexts.benchmark import Benchmark, BenchmarkConfig
+
+        task = ACSTaskMetadata.get_task("ACSIncome", use_numeric_qa=False)
+        df = pd.read_csv({fixture_path!r}, index_col=0)
+        dataset = Dataset(data=df, task=task, test_size=0.3, val_size=0.0, seed=42)
+        model, tokenizer = load_model_tokenizer({model!r})
+        clf = TransformersLLMClassifier(model=model, tokenizer=tokenizer, task=task)
+        bench = Benchmark(llm_clf=clf, dataset=dataset, config=BenchmarkConfig.default_config())
+        print(hash(bench))
+        """).format(fixture_path=str(fixture_path), model=causal_lm_name_or_path)
+
+        def run(seed: int) -> str:
+            env = {**os.environ, "PYTHONHASHSEED": str(seed)}
+            result = subprocess.run(
+                [sys.executable, "-c", bench_script],
+                capture_output=True,
+                text=True,
+                env=env,
+            )
+            assert result.returncode == 0, result.stderr
+            return result.stdout.strip()
+
+        h0, h1, h999 = run(0), run(1), run(999)
+        assert h0 == h1 == h999, (
+            f"Benchmark hash is not stable across processes: "
+            f"seed=0 → {h0}, seed=1 → {h1}, seed=999 → {h999}"
+        )

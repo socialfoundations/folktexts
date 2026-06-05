@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import pytest
 
+import json
+
 from folktexts.cli._utils import cmd_line_args_to_kwargs, get_or_create_results_dir
-from folktexts.cli.run_acs_benchmark import setup_arg_parser
+from folktexts.cli.run_acs_benchmark import PROMPT_DEFAULT, setup_arg_parser
 
 # ----------------------------------------------------------------------
 # get_or_create_results_dir
@@ -165,3 +167,11 @@ class TestSetupArgParser:
         for level in ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
             args = self._parse(self._required() + ["--logger-level", level])
             assert args.logger_level == level
+
+    def test_default_args_are_json_serializable(self):
+        """Sentinel values like PROMPT_DEFAULT must survive the json.dumps call in main()."""
+        args = self._parse(self._required())
+        # mirrors what main() does before any real work runs
+        json.dumps(
+            {k: ("default" if v is PROMPT_DEFAULT else v) for k, v in vars(args).items()}
+        )
