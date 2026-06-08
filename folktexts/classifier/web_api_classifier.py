@@ -156,11 +156,16 @@ class WebAPILLMClassifier(LLMClassifier):
                 stream=False,
                 seed=self.seed,
             )
-            system_prompt = (
-                "You are a helpful assistant. Reason step-by-step about the question "
-                "and provide your final probability estimate. Your response MUST end "
-                "with 'Probability: X%' where X is a number between 0 and 100."
-            )
+            # Use the user-supplied system prompt (via PromptConfig / --system-prompt)
+            # when set; otherwise fall back to the default CoT instruction.
+            if self.prompt_config.system_prompt is not None:
+                system_prompt = self.prompt_config.system_prompt()
+            else:
+                system_prompt = (
+                    "You are a helpful assistant. Reason step-by-step about the question "
+                    "and provide your final probability estimate. Your response MUST end "
+                    "with 'Probability: X%' where X is a number between 0 and 100."
+                )
         # Adapt number of forward passes for token-probability based methods
         elif question.num_forward_passes == 1:
             # Single token answers should require only one forward pass
@@ -197,24 +202,24 @@ class WebAPILLMClassifier(LLMClassifier):
 
         # Get system prompt depending on Q&A type (if not already set for ChainOfThoughtQA)
         if not isinstance(question, ChainOfThoughtQA):
-            # Get system prompt: use the one from PromptConfig if set, otherwise fall back
-            # to the QA subclass default (None disables the system role entirely).
-            if (
-                self.prompt_config is not None
-                and self.prompt_config.system_prompt is not None
-            ):
-                system_prompt = self.prompt_config.system_prompt()
-
+            # Use the system prompt carried by PromptConfig (always the QA subclass
+            # default unless the caller explicitly cleared it). `None` disables the
+            # system role entirely. Bind unconditionally so it is always defined.
+            system_prompt = (
+                self.prompt_config.system_prompt()
+                if self.prompt_config.system_prompt is not None
+                else None
+            )
             logging.debug(f"System prompt: {system_prompt}")
 
         # Query model for each prompt in the batch
         responses_batch = []
         for prompt in prompts_batch:
-            # Construct prompt messages object
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt},
-            ]
+            # Construct prompt messages object (omit the system role when disabled)
+            messages = []
+            if system_prompt is not None:
+                messages.append({"role": "system", "content": system_prompt})
+            messages.append({"role": "user", "content": prompt})
 
             # Query the model API
             # TODO: Retry on non-successful API calls (e.g., RPM exceeded).
