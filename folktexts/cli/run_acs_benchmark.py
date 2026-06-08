@@ -203,7 +203,7 @@ def setup_arg_parser() -> ArgumentParser:
     parser.add_argument(
         "--compose-few-shot-examples",
         help=(
-            "[str|list] How to select samples in few-shot prompting: random, balanced or list of speicified "
+            "[str|list] How to select samples in few-shot prompting: random, balanced or a list of specified "
             "class counts. Defaults to random."
         ),
         default="random",
@@ -230,7 +230,7 @@ def setup_arg_parser() -> ArgumentParser:
 
     parser.add_argument(
         "--variation",
-        help="[dict] Dictionary specifying variations of data point serialization.",
+        help="[dict] Prompt-style overrides as key=value pairs, e.g. --variation connector=is format=bullet (keys: format, connector, granularity, order, custom_prompt_prefix, custom_prompt_suffix, show_question).",
         nargs="*",
         action=ParseDict,
         required=False,
