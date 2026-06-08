@@ -31,6 +31,42 @@ reproduce the original paper's prompts exactly; read on only to change how
 prompts are rendered. The command-line equivalents are summarized in the
 {doc}`README <readme>`.
 
+## Question modes
+
+A run asks the model one of three kinds of question. The mode is a single choice
+that determines what the model is asked to produce and how that output becomes a
+probability:
+
+| Mode | Activate with | What the model does |
+|:---|:---|:---|
+| **Multiple-choice** (default) | *(nothing — it is the default)* | Answers a multiple-choice question; we score the answer-letter tokens and read the probability off them. Order-bias correction is on by default (`correct_order_bias`). |
+| **Numeric** | `numeric_risk_prompting=True` · `--numeric-risk-prompting` | Reports the probability directly — the prompt ends on `Answer (between 0 and 1): 0.` and we read the digit tokens. |
+| **Chain-of-thought** | `cot_prompting=True` · `--cot-prompting` | Generates free-form reasoning and ends with a `Probability: X%` line, recovered by regex. Works on any model, with or without a chat template. |
+
+`enable_thinking` / `--enable-thinking` is a sub-option of chain-of-thought: it
+turns on a tokenizer's native thinking mode (e.g. Qwen3) via
+`apply_chat_template(..., enable_thinking=True)`, and the resulting
+`<think>…</think>` block is stripped before extraction. It only applies when CoT
+is on — setting it alone implicitly enables CoT (and warns). If both
+`numeric_risk_prompting` and `cot_prompting` are set, chain-of-thought wins.
+
+The mode is separate from *how the prompt is delivered* — zero-shot (the
+default), few-shot (`FewShotConfig` / `--few-shot`), or chat-template formatting
+(`use_chat_template` / `--use-chat-template`). The allowed pairings:
+
+| | zero-shot | few-shot | chat-template |
+|:---|:---:|:---:|:---:|
+| **Multiple-choice** | ✓ | ✓ | ✓ |
+| **Numeric** | ✓ | ✓ | ✓ |
+| **Chain-of-thought** | ✓ | – | ✗ |
+
+✓ supported · ✗ raises `ValueError` · – not a supported combination. Two pairings
+are rejected at config time: **few-shot + chat-template**, and **chain-of-thought
++ chat-template** (CoT already applies the chat template internally, so an outer
+one would double-wrap the prompt). Few-shot and chat-template are themselves
+mutually exclusive — a run uses exactly one delivery path. Chain-of-thought is a
+standalone path: it runs zero-shot and is not combined with few-shot.
+
 ## The variation pipeline
 
 The `[INFO]` block is produced by a pipeline of `Vary*` stages whose order is
@@ -121,10 +157,9 @@ PromptConfig.from_dict({}, task=task, system_prompt="...")  # custom system prom
 These defaults are `ClassVar`s on the `QAInterface` hierarchy: multiple-choice
 questions use the base `QAInterface` defaults, `DirectNumericQA` overrides them
 with numeric-specific prompts, and `ChainOfThoughtQA` sets them to `None`
-(free-form generation). The question type therefore selects the right default,
-which is why there is no longer a `numeric` flag to pass — choose the mode with
-`BenchmarkConfig(numeric_risk_prompting=True)` or `cot_prompting=True` (CLI:
-`--numeric-risk-prompting` / `--cot-prompting`).
+(free-form generation). The question type therefore supplies the right default,
+which is why there is no longer a `numeric` flag to pass — pick the mode as
+described under **Question modes** above.
 
 ## `FewShotConfig`
 

@@ -328,6 +328,22 @@ section if you want to *change* how prompts are rendered. All of
 the knobs below are also available on the Python side (see
 [the prompt-configuration guide](https://socialfoundations.github.io/folktexts/configuring_prompts.html)).
 
+### Question modes
+
+Each run asks one of three kinds of question:
+
+| Mode | Flag | What the model does |
+|:---|:---|:---|
+| Multiple-choice | *(default)* | Picks an answer choice; we score the answer-letter tokens. |
+| Numeric | `--numeric-risk-prompting` | Reports the probability directly (`Answer (between 0 and 1): 0.…`). |
+| Chain-of-thought | `--cot-prompting` | Reasons step-by-step, then ends with a `Probability: X%` line. Add `--enable-thinking` for Qwen3-style thinking mode. |
+
+The mode is independent of the delivery path — zero-shot (default), `--few-shot`,
+or `--use-chat-template`. Two combinations raise an error: `--few-shot` with
+`--use-chat-template`, and `--cot-prompting` with `--use-chat-template` (CoT
+applies the chat template itself). Chain-of-thought runs zero-shot; multiple-choice
+and numeric work with every delivery path.
+
 ### Varying the feature block — `--variation`
 
 The `--variation` flag takes one or more `key=value` overrides that change how
@@ -379,10 +395,8 @@ run_acs_benchmark --model "$MODEL" --task ACSIncome --results-dir results \
 `--use-chat-template` formats prompts with the tokenizer's chat template; pair it
 with `--system-prompt "..."` and/or `--chat-prompt "..."` to override the role
 text. Passing `--system-prompt` without `--use-chat-template` has no effect and
-warns. `--cot-prompting` (optionally with `--enable-thinking`) is its own,
-separate path and is **mutually exclusive** with `--use-chat-template`. In short:
-`--use-chat-template` runs with `--variation` and the prompt overrides, but not
-with `--few-shot` or `--cot-prompting`.
+warns. `--cot-prompting` is its own generation path (see **Question modes**) and
+is **mutually exclusive** with `--use-chat-template`.
 
 ### From Python
 
