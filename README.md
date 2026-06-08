@@ -39,6 +39,7 @@ as a natural-language Q&A task.
   - [Ready-to-use datasets](#ready-to-use-datasets)
   - [Example usage](#example-usage)
 - [Benchmark features and options](#benchmark-features-and-options)
+- [Configuring prompts](#configuring-prompts)
 - [Evaluating feature importance](#evaluating-feature-importance)
 - [FAQ](#faq)
 - [Citation](#citation)
@@ -302,6 +303,108 @@ options:
 </details>
 
 </details>
+
+
+## Configuring prompts
+
+Every prompt that `folktexts` builds for a tabular row is composed of three
+independent parts:
+
+```
+[PREFIX]  task description / system context   (constant across rows)
+[INFO]    serialized feature-value pairs      (row-specific)
+[SUFFIX]  question text + answer prefill       (constant)
+```
+
+The defaults reproduce the prompts used in the original paper **exactly** — you
+only need this section if you want to *change* how prompts are rendered. All of
+the knobs below are also available on the Python side (see
+[the prompt-configuration guide](https://socialfoundations.github.io/folktexts/configuring_prompts.html)).
+
+### Varying the feature block — `--variation`
+
+The `--variation` flag takes one or more `key=value` overrides that change how
+the `[INFO]` block is rendered. Keys (with their defaults) are:
+
+| Key | Default | Allowed values | Effect |
+|:---|:---|:---|:---|
+| `format` | `textbullet` | `textbullet`, `bullet`, `comma`, `text` | Layout of the feature list (e.g. `- The age is: 42.` vs `- age is: 42`). |
+| `connector` | `is:` | any string, e.g. `is`, `=`, `:` | Separator between a feature label and its value. |
+| `granularity` | `original` | `original`, `low` | `low` coarsens ACS feature values into broader bins (age ranges, grouped occupations). ACS-only. |
+| `order` | *(original)* | comma-separated column names | Reorders features: the named columns come first, the rest are appended (nothing is dropped). |
+| `custom_prompt_prefix` | *(none)* | any string | Extra text prepended to the task-description prefix. |
+| `custom_prompt_suffix` | *(none)* | any string | Overrides the trailing question text. |
+| `show_question` | `true` | `true`, `false` | When `false`, drops the repeated question and relies on the answer prefill. |
+
+```sh
+# Render features as plain bullets joined by "=", and put age/education first:
+run_acs_benchmark --model "$MODEL" --task ACSIncome --results-dir results \
+    --variation format=bullet connector== order=AGEP,SCHL,COW
+
+# Coarser feature values (low granularity) rendered as a comma-separated list:
+run_acs_benchmark --model "$MODEL" --task ACSIncome --results-dir results \
+    --variation granularity=low format=comma
+```
+
+Each distinct variation produces its own deterministic results-file name, so
+runs never overwrite one another.
+
+### Few-shot examples
+
+Few-shot prompting is enabled with `--few-shot N` and tuned with:
+
+| Flag | Effect |
+|:---|:---|
+| `--reuse-few-shot-examples` | Reuse the same `N` examples for every row (faster, deterministic) instead of resampling. |
+| `--compose-few-shot-examples` | How examples are drawn: `random` (default), `balanced` (equal per class), or per-class counts like `2,2`. |
+| `--example-order` | Comma-separated permutation of the example indices, e.g. `3,2,1,0`. |
+| `--few-shot-hide-question` | Show only the answer in each example (omit the repeated question). |
+
+```sh
+run_acs_benchmark --model "$MODEL" --task ACSIncome --results-dir results \
+    --few-shot 4 --compose-few-shot-examples balanced --reuse-few-shot-examples
+```
+
+> Few-shot prompting cannot be combined with `--use-chat-template` (raises an error).
+
+### Chat, system prompt, and chain-of-thought
+
+`--use-chat-template` formats prompts with the tokenizer's chat template; pair it
+with `--system-prompt "..."` and/or `--chat-prompt "..."` to override the role
+text. Passing `--system-prompt` without `--use-chat-template` has no effect and
+warns. `--cot-prompting` (optionally with `--enable-thinking`) is its own,
+separate path and is **mutually exclusive** with `--use-chat-template`.
+
+### From Python
+
+The same options are available on `BenchmarkConfig` / `make_acs_benchmark` and,
+at the lowest level, on the classifiers via a `PromptConfig`:
+
+```py
+from folktexts.benchmark import Benchmark
+from folktexts.prompting import FewShotConfig
+
+bench = Benchmark.make_acs_benchmark(
+    "ACSIncome", model=llm, tokenizer=tokenizer, data_dir="~/data",
+    prompt_variation={"format": "bullet", "connector": "="},
+    few_shot_config=FewShotConfig(n_shots=4, compose="balanced", reuse_examples=True),
+)
+bench.run(results_root_dir="results")
+```
+
+```py
+# Lowest level: build a PromptConfig once and pass it to any classifier.
+from folktexts.prompting import PromptConfig
+from folktexts.classifier import VLLMClassifier
+
+prompt_config = PromptConfig.from_dict({"format": "bullet"}, task="ACSIncome")
+clf = VLLMClassifier(llm=llm, tokenizer=tokenizer, task="ACSIncome",
+                     prompt_config=prompt_config)
+```
+
+See the [prompt-configuration guide](https://socialfoundations.github.io/folktexts/configuring_prompts.html)
+for the full `PromptConfig` / `FewShotConfig` reference and a migration note from
+the pre-`v0.x` flat-kwargs API (`custom_prompt_prefix`, `class_balancing`, …).
 
 
 ## Evaluating feature importance
