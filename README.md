@@ -29,7 +29,7 @@ as a natural-language Q&A task.
     <img src="docs/_static/folktexts-loop-diagram.png" alt="folktexts-diagram" width="700px">
 </p>
 
-> **🆕 v0.4.0** ships a [vLLM](https://github.com/vllm-project/vllm) backend for local inference — typically 5–30× faster than the 🤗 transformers path, which remains supported via `--inference-backend transformers`. Install with `pip install 'folktexts[vllm]'` (CUDA GPU required); see [`docs/updates.md`](docs/updates.md) for the full release notes.
+> **🆕 v0.6.0** adds typed, composable prompt configuration — build prompts from `PromptConfig` / `FewShotConfig` and vary the feature block with the `--variation` CLI flag; see [Configuring prompts](#configuring-prompts). The v0.4.0 [vLLM](https://github.com/vllm-project/vllm) backend remains the default local-inference path (`pip install 'folktexts[vllm]'`, CUDA GPU required). Full release notes in [`docs/updates.md`](docs/updates.md).
 
 
 ## Table of contents   <!-- omit in toc -->
@@ -172,9 +172,10 @@ bench_results = bench.run(results_root_dir="results")
 <summary><strong>Chain-of-thought prompting</strong> (click to expand)</summary>
 
 The model generates free-form reasoning text before emitting a probability,
-which is then extracted via regex. `enable_thinking=True` is an independent
-toggle that activates the Qwen3-style thinking-mode chat template and strips
-the `<think>` block before extraction; it requires `cot_prompting=True`.
+which is then extracted via regex. `enable_thinking=True` is a sub-option of
+chain-of-thought that activates the Qwen3-style thinking-mode chat template and
+strips the `<think>` block before extraction; setting it on its own enables
+chain-of-thought automatically (with a warning).
 
 ```py
 from folktexts.benchmark import Benchmark, BenchmarkConfig
@@ -225,7 +226,7 @@ conjunction with the `run_acs_benchmark` command line script, or with the
 | `--use-web-api-model` | Whether the given `--model` name corresponds to a web-hosted model or not. **By default** this is False (assumes a local model). If this flag is provided, `--model` must contain a [litellm](https://docs.litellm.ai) model identifier ([examples here](https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models)). | Boolean flag (`True` if present, `False` otherwise) |
 | `--inference-backend` | Local inference backend. **Default** `vllm` for high-throughput continuous batching (requires `pip install 'folktexts[vllm]'` and a CUDA GPU); pass `transformers` to use the HuggingFace path instead. Ignored when `--use-web-api-model` is set. | `vllm`, `transformers` |
 | `--gpu-memory-utilization` | vLLM only. Fraction of GPU VRAM vLLM may pre-allocate for KV cache. Lower if vLLM OOMs at startup. | `0.85` (default) |
-| `--max-model-len` | vLLM only. Maximum tokens (input + output) per request. Defaults to `--context-size + ChainOfThoughtQA.max_new_tokens + 256` for CoT runs (8000 + 256 = 8256 with the default budget), otherwise `--context-size + 1 + 256`. Override on tighter VRAM. | `2048`, `8192` |
+| `--max-model-len` | vLLM only. Maximum tokens (input + output) per request. Defaults to `--context-size + ChainOfThoughtQA.max_new_tokens + 256` for CoT runs (600 + 8000 + 256 = 8856 with the default `--context-size` of 600), otherwise `--context-size + 1 + 256`. Override on tighter VRAM. | `2048`, `8192` |
 | `--vllm-dtype` | vLLM only. Compute dtype. | `auto`, `bfloat16`, `float16` |
 | `--tensor-parallel-size` | vLLM only. Number of GPUs to shard the model across; auto-detects from `CUDA_VISIBLE_DEVICES`. | `1`, `2` |
 | `--subsampling` | Which fraction of the dataset to use for the benchmark. **By default** will use the whole test set. | `0.01` |
@@ -278,7 +279,7 @@ options:
   --reuse-few-shot-examples
                         [bool] Whether to reuse the same samples for few-shot prompting (or sample new ones every time)
   --compose-few-shot-examples COMPOSE_FEW_SHOT_EXAMPLES
-                        [str|list] How to select samples in few-shot prompting: random, balanced or a list of per-class counts. Defaults to random.
+                        [str|list] How to select samples in few-shot prompting: random, balanced or a list of specified class counts. Defaults to random.
   --example-order EXAMPLE_ORDER
                         [str] Comma-separated permutation of few-shot example indices, e.g. '2,0,1'. Only used when --few-shot is set.
   --few-shot-hide-question
@@ -307,13 +308,12 @@ options:
 
 ## Configuring prompts
 
-Every prompt that `folktexts` builds for a tabular row is composed of three
-independently-built parts:
+Every prompt that `folktexts` builds for a tabular row is composed of three parts:
 
 ```
-[PREFIX]  task description / system context   (constant across rows)
-[INFO]    serialized feature-value pairs      (row-specific)
-[SUFFIX]  question text + answer prefill       (constant)
+[PREFIX]  task description                (constant across rows)
+[INFO]    serialized feature-value pairs  (row-specific)
+[SUFFIX]  question text + answer prefill  (constant)
 ```
 
 The *answer prefill* is the fixed lead-in the prompt ends on (e.g. `Answer:`), so
@@ -324,9 +324,14 @@ These parts are set through a single `PromptConfig` object (plus `FewShotConfig`
 for in-context examples), built once and passed down unchanged.
 
 The defaults reproduce the original paper's prompts exactly — you only need this
-section if you want to *change* how prompts are rendered. All of
-the knobs below are also available on the Python side (see
-[the prompt-configuration guide](https://socialfoundations.github.io/folktexts/configuring_prompts.html)).
+section if you want to *change* how prompts are rendered. Every knob below is also
+available from Python; see the
+[prompt-configuration guide](https://socialfoundations.github.io/folktexts/configuring_prompts.html)
+for the full `PromptConfig` / `FewShotConfig` reference and a migration note from
+the older flat-keyword API (`custom_prompt_prefix`, `class_balancing`, …).
+
+<details>
+<summary>CLI reference — question modes, <code>--variation</code>, few-shot, chat (click to expand)</summary>
 
 ### Question modes
 
@@ -341,8 +346,9 @@ Each run asks one of three kinds of question:
 The mode is independent of the delivery path — zero-shot (default), `--few-shot`,
 or `--use-chat-template`. Two combinations raise an error: `--few-shot` with
 `--use-chat-template`, and `--cot-prompting` with `--use-chat-template` (CoT
-applies the chat template itself). Chain-of-thought runs zero-shot; multiple-choice
-and numeric work with every delivery path.
+applies the chat template itself). Chain-of-thought runs zero-shot (it is not
+combined with `--few-shot`); multiple-choice and numeric work with every delivery
+path.
 
 ### Varying the feature block — `--variation`
 
@@ -360,7 +366,8 @@ the `[INFO]` block is rendered. Keys (with their defaults) are:
 | `show_question` | `true` | `true`, `false` | When `false`, drops the repeated question and relies on the answer prefill. |
 
 ```sh
-# Render features as plain bullets joined by "=", and put age/education first:
+# Plain bullets, "=" between each label and value, age/education first
+# (connector== sets the separator to the literal "="):
 run_acs_benchmark --model "$MODEL" --task ACSIncome --results-dir results \
     --variation format=bullet connector== order=AGEP,SCHL,COW
 
@@ -394,42 +401,11 @@ run_acs_benchmark --model "$MODEL" --task ACSIncome --results-dir results \
 
 `--use-chat-template` formats prompts with the tokenizer's chat template; pair it
 with `--system-prompt "..."` and/or `--chat-prompt "..."` to override the role
-text. Passing `--system-prompt` without `--use-chat-template` has no effect and
-warns. `--cot-prompting` is its own generation path (see **Question modes**) and
-is **mutually exclusive** with `--use-chat-template`.
+text. Passing `--system-prompt` or `--chat-prompt` without `--use-chat-template`
+has no effect and warns. `--cot-prompting` is its own generation path (see
+**Question modes**) and is mutually exclusive with `--use-chat-template`.
 
-### From Python
-
-The same options are available on `BenchmarkConfig` / `make_acs_benchmark` and,
-at the lowest level, on the classifiers via a `PromptConfig`:
-
-```py
-from folktexts.benchmark import Benchmark
-from folktexts.prompting import FewShotConfig
-
-bench = Benchmark.make_acs_benchmark(
-    "ACSIncome", model=llm, tokenizer=tokenizer, data_dir="~/data",
-    prompt_variation={"format": "bullet", "connector": "="},
-    few_shot_config=FewShotConfig(n_shots=4, compose="balanced", reuse_examples=True),
-)
-bench.run(results_root_dir="results")
-```
-
-```py
-# Lowest level: build a PromptConfig once and pass it to any classifier.
-from folktexts import TaskMetadata
-from folktexts.prompting import PromptConfig
-from folktexts.classifier import VLLMClassifier
-
-task = TaskMetadata.get_task("ACSIncome")
-prompt_config = PromptConfig.from_dict({"format": "bullet"}, task=task)
-clf = VLLMClassifier(llm=llm, tokenizer=tokenizer, task="ACSIncome",
-                     prompt_config=prompt_config)
-```
-
-See the [prompt-configuration guide](https://socialfoundations.github.io/folktexts/configuring_prompts.html)
-for the full `PromptConfig` / `FewShotConfig` reference and a migration note from
-the older flat-keyword API (`custom_prompt_prefix`, `class_balancing`, …).
+</details>
 
 
 ## Evaluating feature importance

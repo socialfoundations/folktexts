@@ -14,9 +14,9 @@ individual keyword arguments through every call):
 Every prompt is then composed of three independently-built parts:
 
 ```
-[PREFIX]  task description / system context   (constant across rows)
-[INFO]    serialized feature-value pairs       (row-specific)
-[SUFFIX]  question text + answer prefill        (constant)
+[PREFIX]  task description                (constant across rows)
+[INFO]    serialized feature-value pairs  (row-specific)
+[SUFFIX]  question text + answer prefill  (constant)
 ```
 
 The *answer prefill* is the short lead-in the prompt ends on, so the model's next
@@ -107,7 +107,8 @@ prefix, suffix, and system prompt, plus the four-stage pipeline for the feature
 block. Build one from a dictionary of overrides whose keys are the seven
 `--variation` keys from the tables above (`format`, `connector`, `granularity`,
 `order`, `custom_prompt_prefix`, `custom_prompt_suffix`, `show_question`),
-validated against `DEFAULT_PROMPT_STYLE` — an unknown key raises `ValueError`.
+validated against `DEFAULT_PROMPT_STYLE` — an unknown key raises `ValueError`, as
+does an unrecognized `granularity` or `format` value.
 The `task` argument must be a `TaskMetadata` object; resolve a task name with
 `TaskMetadata.get_task`:
 
@@ -127,6 +128,10 @@ prompt_config = PromptConfig.from_dict(
 )
 ```
 
+`from_dict` also takes two optional keyword arguments: `question=` overrides the
+task's default question interface, and `add_task_description=` (default `True`) —
+set it to `False` to drop the task description from the prefix.
+
 Pass it straight to any classifier:
 
 ```py
@@ -140,11 +145,13 @@ clf = VLLMClassifier(
 
 ### The `PROMPT_DEFAULT` sentinel
 
-`system_prompt` (and `chat_prompt`) have three modes: omit the argument for the
+`system_prompt` (the system-role text) and `chat_prompt` (the assistant-turn
+prefill the model continues from in chat mode) have three modes: omit the
+argument for the
 built-in default, pass `None` to remove the role entirely (needed for
 Gemma-style templates that reject a system turn), or pass your own string. The
 "built-in default" mode is spelled with the public sentinel `PROMPT_DEFAULT` —
-which is **distinct from `None`**:
+which is distinct from `None`:
 
 ```py
 from folktexts.prompting import PROMPT_DEFAULT, PromptConfig
@@ -158,8 +165,8 @@ These defaults are `ClassVar`s on the `QAInterface` hierarchy: multiple-choice
 questions use the base `QAInterface` defaults, `DirectNumericQA` overrides them
 with numeric-specific prompts, and `ChainOfThoughtQA` sets them to `None`
 (free-form generation). The question type therefore supplies the right default,
-which is why there is no longer a `numeric` flag to pass — pick the mode as
-described under **Question modes** above.
+which is why there is no longer a separate `numeric=` argument to pass — pick the
+mode as described under **Question modes** above.
 
 ## `FewShotConfig`
 
@@ -173,10 +180,10 @@ bench = Benchmark.make_acs_benchmark(
     "ACSIncome", model=llm, tokenizer=tokenizer, data_dir="~/data",
     few_shot_config=FewShotConfig(
         n_shots=4,
-        compose="balanced",        # "random" | "balanced" | per-class counts in label order, e.g. (2, 2) = 2 of class 0 + 2 of class 1
+        compose="balanced",        # "random" (default) | "balanced" | per-class counts in label order, e.g. (2, 2) = 2 of class 0 + 2 of class 1
         example_order=(3, 2, 1, 0),  # optional permutation of the example indices
-        reuse_examples=True,         # reuse the same examples for every row
-        show_question_in_examples=True,
+        reuse_examples=True,         # default False (resamples per row); True reuses the same examples
+        show_question_in_examples=True,  # default True; set False for answer-only examples
     ),
 )
 ```
