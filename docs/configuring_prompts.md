@@ -1,6 +1,6 @@
 # Configuring prompts
 
-`folktexts` builds every prompt from three independent parts:
+`folktexts` builds every prompt from three parts:
 
 ```
 [PREFIX]  task description / system context   (constant across rows)
@@ -8,17 +8,23 @@
 [SUFFIX]  question text + answer prefill        (constant)
 ```
 
-The **defaults reproduce the prompts used in the original paper exactly** — this
-page is only needed if you want to *change* how prompts are rendered. The
-command-line equivalents of everything here are summarized in the
-{doc}`README <readme>`; this page documents the Python API and
-how to migrate from the older flat-keyword interface.
+The *answer prefill* is the fixed lead-in the prompt ends on (e.g. `Answer:`), so
+the model's next token is the answer we score; in chat mode it becomes the
+assistant's opening turn instead.
+
+The defaults reproduce the original paper's prompts exactly; this page is only
+needed if you want to *change* how they are rendered. It documents the Python
+API and the migration from the older flat-keyword interface — the command-line
+equivalents are summarized in the {doc}`README <readme>`.
 
 ## The variation pipeline
 
-The `[INFO]` block is produced by a small, typed pipeline of frozen
-dataclasses. Each stage has a fixed input/output type, which makes the order
-unambiguous:
+The `[INFO]` block is produced by a typed pipeline of frozen dataclasses. You
+don't instantiate these stages yourself — you set the keys in the last column
+below (via `--variation` or `PromptConfig.from_dict`). Each stage has a fixed
+input/output type, so the order is fixed: the final stage, `VaryFormat`,
+collapses the feature list to a string, which is why no per-item stage can run
+after it.
 
 ```
 VaryValueMap → VaryOrder → VaryConnector → VaryFormat
@@ -27,16 +33,13 @@ VaryValueMap → VaryOrder → VaryConnector → VaryFormat
 
 | Stage | Controls | `--variation` key |
 |:---|:---|:---|
-| `VaryValueMap` | How raw column values map to readable text (`original` vs `low` granularity). | `granularity` |
+| `VaryValueMap` | How raw column values render as text; `low` granularity coarsens ACS values into broader bins (age ranges, grouped occupations). | `granularity` |
 | `VaryOrder` | Feature ordering (named columns first, the rest appended). | `order` |
 | `VaryConnector` | The label↔value separator (`is:`, `is`, `=`, `:`, …). | `connector` |
 | `VaryFormat` | Final layout (`textbullet`, `bullet`, `comma`, `text`). | `format` |
 | `VaryPrefix` | Task description and optional custom prefix. | `custom_prompt_prefix` |
 | `VarySuffix` | Question text / answer prefill. | `custom_prompt_suffix`, `show_question` |
 | `VarySystemPrompt` | Optional system-role string (chat path). | *(via `system_prompt`)* |
-
-`VaryFormat` collapses the feature list to a string, so per-item stages cannot
-run after it — the types enforce a correct pipeline.
 
 ## `PromptConfig`
 
@@ -65,13 +68,15 @@ clf = VLLMClassifier(
 ```
 
 `PromptConfig` is hashable and deterministic across processes, so each distinct
-configuration gets its own stable results-file name (no accidental overwrites).
+configuration gets its own stable results-file name.
 
 ### The `PROMPT_DEFAULT` sentinel
 
-System- and chat-prompt fields default to the public sentinel `PROMPT_DEFAULT`,
-which means *"use the QA subclass's `ClassVar` default"*. This is **distinct
-from `None`**, which means *"explicitly disable this role"*:
+`system_prompt` (and `chat_prompt`) have three modes: omit the argument for the
+built-in default, pass `None` to remove the role entirely (needed for
+Gemma-style templates that reject a system turn), or pass your own string. The
+"built-in default" mode is spelled with the public sentinel `PROMPT_DEFAULT` —
+which is **distinct from `None`**:
 
 ```py
 from folktexts.prompting import PROMPT_DEFAULT, PromptConfig
@@ -97,7 +102,7 @@ bench = Benchmark.make_acs_benchmark(
     "ACSIncome", model=llm, tokenizer=tokenizer, data_dir="~/data",
     few_shot_config=FewShotConfig(
         n_shots=4,
-        compose="balanced",        # "random" | "balanced" | per-class counts e.g. (2, 2)
+        compose="balanced",        # "random" | "balanced" | per-class counts in label order, e.g. (2, 2) = 2 of class 0 + 2 of class 1
         example_order=(3, 2, 1, 0),  # optional permutation of the example indices
         reuse_examples=True,         # reuse the same examples for every row
         show_question_in_examples=True,
@@ -119,7 +124,7 @@ translates the legacy keys automatically.
 | Old | New |
 |:---|:---|
 | `custom_prompt_prefix="..."` (classifier / `encode_row_prompt*`) | `prompt_config=PromptConfig.from_dict({"custom_prompt_prefix": "..."}, task)` or CLI `--variation custom_prompt_prefix=...` |
-| `add_task_description=False`, `with_answer_prefill=...` | folded into `PromptConfig` (via `VaryPrefix` / `VarySuffix`) |
+| `add_task_description=False` | now an argument to `PromptConfig.from_dict(...)` |
 | `few_shot=N`, `reuse_few_shot_examples=...`, `balance_few_shot_examples=...` (`BenchmarkConfig`) | `few_shot_config=FewShotConfig(n_shots=N, reuse_examples=..., compose="balanced")` |
 | `class_balancing=True` (`sample_n_train_examples` / `encode_row_prompt_few_shot`) | `compose="balanced"` / CLI `--compose-few-shot-examples balanced` |
 | CLI `--balance-few-shot-examples` | CLI `--compose-few-shot-examples balanced` |

@@ -308,7 +308,7 @@ options:
 ## Configuring prompts
 
 Every prompt that `folktexts` builds for a tabular row is composed of three
-independent parts:
+parts:
 
 ```
 [PREFIX]  task description / system context   (constant across rows)
@@ -316,8 +316,12 @@ independent parts:
 [SUFFIX]  question text + answer prefill       (constant)
 ```
 
-The defaults reproduce the prompts used in the original paper **exactly** — you
-only need this section if you want to *change* how prompts are rendered. All of
+The *answer prefill* is the fixed lead-in the prompt ends on (e.g. `Answer:`), so
+the next token the model emits is the answer we score; in chat mode it becomes the
+assistant's opening turn instead.
+
+The defaults reproduce the original paper's prompts exactly — you only need this
+section if you want to *change* how prompts are rendered. All of
 the knobs below are also available on the Python side (see
 [the prompt-configuration guide](https://socialfoundations.github.io/folktexts/configuring_prompts.html)).
 
@@ -328,12 +332,12 @@ the `[INFO]` block is rendered. Keys (with their defaults) are:
 
 | Key | Default | Allowed values | Effect |
 |:---|:---|:---|:---|
-| `format` | `textbullet` | `textbullet`, `bullet`, `comma`, `text` | Layout of the feature list (e.g. `- The age is: 42.` vs `- age is: 42`). |
+| `format` | `textbullet` | `textbullet`, `bullet`, `comma`, `text` | Layout of the feature list: `textbullet` → `- The Age is: 42.`, `bullet` → `- Age is: 42`, `comma` → `Age is: 42, …`. |
 | `connector` | `is:` | any string, e.g. `is`, `=`, `:` | Separator between a feature label and its value. |
 | `granularity` | `original` | `original`, `low` | `low` coarsens ACS feature values into broader bins (age ranges, grouped occupations). ACS-only. |
 | `order` | *(original)* | comma-separated column names | Reorders features: the named columns come first, the rest are appended (nothing is dropped). |
-| `custom_prompt_prefix` | *(none)* | any string | Extra text prepended to the task-description prefix. |
-| `custom_prompt_suffix` | *(none)* | any string | Overrides the trailing question text. |
+| `custom_prompt_prefix` | *(none)* | any string | Extra text inserted after the task description and before the feature block. |
+| `custom_prompt_suffix` | *(none)* | any string | Extra text appended after the question / answer prefill (it does not replace the question — use `show_question=false` for that). |
 | `show_question` | `true` | `true`, `false` | When `false`, drops the repeated question and relies on the answer prefill. |
 
 ```sh
@@ -356,7 +360,7 @@ Few-shot prompting is enabled with `--few-shot N` and tuned with:
 | Flag | Effect |
 |:---|:---|
 | `--reuse-few-shot-examples` | Reuse the same `N` examples for every row (faster, deterministic) instead of resampling. |
-| `--compose-few-shot-examples` | How examples are drawn: `random` (default), `balanced` (equal per class), or per-class counts like `2,2`. |
+| `--compose-few-shot-examples` | How examples are drawn: `random` (default), `balanced` (equal per class), or per-class counts in label order like `2,2` (2 of class 0, 2 of class 1). |
 | `--example-order` | Comma-separated permutation of the example indices, e.g. `3,2,1,0`. |
 | `--few-shot-hide-question` | Show only the answer in each example (omit the repeated question). |
 
@@ -404,7 +408,7 @@ clf = VLLMClassifier(llm=llm, tokenizer=tokenizer, task="ACSIncome",
 
 See the [prompt-configuration guide](https://socialfoundations.github.io/folktexts/configuring_prompts.html)
 for the full `PromptConfig` / `FewShotConfig` reference and a migration note from
-the pre-`v0.x` flat-kwargs API (`custom_prompt_prefix`, `class_balancing`, …).
+the older flat-keyword API (`custom_prompt_prefix`, `class_balancing`, …).
 
 
 ## Evaluating feature importance
