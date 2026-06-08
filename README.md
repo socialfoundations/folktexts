@@ -308,7 +308,7 @@ options:
 ## Configuring prompts
 
 Every prompt that `folktexts` builds for a tabular row is composed of three
-parts:
+independently-built parts:
 
 ```
 [PREFIX]  task description / system context   (constant across rows)
@@ -319,6 +319,9 @@ parts:
 The *answer prefill* is the fixed lead-in the prompt ends on (e.g. `Answer:`), so
 the next token the model emits is the answer we score; in chat mode it becomes the
 assistant's opening turn instead.
+
+These parts are set through a single `PromptConfig` object (plus `FewShotConfig`
+for in-context examples), built once and passed down unchanged.
 
 The defaults reproduce the original paper's prompts exactly — you only need this
 section if you want to *change* how prompts are rendered. All of
@@ -377,7 +380,9 @@ run_acs_benchmark --model "$MODEL" --task ACSIncome --results-dir results \
 with `--system-prompt "..."` and/or `--chat-prompt "..."` to override the role
 text. Passing `--system-prompt` without `--use-chat-template` has no effect and
 warns. `--cot-prompting` (optionally with `--enable-thinking`) is its own,
-separate path and is **mutually exclusive** with `--use-chat-template`.
+separate path and is **mutually exclusive** with `--use-chat-template`. In short:
+`--use-chat-template` runs with `--variation` and the prompt overrides, but not
+with `--few-shot` or `--cot-prompting`.
 
 ### From Python
 
@@ -398,10 +403,12 @@ bench.run(results_root_dir="results")
 
 ```py
 # Lowest level: build a PromptConfig once and pass it to any classifier.
+from folktexts import TaskMetadata
 from folktexts.prompting import PromptConfig
 from folktexts.classifier import VLLMClassifier
 
-prompt_config = PromptConfig.from_dict({"format": "bullet"}, task="ACSIncome")
+task = TaskMetadata.get_task("ACSIncome")
+prompt_config = PromptConfig.from_dict({"format": "bullet"}, task=task)
 clf = VLLMClassifier(llm=llm, tokenizer=tokenizer, task="ACSIncome",
                      prompt_config=prompt_config)
 ```

@@ -1,6 +1,17 @@
 # Configuring prompts
 
-`folktexts` builds every prompt from three parts:
+## Overview
+
+You configure every prompt through two frozen dataclasses, built once and passed
+down the call stack unchanged (they replace the older approach of threading
+individual keyword arguments through every call):
+
+- **`PromptConfig`** — how one row is rendered: value mapping, ordering, the
+  label↔value connector, the final layout, an optional custom prefix/suffix, and
+  the system prompt.
+- **`FewShotConfig`** — whether and how in-context examples are prepended.
+
+Every prompt is then composed of three independently-built parts:
 
 ```
 [PREFIX]  task description / system context   (constant across rows)
@@ -8,51 +19,75 @@
 [SUFFIX]  question text + answer prefill        (constant)
 ```
 
-The *answer prefill* is the fixed lead-in the prompt ends on (e.g. `Answer:`), so
-the model's next token is the answer we score; in chat mode it becomes the
-assistant's opening turn instead.
+The *answer prefill* is the short lead-in the prompt ends on, so the model's next
+token is the answer we score; its exact text depends on the question type
+(multiple-choice ends on `Answer:`, numeric on `Answer (between 0 and 1): 0.`,
+chain-of-thought generates free-form). In chat mode it becomes the assistant's
+opening turn instead.
 
-The defaults reproduce the original paper's prompts exactly; this page is only
-needed if you want to *change* how they are rendered. It documents the Python
-API and the migration from the older flat-keyword interface — the command-line
-equivalents are summarized in the {doc}`README <readme>`.
+Both configs are hashable, so each distinct configuration gets its own
+results-file name and runs never silently overwrite one another. The defaults
+reproduce the original paper's prompts exactly; read on only to change how
+prompts are rendered. The command-line equivalents are summarized in the
+{doc}`README <readme>`.
 
 ## The variation pipeline
 
-The `[INFO]` block is produced by a typed pipeline of frozen dataclasses. You
-don't instantiate these stages yourself — you set the keys in the last column
-below (via `--variation` or `PromptConfig.from_dict`). Each stage has a fixed
-input/output type, so the order is fixed: the final stage, `VaryFormat`,
-collapses the feature list to a string, which is why no per-item stage can run
-after it.
+The `[INFO]` block is produced by a pipeline of `Vary*` stages whose order is
+enforced by their return types — each stage's output type is the next stage's
+input type, so they compose in exactly one order:
 
 ```
 VaryValueMap → VaryOrder → VaryConnector → VaryFormat
 (list→list)    (list→list)  (list→list)    (list→str)
 ```
 
-| Stage | Controls | `--variation` key |
+`VaryFormat` collapses the feature list into a single string, which is why no
+per-item stage can run after it. You don't instantiate these stages yourself —
+set the keys in the last column below (via `--variation` or
+`PromptConfig.from_dict`).
+
+| INFO-pipeline stage | Controls | `--variation` key |
 |:---|:---|:---|
 | `VaryValueMap` | How raw column values render as text; `low` granularity coarsens ACS values into broader bins (age ranges, grouped occupations). | `granularity` |
 | `VaryOrder` | Feature ordering (named columns first, the rest appended). | `order` |
 | `VaryConnector` | The label↔value separator (`is:`, `is`, `=`, `:`, …). | `connector` |
 | `VaryFormat` | Final layout (`textbullet`, `bullet`, `comma`, `text`). | `format` |
-| `VaryPrefix` | Task description and optional custom prefix. | `custom_prompt_prefix` |
+
+The `[PREFIX]` and `[SUFFIX]` are built separately: `VaryPrefix` and `VarySuffix`
+each return their `str` directly, and `VarySystemPrompt` holds the optional
+system-role string for the chat path.
+
+| Prompt part | Controls | Key |
+|:---|:---|:---|
+| `VaryPrefix` | Task description + optional custom prefix. | `custom_prompt_prefix` |
 | `VarySuffix` | Question text / answer prefill. | `custom_prompt_suffix`, `show_question` |
-| `VarySystemPrompt` | Optional system-role string (chat path). | *(via `system_prompt`)* |
+| `VarySystemPrompt` | Optional system-role string (chat path). | `system_prompt=` / `--system-prompt` (not a `--variation` key) |
 
 ## `PromptConfig`
 
-`PromptConfig` is a frozen dataclass holding one instance of each stage. Build
-one from a dictionary of overrides — the keys are validated against
-`DEFAULT_PROMPT_STYLE`, and an unknown key raises `ValueError`:
+`PromptConfig` holds one instance of each `Vary*` stage — one each for the
+prefix, suffix, and system prompt, plus the four-stage pipeline for the feature
+block. Build one from a dictionary of overrides whose keys are the seven
+`--variation` keys from the tables above (`format`, `connector`, `granularity`,
+`order`, `custom_prompt_prefix`, `custom_prompt_suffix`, `show_question`),
+validated against `DEFAULT_PROMPT_STYLE` — an unknown key raises `ValueError`.
+The `task` argument must be a `TaskMetadata` object; resolve a task name with
+`TaskMetadata.get_task`:
 
 ```py
+from folktexts import TaskMetadata
 from folktexts.prompting import PromptConfig
 
+task = TaskMetadata.get_task("ACSIncome")
 prompt_config = PromptConfig.from_dict(
-    {"format": "bullet", "connector": "=", "order": "AGEP,SCHL,COW"},
-    task="ACSIncome",
+    {
+        "format": "bullet",
+        "connector": "=",
+        "order": "AGEP,SCHL,COW",
+        "custom_prompt_prefix": "Consider the following person.",
+    },
+    task=task,
 )
 ```
 
@@ -67,9 +102,6 @@ clf = VLLMClassifier(
 )
 ```
 
-`PromptConfig` is hashable and deterministic across processes, so each distinct
-configuration gets its own stable results-file name.
-
 ### The `PROMPT_DEFAULT` sentinel
 
 `system_prompt` (and `chat_prompt`) have three modes: omit the argument for the
@@ -81,14 +113,18 @@ which is **distinct from `None`**:
 ```py
 from folktexts.prompting import PROMPT_DEFAULT, PromptConfig
 
-PromptConfig.from_dict({}, task="ACSIncome")                       # default system prompt
-PromptConfig.from_dict({}, task="ACSIncome", system_prompt=None)   # no system role at all
-PromptConfig.from_dict({}, task="ACSIncome", system_prompt="...")  # custom system prompt
+PromptConfig.from_dict({}, task=task)                       # default system prompt
+PromptConfig.from_dict({}, task=task, system_prompt=None)   # no system role at all
+PromptConfig.from_dict({}, task=task, system_prompt="...")  # custom system prompt
 ```
 
-Per-question defaults live on the `QAInterface` subclasses
-(`MultipleChoiceQA`, `DirectNumericQA`, `ChainOfThoughtQA`) as the
-`default_system_prompt` / `default_chat_prompt` class variables.
+These defaults are `ClassVar`s on the `QAInterface` hierarchy: multiple-choice
+questions use the base `QAInterface` defaults, `DirectNumericQA` overrides them
+with numeric-specific prompts, and `ChainOfThoughtQA` sets them to `None`
+(free-form generation). The question type therefore selects the right default,
+which is why there is no longer a `numeric` flag to pass — choose the mode with
+`BenchmarkConfig(numeric_risk_prompting=True)` or `cot_prompting=True` (CLI:
+`--numeric-risk-prompting` / `--cot-prompting`).
 
 ## `FewShotConfig`
 
@@ -116,10 +152,11 @@ Few-shot prompting cannot be combined with the chat-template path
 ## Migrating from the flat-keyword API
 
 Earlier versions configured prompts through scattered keyword arguments. Those
-have been consolidated into `PromptConfig` / `FewShotConfig`. Removed keywords
-now raise a `TypeError` (instead of being silently ignored), and saved benchmark
-configs from before the change are still loaded — `BenchmarkConfig.load_from_disk`
-translates the legacy keys automatically.
+have been consolidated into `PromptConfig` / `FewShotConfig`. Passing a removed
+keyword to a constructor or `encode_row_prompt*` now raises `TypeError` instead
+of being silently ignored. Saved benchmark configs from before the change still
+load: `BenchmarkConfig.load_from_disk` translates the legacy few-shot keys and
+ignores any other unknown keys with a warning.
 
 | Old | New |
 |:---|:---|
