@@ -107,18 +107,29 @@ def render_evaluation_plots(
     # ### ### ### ### ### ### ### ### ### ###
     # Plot distribution of scores per label #
     # ### ### ### ### ### ### ### ### ### ###
-    sns.kdeplot(
-        data=pd.DataFrame(
-            {"score": y_pred_scores, "label": y_true}
-        ).reset_index(drop=True),
-        x="score",
-        hue="label",
-        multiple="fill",
-    )
-    plt.xlim(y_pred_scores.min(), y_pred_scores.max())
-    plt.xlabel("Predicted Risk Score")
-    plt.gcf().suptitle("Score Distribution per Label" + (f" - {model_name}" if model_name else ""))
-    show_or_save(plt.gcf(), "score_distribution_per_label")
+    # `sns.kdeplot` fits a gaussian_kde per label group, which raises LinAlgError
+    # (singular covariance) when a group's scores are degenerate -- e.g. near-constant
+    # scores on a small sample or a highly-confident API model. Skip just this
+    # sub-plot in that case instead of failing the whole `plot_results` call.
+    try:
+        sns.kdeplot(
+            data=pd.DataFrame(
+                {"score": y_pred_scores, "label": y_true}
+            ).reset_index(drop=True),
+            x="score",
+            hue="label",
+            multiple="fill",
+        )
+        plt.xlim(y_pred_scores.min(), y_pred_scores.max())
+        plt.xlabel("Predicted Risk Score")
+        plt.gcf().suptitle("Score Distribution per Label" + (f" - {model_name}" if model_name else ""))
+        show_or_save(plt.gcf(), "score_distribution_per_label")
+    except (np.linalg.LinAlgError, ValueError) as e:
+        logging.warning(
+            "Skipping 'score distribution per label' plot: kernel-density "
+            f"estimation failed on a degenerate score distribution ({e})."
+        )
+        plt.close()
 
     return results
 
