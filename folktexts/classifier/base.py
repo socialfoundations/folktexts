@@ -137,6 +137,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
 
     @property
     def prompt_config(self) -> PromptConfig:
+        """The :class:`~folktexts.prompting.PromptConfig` used to render this classifier's prompts."""
         return self._prompt_config
 
     @property

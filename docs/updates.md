@@ -38,6 +38,7 @@ keyword to a constructor or `encode_row_prompt*` now raises `TypeError`.
 | Before | After |
 |---|---|
 | `custom_prompt_prefix="..."` (classifier / `encode_row_prompt*`) | `prompt_config=PromptConfig.from_dict({"custom_prompt_prefix": "..."}, task)` or CLI `--variation custom_prompt_prefix=...` |
+| `add_task_description=False` (`encode_row_prompt`) | `PromptConfig.from_dict(..., add_task_description=False)` |
 | `few_shot=N`, `reuse_few_shot_examples=`, `balance_few_shot_examples=` | `few_shot_config=FewShotConfig(n_shots=N, reuse_examples=…, compose="balanced")` |
 | `class_balancing=True` / CLI `--balance-few-shot-examples` | `compose="balanced"` / CLI `--compose-few-shot-examples balanced` |
 | `numeric=True` (chat path) | removed — the question type derives it (`DirectNumericQA`) |
@@ -50,10 +51,15 @@ any other unknown keys with a warning.
 
 ### Notes
 
-- **Defaults unchanged.** Default prompts are byte-identical to the previous
-  release (v0.5.0), and the top-level public API (`Benchmark`, `BenchmarkConfig`,
-  the classifiers, the `QAInterface` subclasses, `TaskMetadata`, `ACSDataset`) is
-  the same.
+- **Defaults unchanged on the token-scoring paths.** The zero-shot and few-shot
+  text prompts are byte-identical to the previous release (v0.5.0), and the
+  top-level public API (`Benchmark`, `BenchmarkConfig`, the classifiers, the
+  `QAInterface` subclasses, `TaskMetadata`, `ACSDataset`) is the same.
+- **Chat system prompt refined.** The default multiple-choice *chat* system
+  prompt now ends with "Respond with a single answer choice." (previously it
+  stopped at "…based on the information provided."). This affects only the
+  chat-template / web-API path; the zero-shot and few-shot last-token scoring
+  paths do not use a system prompt and are unaffected.
 - **Stable results-file names.** `PromptConfig` / `FewShotConfig` are hashable
   and process-stable, so each distinct configuration writes to its own
   `results.bench-{hash}.json` — runs never silently overwrite one another.

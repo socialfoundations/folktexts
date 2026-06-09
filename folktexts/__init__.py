@@ -7,6 +7,11 @@ from .classifier import (  # noqa: F401
     VLLMClassifier,
     WebAPILLMClassifier,
 )
+from .prompting import (  # noqa: F401
+    PROMPT_DEFAULT,
+    FewShotConfig,
+    PromptConfig,
+)
 from .qa_interface import (  # noqa: F401
     ChainOfThoughtQA,
     DirectNumericQA,
