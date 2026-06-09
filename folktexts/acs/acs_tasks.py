@@ -1,8 +1,9 @@
-"""A collection of ACS prediction tasks based on the folktables package.
-"""
+"""A collection of ACS prediction tasks based on the folktables package."""
+
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from string import Template
 
 import folktables
 from folktables import BasicProblem
@@ -22,6 +23,22 @@ from .acs_thresholds import (
     acs_public_coverage_threshold,
     acs_travel_time_threshold,
 )
+
+ACS_TASK_DESCRIPTION = Template("""\
+The following data corresponds to $respondent. \
+The survey was conducted among US residents in $year. \
+Please answer $question_phrase based on the information provided. \
+The data provided is enough to reach an approximate answer$suffix.
+""")
+ACS_TASK_DESCRIPTION_DEFAULTS = {
+    "respondent": "a survey respondent",
+    "year": 2018,
+    "suffix": "",
+    # "the question" for a single row; few-shot overrides to "each question" so the
+    # few-shot task description matches main verbatim (R4).
+    "question_phrase": "the question",
+}
+
 
 # Map of ACS column names to ColumnToText objects
 acs_columns_map: dict[str, object] = {
@@ -55,11 +72,15 @@ class ACSTaskMetadata(TaskMetadata):
         # Resolve target column name
         target_col_name = (
             target_threshold.apply_to_column_name(target)
-            if target_threshold is not None else target)
+            if target_threshold is not None
+            else target
+        )
 
         # Get default Q&A interfaces for this task's target column
         if multiple_choice_qa is None:
-            multiple_choice_qa = acs_questions.acs_multiple_choice_qa_map.get(target_col_name)
+            multiple_choice_qa = acs_questions.acs_multiple_choice_qa_map.get(
+                target_col_name
+            )
         if direct_numeric_qa is None:
             direct_numeric_qa = acs_questions.acs_numeric_qa_map.get(target_col_name)
 
@@ -149,13 +170,17 @@ acs_income_poverty_ratio_task = ACSTaskMetadata.make_folktables_task(
 # Dummy/test ACS task to predict health insurance coverage using all other available features
 acs_full_task = ACSTaskMetadata.make_task(
     name="ACSHealthInsurance-test",
-    features=sorted(list({
-        *acs_income_task.features,
-        *acs_public_coverage_task.features,
-        *acs_mobility_task.features,
-        *acs_employment_task.features,
-        *acs_travel_time_task.features,
-    })),
+    features=sorted(
+        list(
+            {
+                *acs_income_task.features,
+                *acs_public_coverage_task.features,
+                *acs_mobility_task.features,
+                *acs_employment_task.features,
+                *acs_travel_time_task.features,
+            }
+        )
+    ),
     target="HINS2",
     target_threshold=acs_health_insurance_threshold,
     description=(

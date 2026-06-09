@@ -20,7 +20,7 @@ from folktexts.llm_utils import (
     _postprocess_generated_text,
     decode_topk_logprobs_to_risk_estimate,
 )
-from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA, ChainOfThoughtQA
+from folktexts.qa_interface import ChainOfThoughtQA, DirectNumericQA, MultipleChoiceQA
 from folktexts.task import TaskMetadata
 
 from .._utils import hash_dict
@@ -47,7 +47,6 @@ class VLLMClassifier(LLMClassifier):
         task: TaskMetadata | str,
         *,
         model_name_or_path: str | Path | None = None,
-        custom_prompt_prefix: str = None,
         encode_row: Callable[[pd.Series], str] = None,
         threshold: float = 0.5,
         correct_order_bias: bool = True,
@@ -71,7 +70,7 @@ class VLLMClassifier(LLMClassifier):
             The model path / name used to load the engine. Used for the
             display name and as a stable hash input. Defaults to the engine's
             internal `model_config.model` if available.
-        custom_prompt_prefix, encode_row, threshold, correct_order_bias, seed,
+        encode_row, threshold, correct_order_bias, seed,
         **inference_kwargs
             Forwarded to `LLMClassifier`. See base-class docs.
         """
@@ -90,7 +89,6 @@ class VLLMClassifier(LLMClassifier):
         super().__init__(
             model_name=model_name,
             task=task,
-            custom_prompt_prefix=custom_prompt_prefix,
             encode_row=encode_row,
             correct_order_bias=correct_order_bias,
             threshold=threshold,
@@ -100,9 +98,13 @@ class VLLMClassifier(LLMClassifier):
 
         # Observability — mirrors transformers_classifier.py:88-125 so the
         # ChainOfThoughtQA failure-rate warning fires identically across backends.
-        self._log_generations_all = os.getenv("FOLKTEXTS_LOG_GENERATIONS", "0").strip() in {"1", "true", "True"}
+        self._log_generations_all = os.getenv(
+            "FOLKTEXTS_LOG_GENERATIONS", "0"
+        ).strip() in {"1", "true", "True"}
         try:
-            self._log_generations_first_n = int(os.getenv("FOLKTEXTS_LOG_GENERATIONS_FIRST_N", "3"))
+            self._log_generations_first_n = int(
+                os.getenv("FOLKTEXTS_LOG_GENERATIONS_FIRST_N", "3")
+            )
         except ValueError:
             self._log_generations_first_n = 3
         self._logged_generations_count = 0
@@ -132,7 +134,9 @@ class VLLMClassifier(LLMClassifier):
         return None
 
     def _resolve_vocab_dim(
-        self, model_name_or_path: str | None, tokenizer: AutoTokenizer,
+        self,
+        model_name_or_path: str | None,
+        tokenizer: AutoTokenizer,
     ) -> int:
         """Return the model's logits-axis vocab size.
 
@@ -143,13 +147,16 @@ class VLLMClassifier(LLMClassifier):
         if model_name_or_path is not None:
             try:
                 config = AutoConfig.from_pretrained(
-                    model_name_or_path, trust_remote_code=True,
+                    model_name_or_path,
+                    trust_remote_code=True,
                 )
                 # Multimodal Gemma-3 and similar wrap the language-model config
                 # under `text_config`; check both top-level and nested.
                 vs = getattr(config, "vocab_size", None)
                 if vs is None:
-                    vs = getattr(getattr(config, "text_config", None), "vocab_size", None)
+                    vs = getattr(
+                        getattr(config, "text_config", None), "vocab_size", None
+                    )
                 if vs is not None:
                     return int(vs)
                 logging.warning(
@@ -249,7 +256,9 @@ class VLLMClassifier(LLMClassifier):
         if isinstance(question, DirectNumericQA):
             return self._risk_estimates_numeric(prompts_batch, question, context_size)
 
-        return self._risk_estimates_multiple_choice(prompts_batch, question, context_size)
+        return self._risk_estimates_multiple_choice(
+            prompts_batch, question, context_size
+        )
 
     # ------------------------------------------------------------------
     # ChainOfThoughtQA path: text generation + regex extraction
@@ -261,7 +270,9 @@ class VLLMClassifier(LLMClassifier):
         question: ChainOfThoughtQA,
         context_size: int | None,
     ) -> np.ndarray:
-        from vllm import SamplingParams  # local import — keeps module importable without vllm
+        from vllm import (
+            SamplingParams,  # local import — keeps module importable without vllm
+        )
 
         # Apply chat template (or fall back to raw prompts for base models) —
         # exact same path the transformers backend takes. `enable_thinking` is
@@ -270,6 +281,11 @@ class VLLMClassifier(LLMClassifier):
             prompts_batch,
             tokenizer=self._tokenizer,
             enable_thinking=question.enable_thinking,
+            system_prompt=(
+                self.prompt_config.system_prompt()
+                if self.prompt_config.system_prompt is not None
+                else None
+            ),
         )
 
         sampling_params = SamplingParams(
@@ -335,11 +351,13 @@ class VLLMClassifier(LLMClassifier):
     ) -> np.ndarray:
         from vllm import SamplingParams
 
-        digit_token_ids = sorted({
-            tok_id
-            for token, tok_id in self._tokenizer.get_vocab().items()
-            if token.isdecimal() and 0 <= tok_id < self._vocab_dim
-        })
+        digit_token_ids = sorted(
+            {
+                tok_id
+                for token, tok_id in self._tokenizer.get_vocab().items()
+                if token.isdecimal() and 0 <= tok_id < self._vocab_dim
+            }
+        )
         if not digit_token_ids:
             raise RuntimeError(
                 "No digit tokens found in tokenizer vocabulary; cannot run "
@@ -421,8 +439,10 @@ class VLLMClassifier(LLMClassifier):
         position_logprobs = completion.logprobs or []
         per_pass: list[dict[int, float]] = []
         for pos in position_logprobs:
-            per_pass.append({
-                int(tok_id): float(getattr(lp, "logprob", lp))
-                for tok_id, lp in pos.items()
-            })
+            per_pass.append(
+                {
+                    int(tok_id): float(getattr(lp, "logprob", lp))
+                    for tok_id, lp in pos.items()
+                }
+            )
         return per_pass

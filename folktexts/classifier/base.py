@@ -1,5 +1,4 @@
-"""Module containing the base class for all LLM risk classifiers.
-"""
+"""Module containing the base class for all LLM risk classifiers."""
 
 from __future__ import annotations
 
@@ -17,8 +16,9 @@ from tqdm.auto import tqdm
 
 from folktexts.dataset import Dataset
 from folktexts.evaluation import compute_best_threshold
+from folktexts.prompting import PromptConfig
 from folktexts.prompting import encode_row_prompt as default_encode_row_prompt
-from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA, ChainOfThoughtQA
+from folktexts.qa_interface import ChainOfThoughtQA, DirectNumericQA, MultipleChoiceQA
 from folktexts.task import TaskMetadata
 
 from .._utils import hash_dict, hash_function
@@ -42,11 +42,11 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         self,
         model_name: str,
         task: TaskMetadata | str,
-        custom_prompt_prefix: str = None,
-        encode_row: Callable[[pd.Series], str] = None,
+        encode_row: Callable[..., str] | None = None,
         threshold: float = 0.5,
         correct_order_bias: bool = True,
         seed: int = 42,
+        prompt_config: PromptConfig | None = None,
         **inference_kwargs,
     ):
         """Creates an LLMClassifier object.
@@ -57,10 +57,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
             The model name or ID.
         task : TaskMetadata | str
             The task metadata object or name of an already created task.
-        custom_prompt_prefix : str, optional
-            A custom prompt prefix to supply to the model before the encoded
-            row data, by default None.
-        encode_row : Callable[[pd.Series], str], optional
+        encode_row : Callable[..., str], optional
             The function used to encode tabular rows into natural text. If not
             provided, will use the default encoding function for the task.
         threshold : float, optional
@@ -81,19 +78,33 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         self._model_name = model_name
 
         self._task = TaskMetadata.get_task(task) if isinstance(task, str) else task
-        self._custom_prompt_prefix = custom_prompt_prefix
 
-        # TODO: Add default custom_prompt_prefix to row encoder here?
-        self._encode_row = encode_row or partial(
+        self._prompt_config = prompt_config or PromptConfig.from_dict(
+            pv={}, task=self.task
+        )
+
+        self._encode_row: Callable[..., str] = encode_row or partial(
             default_encode_row_prompt,
             task=self.task,
+            prompt_config=self._prompt_config,
         )
 
         self._threshold = threshold
+        self._threshold_fitted_on = 0
         self._correct_order_bias = correct_order_bias
         self._seed = seed
 
-        # Default inference kwargs
+        # Default inference kwargs. Reject unknown kwargs instead of silently swallowing
+        # them: prompt-shaping args removed in the refactor (e.g. `custom_prompt_prefix`)
+        # would otherwise land here unused and silently change behavior.
+        unknown = set(inference_kwargs) - set(self.DEFAULT_INFERENCE_KWARGS)
+        if unknown:
+            raise TypeError(
+                f"Unexpected keyword argument(s) {sorted(unknown)}. Valid inference kwargs "
+                f"are {sorted(self.DEFAULT_INFERENCE_KWARGS)}; prompt-shaping options removed "
+                f"in the refactor (e.g. 'custom_prompt_prefix') are now set via `prompt_config` "
+                f"or the CLI `--variation` flag."
+            )
         self._inference_kwargs = self.DEFAULT_INFERENCE_KWARGS.copy()
         self._inference_kwargs.update(inference_kwargs)
 
@@ -108,7 +119,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         hash_params = dict(
             model_name=self.model_name,
             task_hash=hash(self.task),
-            custom_prompt_prefix=self.custom_prompt_prefix,
+            prompt_config_hash=hash(self.prompt_config),
             correct_order_bias=self.correct_order_bias,
             threshold=self.threshold,
             encode_row_hash=hash_function(self.encode_row),
@@ -125,11 +136,12 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         return self._task
 
     @property
-    def custom_prompt_prefix(self) -> str:
-        return self._custom_prompt_prefix
+    def prompt_config(self) -> PromptConfig:
+        """The :class:`~folktexts.prompting.PromptConfig` used to render this classifier's prompts."""
+        return self._prompt_config
 
     @property
-    def encode_row(self) -> Callable[[pd.Series], str]:
+    def encode_row(self) -> Callable[..., str]:
         return self._encode_row
 
     @property
@@ -187,13 +199,12 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         """Uses the provided data sample to fit the prediction threshold."""
 
         # Compute risk estimates for the data
-        y_pred_scores = self._get_positive_class_scores(
-            self.predict_proba(X, **kwargs)
-        )
+        y_pred_scores = self._get_positive_class_scores(self.predict_proba(X, **kwargs))
 
         # Compute the best threshold for the given data
         self.threshold = compute_best_threshold(
-            y, y_pred_scores,
+            y,
+            y_pred_scores,
             false_pos_cost=false_pos_cost,
             false_neg_cost=false_neg_cost,
         )
@@ -232,7 +243,9 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
             predictions_save_path=predictions_save_path,
             labels=labels,
         )
-        return (self._get_positive_class_scores(risk_scores) >= self.threshold).astype(int)
+        return (self._get_positive_class_scores(risk_scores) >= self.threshold).astype(
+            int
+        )
 
     def predict_proba(
         self,
@@ -265,7 +278,8 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
             logging.error(
                 "** Ignoring `labels` argument as `predictions_save_path` was not provided. **"
                 "The `labels` argument is only used in conjunction with "
-                "`predictions_save_path` to save alongside predictions to disk. ")
+                "`predictions_save_path` to save alongside predictions to disk. "
+            )
 
         # Check if `predictions_save_path` exists and load predictions if possible
         if predictions_save_path is not None and Path(predictions_save_path).exists():
@@ -281,7 +295,8 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
 
         if not isinstance(data, pd.DataFrame):
             raise ValueError(
-                f"`data` must be a pd.DataFrame, received {type(data)} instead.")
+                f"`data` must be a pd.DataFrame, received {type(data)} instead."
+            )
 
         # Compute risk estimates
         risk_scores = self.compute_risk_estimates_for_dataframe(df=data)
@@ -290,7 +305,9 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         if predictions_save_path is not None:
             predictions_save_path = Path(predictions_save_path).with_suffix(".csv")
 
-            predictions_df = pd.DataFrame(risk_scores, index=data.index, columns=[SCORE_COL_NAME])
+            predictions_df = pd.DataFrame(
+                risk_scores, index=data.index, columns=[SCORE_COL_NAME]
+            )
             predictions_df[LABEL_COL_NAME] = labels
             predictions_df.to_csv(predictions_save_path, index=True, mode="w")
 
@@ -305,7 +322,9 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         context_size: int = None,
     ) -> np.ndarray:
         """Query model with a batch of prompts and return risk estimates."""
-        raise NotImplementedError("Calling an abstract method :: Use one of the subclasses of LLMClassifier.")
+        raise NotImplementedError(
+            "Calling an abstract method :: Use one of the subclasses of LLMClassifier."
+        )
 
     def compute_risk_estimates_for_dataframe(
         self,
@@ -327,7 +346,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         # Initialize risk scores and other constants
         fill_value = -1
         risk_scores = np.empty(len(df))
-        risk_scores.fill(fill_value)    # fill with -1's
+        risk_scores.fill(fill_value)  # fill with -1's
 
         batch_size = self._inference_kwargs["batch_size"]
         context_size = self._inference_kwargs["context_size"]
@@ -338,13 +357,19 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         questions = [q]
         if self.correct_order_bias:
             if isinstance(q, DirectNumericQA):
-                logging.info("No need to correct ordering bias for DirectNumericQA prompting.")
+                logging.info(
+                    "No need to correct ordering bias for DirectNumericQA prompting."
+                )
             elif isinstance(q, ChainOfThoughtQA):
-                logging.info("No need to correct ordering bias for ChainOfThoughtQA prompting.")
+                logging.info(
+                    "No need to correct ordering bias for ChainOfThoughtQA prompting."
+                )
             elif isinstance(q, MultipleChoiceQA):
                 questions = list(MultipleChoiceQA.create_answer_keys_permutations(q))
             else:
-                logging.error(f"Unknown question type '{type(q)}'; cannot correct ordering bias.")
+                logging.error(
+                    f"Unknown question type '{type(q)}'; cannot correct ordering bias."
+                )
 
         # Compute risk estimates per batch
         for batch_idx in tqdm(range(num_batches), desc="Computing risk estimates"):
@@ -354,15 +379,9 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
 
             batch_risk_scores = np.empty((len(batch_data), len(questions)))
             for q_idx, q in enumerate(questions):
-
                 # Encode batch data into natural text prompts
                 data_texts_batch = [
-                    self.encode_row(
-                        row,
-                        question=q,
-                        custom_prompt_prefix=self.custom_prompt_prefix,
-                    )
-                    for _, row in batch_data.iterrows()
+                    self.encode_row(row, question=q) for _, row in batch_data.iterrows()
                 ]
 
                 # Query the model with the batch of data
@@ -375,7 +394,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
                 # Store risk estimates for current question
                 batch_risk_scores[:, q_idx] = np.clip(risk_estimates_batch, 0, 1)
 
-            risk_scores[start_idx: end_idx] = batch_risk_scores.mean(axis=1)
+            risk_scores[start_idx:end_idx] = batch_risk_scores.mean(axis=1)
 
         # Check that all risk scores were computed
         assert not np.isclose(risk_scores, fill_value).any()

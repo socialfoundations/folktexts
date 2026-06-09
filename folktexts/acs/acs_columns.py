@@ -1,5 +1,5 @@
-"""Module to hold ACS column mappings from values to natural text.
-"""
+"""Module to hold ACS column mappings from values to natural text."""
+
 from functools import partial
 from pathlib import Path
 
@@ -95,7 +95,15 @@ acs_occupation = ColumnToText(
     value_map=partial(
         parse_pums_code,
         file=ACS_CODEBOOK_DIR / "OCCP.txt",
-        postprocess=lambda x: x[4:].lower().capitalize().strip(),
+        # Strip the leading "XXX-" category prefix, then sentence-case to match main
+        # (R2): keeps this cleaner split-based parse but restores main's exact casing
+        # ("Retail salespersons", not "Retail Salespersons") for byte-identical prompts.
+        postprocess=lambda x: (
+            x.split("-", 1)[1] if len(x.split("-", 1)) == 2 else x.split("-", 1)[0]
+        )
+        .lower()
+        .capitalize()
+        .strip(),
     ),
 )
 
@@ -165,7 +173,8 @@ acs_race = ColumnToText(
         4: "Alaska Native",
         5: (
             "American Indian and Alaska Native tribes specified; or American "
-            "Indian or Alaska Native, not specified and no other races"),
+            "Indian or Alaska Native, not specified and no other races"
+        ),
         6: "Asian",
         7: "Native Hawaiian and Other Pacific Islander",
         8: "Some other race alone (non-White)",
@@ -213,7 +222,9 @@ acs_pubcov_og_qa = MultipleChoiceQA(
     text="Does this person have public health insurance coverage?",
     choices=(
         Choice("Yes, person is covered by public health insurance", 1),
-        Choice("No, person is not covered by public health insurance", 2),  # NOTE: value=2 for no public coverage!
+        Choice(
+            "No, person is not covered by public health insurance", 2
+        ),  # NOTE: value=2 for no public coverage!
     ),
 )
 
@@ -233,7 +244,9 @@ acs_pubcov_qa = MultipleChoiceQA(
     text="Does this person have public health insurance coverage?",
     choices=(
         Choice("Yes, person is covered by public health insurance", 1),
-        Choice("No, person is not covered by public health insurance", 0),  # NOTE: value=0 for no public coverage!
+        Choice(
+            "No, person is not covered by public health insurance", 0
+        ),  # NOTE: value=0 for no public coverage!
     ),
 )
 
@@ -304,7 +317,9 @@ acs_mobility = ColumnToText(
 
 # MIG: Mobility Status (Thresholded)
 acs_mobility_qa = MultipleChoiceQA(
-    column=acs_mobility_threshold.apply_to_column_name("MIG"),      # NOTE: Thresholded by MIG!=1
+    column=acs_mobility_threshold.apply_to_column_name(
+        "MIG"
+    ),  # NOTE: Thresholded by MIG!=1
     text="Has this person moved in the last year?",
     choices=(
         Choice("No, person has lived in the same house for the last year", 0),
@@ -313,7 +328,9 @@ acs_mobility_qa = MultipleChoiceQA(
 )
 
 acs_mobility_numeric_qa = DirectNumericQA(
-    column=acs_mobility_threshold.apply_to_column_name("MIG"),      # NOTE: Thresholded by MIG!=1
+    column=acs_mobility_threshold.apply_to_column_name(
+        "MIG"
+    ),  # NOTE: Thresholded by MIG!=1
     text=(
         "What is the probability that this person has moved in the last year?"
     ),  # NOTE: Question should relate to probability of MIG!=1
@@ -508,7 +525,7 @@ acs_state = ColumnToText(
     value_map=partial(
         parse_pums_code,
         file=ACS_CODEBOOK_DIR / "ST.txt",
-        postprocess=lambda x: x[:x.find("/")].strip(),
+        postprocess=lambda x: x[: x.find("/")].strip(),
     ),
 )
 
@@ -614,7 +631,7 @@ acs_poverty_ratio_qa = MultipleChoiceQA(
     column=acs_poverty_ratio_threshold.apply_to_column_name("POVPIP"),
     text=(
         "Is this person's income-to-poverty ratio below 2.5 ? "
-        "That is, is this person's annual income below 2.5 times the poverty line income?",
+        "That is, is this person's annual income below 2.5 times the poverty line income?"
     ),
     choices=(
         Choice("Yes, this person earns below 2.5 times the poverty line income", 1),
@@ -657,7 +674,9 @@ acs_powpuma_col = ColumnToText(
     "POWPUMA",
     short_description="place of work PUMA",
     use_value_map_only=True,
-    value_map=lambda x: f"Public Use Microdata Area (PUMA) code for the place of work: {int(x)}.",
+    value_map=lambda x: (
+        f"Public Use Microdata Area (PUMA) code for the place of work: {int(x)}."
+    ),
     # missing_value_fill="N/A (not a worker, or worker who worked at home)",
 )
 
@@ -670,8 +689,8 @@ acs_health_ins_2_col = ColumnToText(
         1: "Person has purchased insurance directly from an insurance company",
         2: (
             "Person has not purchased insurance directly from an insurance "
-            "company (is either uninsured or insured through another source)",
-        )
+            "company (is either uninsured or insured through another source)"
+        ),
     },
 )
 
@@ -681,7 +700,10 @@ acs_health_ins_2_qa = MultipleChoiceQA(
     text="Has this person purchased health insurance directly from an insurance company?",
     choices=(
         Choice("Yes, this person has health insurance through a private company", 1),
-        Choice("No, this person either has insurance through other means or is uninsured", 0),
+        Choice(
+            "No, this person either has insurance through other means or is uninsured",
+            0,
+        ),
     ),
 )
 

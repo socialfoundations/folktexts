@@ -35,6 +35,7 @@ Check out the following sub-pages:
 
    🏠 Home <self>
    📖 Readme file <readme>
+   🎛️ Configuring prompts <configuring_prompts>
    📝 Updates <updates>
    ⚙️ API reference <source/modules>
    📓 Example notebooks <notebooks>

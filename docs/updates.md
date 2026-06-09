@@ -3,6 +3,68 @@
 Release notes summarising user-visible changes between versions. Older changes
 not yet listed here can be reconstructed from the git log.
 
+## v0.6.0 — typed, composable prompt configuration
+
+Replaces the scattered prompt-related keyword arguments with two frozen
+configuration objects — `PromptConfig` (how a row is rendered) and
+`FewShotConfig` (in-context examples) — built once and threaded through the call
+stack. The defaults reproduce the original paper's prompts exactly, so a run
+that does not touch these knobs is unchanged. See the
+{doc}`prompt-configuration guide <configuring_prompts>` for the full reference.
+
+### What's new
+
+- **`PromptConfig`** and the `Vary*` pipeline stages. A prompt is built from a
+  task prefix, a feature `[INFO]` block, and a question suffix; the `[INFO]`
+  block runs through a typed pipeline (`VaryValueMap → VaryOrder →
+  VaryConnector → VaryFormat`) whose order is fixed by the stages' return types.
+- **CLI `--variation key=value …`** to change how the feature block renders.
+  Keys: `format`, `connector`, `granularity`, `order`, `custom_prompt_prefix`,
+  `custom_prompt_suffix`, `show_question`.
+- **Low-granularity value maps** (`--variation granularity=low`): coarsen ACS
+  feature values into broader bins (age ranges, grouped occupations).
+- **`FewShotConfig`** consolidates the few-shot knobs, with new CLI flags
+  `--compose-few-shot-examples` (`random` / `balanced` / per-class counts),
+  `--example-order`, and `--few-shot-hide-question`.
+- **`PROMPT_DEFAULT` sentinel** distinguishes "use the question type's default
+  system/chat prompt" (`PROMPT_DEFAULT`) from "disable the role entirely"
+  (`None`).
+
+### Breaking changes (hard cut, no aliases)
+
+Prompt configuration moved off scattered keyword arguments. Passing a removed
+keyword to a constructor or `encode_row_prompt*` now raises `TypeError`.
+
+| Before | After |
+|---|---|
+| `custom_prompt_prefix="..."` (classifier / `encode_row_prompt*`) | `prompt_config=PromptConfig.from_dict({"custom_prompt_prefix": "..."}, task)` or CLI `--variation custom_prompt_prefix=...` |
+| `add_task_description=False` (`encode_row_prompt`) | `PromptConfig.from_dict(..., add_task_description=False)` |
+| `few_shot=N`, `reuse_few_shot_examples=`, `balance_few_shot_examples=` | `few_shot_config=FewShotConfig(n_shots=N, reuse_examples=…, compose="balanced")` |
+| `class_balancing=True` / CLI `--balance-few-shot-examples` | `compose="balanced"` / CLI `--compose-few-shot-examples balanced` |
+| `numeric=True` (chat path) | removed — the question type derives it (`DirectNumericQA`) |
+| `encode_row_prompt(row, task, question_obj)` (positional question) | `question=` is now keyword-only |
+| `system_prompt=None` / `chat_prompt=None` meaning "default" | `PROMPT_DEFAULT` means "default"; `None` now disables the role |
+
+Saved benchmark configs from before the change still load:
+`BenchmarkConfig.load_from_disk` translates the legacy few-shot keys and ignores
+any other unknown keys with a warning.
+
+### Notes
+
+- **Defaults unchanged on the token-scoring paths.** The zero-shot and few-shot
+  text prompts are byte-identical to the previous release (v0.5.0), and the
+  top-level public API (`Benchmark`, `BenchmarkConfig`, the classifiers, the
+  `QAInterface` subclasses, `TaskMetadata`, `ACSDataset`) is the same.
+- **Chat system prompt refined.** The default multiple-choice *chat* system
+  prompt gained a final "Respond with a single answer choice." sentence — chat /
+  web-API path only (zero-shot and few-shot scoring don't use a system prompt).
+- **Stable results-file names.** `PromptConfig` / `FewShotConfig` are hashable
+  and process-stable, so each distinct configuration writes to its own
+  `results.bench-{hash}.json` — runs never silently overwrite one another.
+- **Fix.** `WebAPILLMClassifier` no longer raises on multiple-choice / numeric
+  questions when the system prompt is disabled, and now threads `--system-prompt`
+  through the web-API chain-of-thought path.
+
 ## v0.5.0 — rename `reasoning_*` → `cot_*` / `chain_of_thought_*`
 
 Two distinct concepts shared the word "reasoning" in the public API: the

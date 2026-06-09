@@ -1,5 +1,4 @@
-"""Module for using huggingface transformers models as classifiers.
-"""
+"""Module for using huggingface transformers models as classifiers."""
 
 from __future__ import annotations
 
@@ -13,7 +12,7 @@ import pandas as pd
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from folktexts.llm_utils import generate_text_batch, query_model_batch_multiple_passes
-from folktexts.qa_interface import DirectNumericQA, MultipleChoiceQA, ChainOfThoughtQA
+from folktexts.qa_interface import ChainOfThoughtQA, DirectNumericQA, MultipleChoiceQA
 from folktexts.task import TaskMetadata
 
 from .._utils import hash_dict
@@ -28,7 +27,6 @@ class TransformersLLMClassifier(LLMClassifier):
         model: AutoModelForCausalLM,
         tokenizer: AutoTokenizer,
         task: TaskMetadata | str,
-        custom_prompt_prefix: str = None,
         encode_row: Callable[[pd.Series], str] = None,
         threshold: float = 0.5,
         correct_order_bias: bool = True,
@@ -45,9 +43,6 @@ class TransformersLLMClassifier(LLMClassifier):
             The tokenizer used to train the model.
         task : TaskMetadata | str
             The task metadata object or name of an already created task.
-        custom_prompt_prefix : str, optional
-            A custom prompt prefix to supply to the model before the encoded
-            row data, by default None.
         encode_row : Callable[[pd.Series], str], optional
             The function used to encode tabular rows into natural text. If not
             provided, will use the default encoding function for the task.
@@ -74,7 +69,6 @@ class TransformersLLMClassifier(LLMClassifier):
         super().__init__(
             model_name=model_name,
             task=task,
-            custom_prompt_prefix=custom_prompt_prefix,
             encode_row=encode_row,
             correct_order_bias=correct_order_bias,
             threshold=threshold,
@@ -85,9 +79,13 @@ class TransformersLLMClassifier(LLMClassifier):
         # Logging controls (used mainly for ChainOfThoughtQA generation debugging).
         # By default, log only the first N prompt/generation pairs; users can
         # enable logging all generations via env var or CLI wrapper.
-        self._log_generations_all = os.getenv("FOLKTEXTS_LOG_GENERATIONS", "0").strip() in {"1", "true", "True"}
+        self._log_generations_all = os.getenv(
+            "FOLKTEXTS_LOG_GENERATIONS", "0"
+        ).strip() in {"1", "true", "True"}
         try:
-            self._log_generations_first_n = int(os.getenv("FOLKTEXTS_LOG_GENERATIONS_FIRST_N", "3"))
+            self._log_generations_first_n = int(
+                os.getenv("FOLKTEXTS_LOG_GENERATIONS_FIRST_N", "3")
+            )
         except ValueError:
             self._log_generations_first_n = 3
         self._logged_generations_count = 0
@@ -113,7 +111,10 @@ class TransformersLLMClassifier(LLMClassifier):
     def _maybe_warn_cot_failure_rate(self) -> None:
         if self._cot_total < self._COT_FAILURE_WARN_MIN_SAMPLES:
             return
-        if self._cot_total % 200 != 0 and self._cot_total != self._COT_FAILURE_WARN_MIN_SAMPLES:
+        if (
+            self._cot_total % 200 != 0
+            and self._cot_total != self._COT_FAILURE_WARN_MIN_SAMPLES
+        ):
             return
         rate = self._cot_failed / self._cot_total
         if rate >= self._COT_FAILURE_WARN_THRESHOLD:
@@ -180,11 +181,18 @@ class TransformersLLMClassifier(LLMClassifier):
                 max_new_tokens=question.max_new_tokens,
                 context_size=context_size or self.inference_kwargs["context_size"],
                 enable_thinking=question.enable_thinking,
+                system_prompt=(
+                    self.prompt_config.system_prompt()
+                    if self.prompt_config.system_prompt is not None
+                    else None
+                ),
             )
 
             # Extract probability from generated text and log each sample
             risk_estimates_batch = []
-            for idx, (prompt, generated_text) in enumerate(zip(prompts_batch, generated_texts)):
+            for idx, (prompt, generated_text) in enumerate(
+                zip(prompts_batch, generated_texts)
+            ):
                 extracted = question.extract_probability_from_text(generated_text)
                 self._cot_total += 1
                 if extracted is None:
@@ -196,23 +204,15 @@ class TransformersLLMClassifier(LLMClassifier):
                 if self._should_log_generation():
                     # Log prompt, generated answer, and extracted risk score at INFO level
                     logging.info(
-                        "\n"
-                        + "=" * 60
-                        + "\n"
+                        ("\n" + "=" * 60 + "\n")
                         + f"[ChainOfThoughtQA Sample {self._logged_generations_count + 1}]"
-                        + "\n"
-                        + "=" * 60
-                        + "\n"
+                        + ("\n" + "=" * 60 + "\n")
                         + "PROMPT:\n"
                         + prompt
-                        + "\n"
-                        + "-" * 60
-                        + "\n"
+                        + ("\n" + "-" * 60 + "\n")
                         + "GENERATED ANSWER:\n"
                         + generated_text
-                        + "\n"
-                        + "-" * 60
-                        + "\n"
+                        + ("\n" + "-" * 60 + "\n")
                         + f"EXTRACTED RISK SCORE: {risk_estimate:.6f}\n"
                         + "=" * 60
                     )

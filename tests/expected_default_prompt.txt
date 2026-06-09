@@ -1,0 +1,18 @@
+The following data corresponds to a survey respondent. The survey was conducted among US residents in 2018. Please answer the question based on the information provided. The data provided is enough to reach an approximate answer.
+
+Information:
+- The age is: 18 years old.
+- The class of worker is: Working for a for-profit private company or organization.
+- The highest educational attainment is: Some college, less than 1 year.
+- The marital status is: Never married.
+- The occupation is: Cashiers.
+- The place of birth is: Georgia.
+- The relationship to the reference person in the survey is: Non-institutionalized group quarters population.
+- The usual number of hours worked per week is: 21 hours.
+- The sex is: Female.
+- The race is: Black or African American.
+
+Question: What is this person's estimated yearly income?
+A. Below $50,000.
+B. Above $50,000.
+Answer:

@@ -1,93 +1,713 @@
-"""Module to map risk-estimation questions to different prompting techniques.
+"""Prompt construction utilities for risk-estimation tasks.
 
-e.g.,
-- multiple-choice Q&A vs direct numeric Q&A;
-- zero-shot vs few-shot vs CoT;
+This module maps risk-estimation questions to different prompting techniques
+and supports systematic prompt variations for benchmarking and evaluation.
+
+Each prompt (corresponding to a tabular data row) is represented
+as composition of three parts:
+
+    [PREFIX]  Shared task description and/or system context.
+              This section is constant across all rows.
+    [INFO]    Row-specific serialized feature-value pairs.
+    [SUFFIX]  Question text defining the prediction task.
+
+Within INFO the prompt variation pipeline is fixed by semantics:
+VaryValueMap → VaryOrder → VaryConnector → VaryFormat
+Return types enforce the order: per-item stages share list→list;
+VaryFormat collapses the list to str, making it impossible to apply
+a per-item stage after it.
+
+The module implements multiple prompting strategies, including:
+
+    - Multiple-choice Q&A vs direct numeric Q&A
+    - Zero-shot prompting
+    - Few-shot prompting
+    - Chain-of-thought (CoT) prompting
 """
+
 from __future__ import annotations
+
+import dataclasses
+import logging
+from copy import copy
+from dataclasses import dataclass, field
+from typing import Any, ClassVar
 
 import pandas as pd
 from jinja2 import TemplateError
 from transformers import AutoTokenizer
 
+from folktexts.acs import ACS_TASK_DESCRIPTION, ACS_TASK_DESCRIPTION_DEFAULTS
+
+from ._utils import hash_dict
 from .dataset import Dataset
-from .qa_interface import QAInterface
+from .qa_interface import (
+    MultipleChoiceQA,
+    QAInterface,
+)
 from .task import TaskMetadata
 
-# Sentinel distinguishing "use the mode-appropriate default" from `None`
-# ("explicitly disable the role"). Module-private; not part of the public API.
-_DEFAULT = object()
+PROMPT_DEFAULT = object()
+"""Sentinel: "use the question type's default system / chat prompt" — as opposed to ``None``, which disables the role."""
 
-SYSTEM_PROMPT = """\
-You are a helpful assistant. You answer multiple-choice questions based on the information provided.
-"""
 
-NUMERIC_SYSTEM_PROMPT = """\
-You are a helpful assistant. You provide numeric probability \
-estimates based on the information provided.
-"""
+DEFAULT_PROMPT_STYLE: dict[str, Any] = {
+    "format": "textbullet",
+    "connector": "is:",  # match main's "<feature> is: <value>"; override via --variation connector=is
+    "granularity": "original",
+    "order": None,
+    "custom_prompt_prefix": None,
+    "custom_prompt_suffix": None,
+    "show_question": True,
+}
+"""Default values for the seven prompt-variation keys; ``PromptConfig.from_dict`` validates overrides against them."""
 
-ACS_TASK_DESCRIPTION = """\
-The following data corresponds to a survey respondent. \
-The survey was conducted among US residents in 2018. \
-Please answer the question based on the information provided. \
-The data provided is enough to reach an approximate answer.
-"""
 
-ACS_FEW_SHOT_TASK_DESCRIPTION = """\
-The following data corresponds to different survey respondents. \
-The survey was conducted among US residents in 2018. \
-Please answer each question based on the information provided. \
-The data provided is enough to reach an approximate answer for each person.
-"""
+# ---------------------------------------------------------------------------
+# Intermediate representation for prompt construction
+# ---------------------------------------------------------------------------
 
-ANTHROPIC_CHAT_PROMPT = """If had to select one of the options, my answer would be"""
-GEMMA_CHAT_PROMPT = """The provided information suggests that the answer is"""
-# NOTE: The leading `0.` is part of the prefill, so the model only generates
-# the digits after the decimal point. This caps the expressible probability
-# at the open interval [0, 1) — true posteriors at or near 1.0 cannot be
-# emitted exactly. If you need full [0, 1] coverage, override `chat_prompt`
-# with e.g. `"Answer (between 0 and 1): "` and let the model produce the
-# leading digit itself (note that this also widens the digit-scoring search
-# space and may degrade calibration for low-probability cases).
-NUMERIC_CHAT_PROMPT = """Answer (between 0 and 1): 0."""
+
+@dataclass
+class FeatureItem:
+    """One feature mid-pipeline: ``text_value`` is set by :class:`VaryValueMap`, ``connected`` by :class:`VaryConnector`."""
+
+    col: str  # pandas column name
+    label: str  # human-readable name from ColumnToText.short_description
+    raw_value: Any  # original value from the DataFrame
+    text_value: str = ""  # filled by VaryValueMap
+    connected: str = ""  # filled by VaryConnector
+
+
+# ---------------------------------------------------------------------------
+# Variation stages
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class VaryPrefix:
+    """Builds the prompt ``[PREFIX]``: the task description plus an optional custom prefix."""
+
+    task_description: str
+    add_task_description: bool = True
+    custom_prefix: str | None = None
+
+    def __hash__(self) -> int:
+        return int(hash_dict(dataclasses.asdict(self)), 16)
+
+    def __call__(self) -> str:
+        parts = []
+        if self.add_task_description:
+            parts.append(self.task_description)
+        if self.custom_prefix:
+            cp = (
+                self.custom_prefix
+                if self.custom_prefix.endswith("\n")
+                else self.custom_prefix + "\n"
+            )
+            parts.append(cp)
+        prefix = "".join(parts)
+        return prefix + ("\n" if prefix else "") + "Information:\n"
+
+
+@dataclass(frozen=True)
+class VarySuffix:
+    """Builds the prompt ``[SUFFIX]``: the question text and answer prefill (or just the prefill when ``show_question=False``)."""
+
+    question: QAInterface
+    show_question: bool = True
+    with_answer_prefill: bool = (
+        True  # set False for chat mode (prefill is assistant turn)
+    )
+    show_label: bool = False
+    label: Any = None  # only used when show_label=True
+    custom_suffix: str | None = None
+
+    def __post_init__(self):
+        if self.show_label and self.label is None:
+            raise ValueError("show_label=True requires label to be set.")
+
+    def __hash__(self) -> int:
+        return int(hash_dict(dataclasses.asdict(self)), 16)
+
+    def __call__(self) -> str:
+        base = (
+            self.question.get_question_prompt(
+                with_answer_prefill=self.with_answer_prefill
+            )
+            if self.show_question
+            else self.question.get_answer_prefix()
+        )
+        label_part = f" {self.label}\n\n" if self.show_label else ""
+        return f"\n{base}{label_part}{self.custom_suffix or ''}"
+
+
+@dataclass(frozen=True)
+class VaryValueMap:
+    """Maps raw feature values to human-readable text; ``granularity`` (``"original"`` / ``"low"``) selects the value-map variant."""
+
+    cols_to_text: dict = field(hash=False, compare=False)
+    granularity: str = "original"
+
+    def __hash__(self) -> int:
+        # Hash the column names (which identify the task) and the granularity tag (which identifies the value-map variant).
+        return int(
+            hash_dict(
+                {"cols": sorted(self.cols_to_text), "granularity": self.granularity}
+            ),
+            16,
+        )
+
+    def __call__(self, items: list[FeatureItem]) -> list[FeatureItem]:
+        return [
+            dataclasses.replace(
+                item, text_value=self.cols_to_text[item.col][item.raw_value]
+            )
+            for item in items
+        ]
+
+    @classmethod
+    def with_low_granularity(
+        cls, cols_to_text: dict, simplified_value_maps: dict
+    ) -> "VaryValueMap":
+        """Return a VaryValueMap with simplified (low-granularity) value maps.
+
+        Shallow-copies each ColumnToText that has a simplified map available,
+        leaving the original task object untouched.
+        """
+        modified = {}
+        for col, c2t in cols_to_text.items():
+            if col in simplified_value_maps:
+                c2t_copy = copy(c2t)
+                c2t_copy._value_map = simplified_value_maps[col]
+                modified[col] = c2t_copy
+            else:
+                modified[col] = c2t
+        return cls(cols_to_text=modified, granularity="low")
+
+
+@dataclass(frozen=True)
+class VaryOrder:
+    """Reorders feature items by ``order`` (named columns first, the rest appended); ``None`` keeps the original order."""
+
+    order: tuple | list | str | None = None  # column names; None → keep original
+
+    def __post_init__(self):
+        # Frozen dataclasses must be hashable: PromptConfig.__hash__ reaches hash(VaryOrder),
+        # and a list field raises "unhashable type: 'list'". Normalize to a tuple
+        # (as FewShotConfig already does for `compose`).
+        if isinstance(self.order, str):
+            object.__setattr__(
+                self, "order", tuple(col.strip() for col in self.order.split(","))
+            )
+        elif self.order is not None:
+            object.__setattr__(self, "order", tuple(self.order))
+
+    def __hash__(self) -> int:
+        return int(hash_dict(dataclasses.asdict(self)), 16)
+
+    def __call__(self, items: list[FeatureItem]) -> list[FeatureItem]:
+        if not self.order:
+            return items
+        index = {item.col: item for item in items}
+        ordered_cols = set(self.order)
+        # Put the specified columns first (in the given order), then append any
+        # remaining columns that weren't mentioned — dropping nothing.
+        return (
+            [index[col] for col in self.order if col in index]
+            + [item for item in items if item.col not in ordered_cols]
+        )
+
+
+VaryFeatureOrder = VaryOrder  # alias for backward compatibility
+
+
+@dataclass(frozen=True)
+class VaryConnector:
+    """Joins each feature label to its value with ``connector`` (default ``"is:"`` -> ``"Age is: 30"``; e.g. ``"is"``, ``":"``)."""
+
+    connector: str = "is:"  # match DEFAULT_PROMPT_STYLE; "is" (no colon) is a valid override
+
+    def __hash__(self) -> int:
+        return int(hash_dict(dataclasses.asdict(self)), 16)
+
+    def __call__(self, items: list[FeatureItem]) -> list[FeatureItem]:
+        sep = ": " if self.connector == ":" else f" {self.connector} "
+        return [
+            dataclasses.replace(item, connected=f"{item.label}{sep}{item.text_value}")
+            for item in items
+        ]
+
+
+@dataclass(frozen=True)
+class VaryFormat:
+    """Collapses the feature list into the final layout: ``"textbullet"`` (default), ``"bullet"``, ``"comma"``, or ``"text"``."""
+
+    format: str = "textbullet"
+
+    _TEMPLATES: ClassVar[dict] = {
+        "bullet": lambda s: f"- {s}\n",
+        "comma": lambda s: f"{s}, ",
+        "text": lambda s: f"The {s}. ",
+        "textbullet": lambda s: f"- The {s}.\n",
+    }
+
+    def __post_init__(self):
+        if self.format not in self._TEMPLATES:
+            raise ValueError(
+                f"Unknown format {self.format!r}. Choose from {list(self._TEMPLATES)}"
+            )
+
+    def __hash__(self) -> int:
+        return int(hash_dict(dataclasses.asdict(self)), 16)
+
+    def __call__(self, items: list[FeatureItem]) -> str:
+        template = self._TEMPLATES[self.format]
+        return "".join(template(item.connected) for item in items).rstrip(", \n")
+
+
+@dataclass(frozen=True)
+class VarySystemPrompt:
+    """Holds the optional system-role string for the chat path."""
+
+    system_prompt: str
+
+    def __hash__(self) -> int:
+        return int(hash_dict(dataclasses.asdict(self)), 16)
+
+    def __call__(self) -> str:
+        return self.system_prompt
+
+
+# ---------------------------------------------------------------------------
+# FewShotConfig
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class FewShotConfig:
+    """Configuration for few-shot prompting.
+
+    Parameters
+    ----------
+    n_shots : int
+        Number of example questions and answers to prepend.
+    example_order : tuple[int, ...] | str | None, optional
+        Integer permutation to reorder examples (e.g. ``(2, 0, 1)`` or ``"2,0,1"``). ``None`` keeps the sampled order.
+    compose : str | list, optional
+        How to select few-shot samples: ``"random"`` (default), ``"balanced"`` (equal draws per class), or a list of
+        per-class counts summing to ``n_shots``.
+    reuse_examples : bool, optional
+        Whether to reuse the same examples across calls, by default False.
+    show_question_in_examples : bool, optional
+        Whether each in-context example repeats the question (default, matches main) or shows
+        only the answer. Set False for the compact answer-only format. Default is True.
+    """
+
+    n_shots: int
+    example_order: tuple[int, ...] | str | None = None
+    compose: str | list = "random"
+    reuse_examples: bool = False
+    show_question_in_examples: bool = True
+
+    def __post_init__(self):
+        if self.n_shots < 1:
+            raise ValueError(f"n_shots must be >= 1; got {self.n_shots}.")
+
+        # Normalize example_order to a tuple: a frozen dataclass must be hashable, and a
+        # list field breaks hash(FewShotConfig) (reached via BenchmarkConfig.__hash__).
+        if isinstance(self.example_order, str):
+            object.__setattr__(
+                self,
+                "example_order",
+                tuple(int(i) for i in self.example_order.split(",")),
+            )
+        elif self.example_order is not None:
+            object.__setattr__(self, "example_order", tuple(self.example_order))
+
+        if self.example_order is not None:
+            if sorted(self.example_order) != list(range(self.n_shots)):
+                raise ValueError(
+                    f"example_order must be a permutation of [0, ..., n_shots-1]; "
+                    f"got {self.example_order} for n_shots={self.n_shots}."
+                )
+
+        if isinstance(self.compose, str) and "," in self.compose:
+            object.__setattr__(
+                self, "compose", tuple(int(c) for c in self.compose.split(","))
+            )
+        elif isinstance(self.compose, list):
+            object.__setattr__(self, "compose", tuple(self.compose))
+        if isinstance(self.compose, tuple):
+            if any(c < 0 for c in self.compose):
+                raise ValueError(
+                    f"compose counts must be non-negative; got {self.compose}."
+                )
+            if sum(self.compose) != self.n_shots:
+                raise ValueError(
+                    f"compose counts must sum to n_shots={self.n_shots}; got sum={sum(self.compose)}."
+                )
+        elif self.compose not in ("random", "balanced"):
+            raise ValueError(
+                f"compose must be 'random', 'balanced', or a list of counts; got {self.compose!r}."
+            )
+
+    def __hash__(self) -> int:
+        # Cannot rely on the frozen-dataclass auto-hash: `compose` as a str
+        # would use PYTHONHASHSEED-dependent str.__hash__, breaking cross-
+        # process benchmark stability.  Serialise via json.dumps + shake-256.
+        return int(hash_dict(dataclasses.asdict(self)), 16)
+
+
+# ---------------------------------------------------------------------------
+# PromptConfig
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class PromptConfig:
+    """How one row is rendered into a prompt — one instance of each variation stage.
+
+    A prompt is a task ``prefix``, a feature ``[INFO]`` block (the
+    ``value_map → order → connector → format`` pipeline), and a question
+    ``suffix``, plus an optional ``system_prompt`` for the chat path. Build one
+    with :meth:`from_dict` (or :meth:`default`) rather than instantiating the
+    stages directly. Frozen and hashable, so each distinct configuration gets its
+    own ``results.bench-{hash}.json``.
+    """
+
+    prefix: VaryPrefix
+    value_map: VaryValueMap
+    order: VaryOrder
+    connector: VaryConnector
+    format: VaryFormat
+    suffix: VarySuffix
+    system_prompt: VarySystemPrompt | None = None
+
+    def __hash__(self) -> int:
+        # Python's builtin hash() of this frozen dataclass is salted (PYTHONHASHSEED): the
+        # stages hold str fields, so hashing them gave a different value every process. That
+        # flows into the classifier hash and made `results.bench-{hash}.json` non-deterministic
+        # across processes. Hash the rendered prompt skeleton + value-line knobs deterministically
+        # instead. `value_map` is excluded (as it already is from equality, via field compare=False)
+        # and is captured by the task hash; the rendered prefix/suffix capture the question text.
+        parts = {
+            "prefix": self.prefix(),
+            "connector": self.connector.connector,
+            "format": self.format.format,
+            "order": list(self.order.order) if self.order.order else None,
+            "suffix": self.suffix(),
+            "system_prompt": self.system_prompt()
+            if self.system_prompt is not None
+            else None,
+        }
+        return int(hash_dict(parts), 16)
+
+    @classmethod
+    def default(cls, task: TaskMetadata) -> "PromptConfig":
+        return cls.from_dict({}, task=task)
+
+    @classmethod
+    def from_dict(
+        cls,
+        pv: dict[str, Any],
+        task: TaskMetadata,
+        question: QAInterface | None = None,
+        add_task_description: bool = True,
+        system_prompt: str | None = PROMPT_DEFAULT,  # type: ignore[assignment]
+    ) -> "PromptConfig":
+        """Build a PromptConfig from a prompt-variation dict and a task.
+
+        Parameters
+        ----------
+        pv : dict
+            Prompt style overrides; see ``DEFAULT_PROMPT_STYLE`` for valid keys.
+        task : TaskMetadata
+            The task that defines features, column mappings, and the question.
+        question : QAInterface, optional
+            Override the task's default question interface.
+        add_task_description : bool, optional
+            Whether to include the task description in the prefix.
+        system_prompt : str | None, optional
+            System prompt string; wrapped in ``VarySystemPrompt`` when provided.
+            Defaults to ``question.default_system_prompt`` (set per QA subclass).
+            Pass ``None`` explicitly to disable the system role (e.g. for
+            Gemma-style templates).
+        """
+        unknown = set(pv) - set(DEFAULT_PROMPT_STYLE)
+        if unknown:
+            raise ValueError(
+                f"Unknown prompt_variation keys: {sorted(unknown)}. Valid keys: {sorted(DEFAULT_PROMPT_STYLE)}."
+            )
+
+        granularity = pv.get("granularity", DEFAULT_PROMPT_STYLE["granularity"])
+        if granularity not in ("original", "low"):
+            raise ValueError(
+                f"Unknown granularity {granularity!r}. Choose 'original' or 'low'."
+            )
+
+        order = pv.get("order", DEFAULT_PROMPT_STYLE["order"])
+        if isinstance(order, str):
+            order = tuple(col.strip() for col in order.split(","))
+
+        question = question or task.question
+        if system_prompt is PROMPT_DEFAULT:
+            system_prompt = question.default_system_prompt
+        value_map = (
+            VaryValueMap.with_low_granularity(
+                task.cols_to_text, cls._get_simplified_value_maps(task)
+            )
+            if granularity == "low"
+            else VaryValueMap(task.cols_to_text)
+        )
+        return cls(
+            prefix=VaryPrefix(
+                task_description=cls._get_task_description(task),
+                add_task_description=add_task_description,
+                custom_prefix=pv.get(
+                    "custom_prompt_prefix", DEFAULT_PROMPT_STYLE["custom_prompt_prefix"]
+                ),
+            ),
+            value_map=value_map,
+            order=VaryOrder(order=order),
+            connector=VaryConnector(
+                connector=pv.get("connector", str(DEFAULT_PROMPT_STYLE["connector"]))
+            ),
+            format=VaryFormat(
+                format=pv.get("format", str(DEFAULT_PROMPT_STYLE["format"]))
+            ),
+            suffix=VarySuffix(
+                question=question,
+                show_question=pv.get(
+                    "show_question", bool(DEFAULT_PROMPT_STYLE["show_question"])
+                ),
+                custom_suffix=pv.get(
+                    "custom_prompt_suffix", DEFAULT_PROMPT_STYLE["custom_prompt_suffix"]
+                ),
+            ),
+            system_prompt=VarySystemPrompt(system_prompt)
+            if system_prompt is not None
+            else None,
+        )
+
+    @staticmethod
+    def _get_task_description(task: TaskMetadata) -> str:
+        descriptions = {
+            "ACS": ACS_TASK_DESCRIPTION.substitute(ACS_TASK_DESCRIPTION_DEFAULTS),
+        }
+
+        for key, desc in descriptions.items():
+            if key in task.name:
+                return desc
+
+        # Fall back to the task's own description field for non-ACS tasks.
+        if task.description is not None:
+            return task.description
+
+        raise ValueError(
+            f"Cannot determine task description for task '{task.name}'. "
+            f"Set a 'description' field on the TaskMetadata object."
+        )
+
+    @staticmethod
+    def _get_simplified_value_maps(task: TaskMetadata) -> dict:
+        if task.name.startswith("ACS"):
+            from folktexts.acs.acs_columns_simplified import simplified_value_maps
+
+            return simplified_value_maps
+        raise NotImplementedError(
+            f"Low-granularity value maps are not available for task '{task.name}'."
+        )
+
+    @staticmethod
+    def _get_few_shot_task_description(task: TaskMetadata) -> str | None:
+        overrides = {
+            "respondent": "different survey respondents",
+            "question_phrase": "each question",  # R4: match main's few-shot wording
+            "suffix": " for each person",
+        }
+        if task.name.startswith("ACS"):
+            return ACS_TASK_DESCRIPTION.substitute(
+                {**ACS_TASK_DESCRIPTION_DEFAULTS, **overrides}
+            )
+        return None
+
+
+# ---------------------------------------------------------------------------
+# PromptBuilder
+# ---------------------------------------------------------------------------
+
+
+class PromptBuilder:
+    def __init__(self, task: TaskMetadata):
+        self.task = task
+
+    def _extract_items(self, row: pd.Series) -> list[FeatureItem]:
+        return [
+            FeatureItem(
+                col=col,
+                label=self.task.cols_to_text[col].short_description,
+                raw_value=row[col],
+            )
+            for col in self.task.features
+            if col in row.index
+        ]
+
+    def build(
+        self,
+        row: pd.Series,
+        config: PromptConfig,
+        question: QAInterface | None = None,
+    ) -> str:
+        if question is not None:
+            config = dataclasses.replace(
+                config, suffix=dataclasses.replace(config.suffix, question=question)
+            )
+        items = self._extract_items(row)
+        items = config.value_map(items)
+        items = config.order(items)
+        items = config.connector(items)
+        info_block = config.format(items)
+        info_block += "\n"
+        return config.prefix() + info_block + config.suffix()
+
+    def build_few_shot(
+        self,
+        row: pd.Series,
+        config: PromptConfig,
+        examples: list[tuple],  # list of (pd.Series, label)
+        question: QAInterface | None = None,
+        example_order: list[int] | None = None,
+        show_example_question: bool = True,
+    ) -> str:
+        if example_order is not None:
+            assert len(example_order) == len(examples)
+            examples = [examples[i] for i in example_order]
+
+        few_shot_desc = config._get_few_shot_task_description(self.task)
+
+        parts = []
+        for i, (ex_row, ex_label) in enumerate(examples):
+            if i == 0:
+                prefix = config.prefix
+                if few_shot_desc is not None:
+                    prefix = dataclasses.replace(prefix, task_description=few_shot_desc)
+            else:
+                prefix = dataclasses.replace(config.prefix, add_task_description=False)
+            ex_config = dataclasses.replace(
+                config,
+                prefix=prefix,
+                suffix=dataclasses.replace(
+                    config.suffix,
+                    # R6: examples repeat the question by default (matches main); the
+                    # answer-only format is opt-in via FewShotConfig.show_question_in_examples.
+                    show_question=show_example_question,
+                    show_label=True,
+                    label=ex_label,
+                ),
+            )
+            parts.append(self.build(ex_row, ex_config))
+
+        target_config = dataclasses.replace(
+            config,
+            prefix=dataclasses.replace(config.prefix, add_task_description=False),
+        )
+        parts.append(self.build(row, target_config, question=question))
+        return "".join(parts)
+
+    def build_chat(
+        self,
+        row: pd.Series,
+        config: PromptConfig,
+        tokenizer: AutoTokenizer,
+        question: QAInterface | None = None,
+        chat_prompt: str | None = PROMPT_DEFAULT,  # type: ignore[assignment]
+        **kwargs,
+    ) -> str:
+        resolved_question = question or config.suffix.question
+        if chat_prompt is PROMPT_DEFAULT:
+            chat_prompt = resolved_question.default_chat_prompt
+        # Always strip the answer prefill from the user turn: the chat template
+        # supplies it as a separate assistant turn (chat_prompt).
+        chat_config = dataclasses.replace(
+            config,
+            suffix=dataclasses.replace(
+                config.suffix,
+                with_answer_prefill=False,
+                question=resolved_question,
+            ),
+        )
+        user_content = self.build(row, chat_config)
+        system_content = config.system_prompt() if config.system_prompt else None
+        return apply_chat_template(
+            tokenizer,
+            user_prompt=user_content,
+            system_prompt=system_content,
+            chat_prompt=chat_prompt,
+            **kwargs,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Module-level functions
+# ---------------------------------------------------------------------------
 
 
 def encode_row_prompt(
     row: pd.Series,
     task: TaskMetadata,
+    *,
     question: QAInterface = None,
-    custom_prompt_prefix: str = None,
-    add_task_description: bool = True,
-    with_answer_prefill: bool = True,
+    prompt_config: PromptConfig | None = None,
 ) -> str:
-    """Encode a question regarding a given row.
+    """
+    Encode a question regarding a given row into a natural-language prompt.
+
+    Parameters
+    ----------
+    row : pd.Series
+        The data row to encode.
+    task : TaskMetadata
+        The task that defines features, column mappings, and the question.
+    question : QAInterface, optional
+        Override the question interface. Defaults to ``task.question``.
+        When ``prompt_config`` is provided, only the suffix question is
+        replaced (used for order-bias correction). Otherwise a default
+        config is built with this question.
+    prompt_config : PromptConfig, optional
+        A pre-built config; all style parameters are taken from it.
+        Build once at classifier/benchmark init and pass here to avoid
+        rebuilding on every row.
 
     `with_answer_prefill` is forwarded to `question.get_question_prompt`. The
     chat-template path passes `False` so the prefill is supplied as a separate
     assistant turn rather than baked into the user message.
-    """
-    # Get the question to ask
-    question = question or task.question
-    return (
-        (ACS_TASK_DESCRIPTION + "\n" if add_task_description else "")
-        + (f"\n{custom_prompt_prefix}\n" if custom_prompt_prefix else "")
-        + f"""\
-Information:
-{task.get_row_description(row)}
 
-{question.get_question_prompt(with_answer_prefill=with_answer_prefill)}""")
+    Returns
+    -------
+    str
+        The fully formatted prompt string.
+    """
+    if prompt_config is not None:
+        return PromptBuilder(task).build(
+            row[task.features], prompt_config, question=question
+        )
+    config = PromptConfig.from_dict({}, task=task, question=question)
+    return PromptBuilder(task).build(row[task.features], config)
 
 
 def encode_row_prompt_few_shot(
     row: pd.Series,
     task: TaskMetadata,
     dataset: Dataset,
-    n_shots: int,
+    *,
+    n_shots: int = None,
     question: QAInterface = None,
     reuse_examples: bool = False,
-    class_balancing: bool = False,
-    custom_prompt_prefix: str = None,
+    compose_few_shot_examples: str | list = "random",
+    example_order: tuple[int, ...] | str | None = None,
+    prompt_config: PromptConfig | None = None,
+    few_shot_config: FewShotConfig | None = None,
 ) -> str:
     """Encode a question regarding a given row using few-shot prompting.
 
@@ -97,52 +717,93 @@ def encode_row_prompt_few_shot(
         The row that the question will be about.
     task : TaskMetadata
         The task that the row belongs to.
+    dataset : Dataset
+        The dataset to draw few-shot examples from (sampled from the train split).
     n_shots : int, optional
-        The number of example questions and answers to use before prompting
-        about the given row, by default 3.
+        The number of example questions and answers to prepend. Ignored when
+        ``few_shot_config`` is provided.
+    question : QAInterface, optional
+        The question interface to use; defaults to ``task.question``.
     reuse_examples : bool, optional
         Whether to reuse the same examples for consistency. By default will
-        resample new examples each time (`reuse_examples=False`).
+        resample new examples each time (`reuse_examples=False`). Ignored
+        when ``few_shot_config`` is provided.
+    compose_few_shot_examples : str or list, optional
+        How to select few-shot samples: ``"random"`` (default), ``"balanced"``
+        (equal draws per class), or a list of per-class counts summing to
+        ``n_shots``. Ignored when ``few_shot_config`` is provided.
+    example_order : tuple[int, ...] | str | None, optional
+        Integer permutation to reorder examples before building the prompt
+        (e.g. ``[2, 0, 1]`` for 3 shots). ``None`` keeps the sampled order.
+        Ignored when ``few_shot_config`` is provided.
+    prompt_config : PromptConfig, optional
+        A pre-built config object. When provided, all other style parameters
+        are ignored.
+    few_shot_config : FewShotConfig, optional
+        Typed few-shot configuration. When provided, the individual
+        ``n_shots``, ``reuse_examples``, ``compose_few_shot_examples``, and
+        ``example_order`` params are ignored.
 
     Returns
     -------
     prompt : str
         The encoded few-shot prompt.
     """
+    if few_shot_config is None:
+        if n_shots is None:
+            raise ValueError("Either `few_shot_config` or `n_shots` must be provided.")
+        few_shot_config = FewShotConfig(
+            n_shots=n_shots,
+            example_order=example_order,
+            compose=compose_few_shot_examples,
+            reuse_examples=reuse_examples,
+        )
+
+    assert few_shot_config.example_order is None or isinstance(
+        few_shot_config.example_order, (list, tuple)
+    )  # mypy (example_order is normalized to a tuple in FewShotConfig)
+    logging.debug(f"Composition of few shot examples: {few_shot_config.compose}")
+
     # Take `n_shots` random samples from the train set
     X_examples, y_examples = dataset.sample_n_train_examples(
-        n_shots,
-        reuse_examples=reuse_examples,
-        class_balancing=class_balancing,
+        few_shot_config.n_shots,
+        reuse_examples=few_shot_config.reuse_examples,
+        composition=few_shot_config.compose,
     )
 
-    # Start with task description
-    prompt = ACS_FEW_SHOT_TASK_DESCRIPTION + "\n"
+    # R5: keep the sampled order (do not sort_index) so examples match main; explicit
+    # ordering is available via FewShotConfig.example_order.
+    logging.debug(f"ys index: {y_examples.index.tolist()}")
+    logging.debug(f"ys: {y_examples.values.tolist()}")
 
     # Get the question to ask
     question = question or task.question
 
-    # Add `n` example rows with respective labels
-    for i in range(n_shots):
-        prompt += (
-            encode_row_prompt(
-                X_examples.iloc[i],
-                task=task,
-                add_task_description=False,
-                custom_prompt_prefix=custom_prompt_prefix,
-            )
-            + f" {question.get_answer_key_from_value(y_examples.iloc[i])}"
-            + "\n\n"
-        )
+    # Collect `n_shots` example rows with respective labels
+    examples = []
+    for i in range(few_shot_config.n_shots):
+        if isinstance(question, MultipleChoiceQA):
+            label = question.get_answer_key_from_value(y_examples.iloc[i])
+            if label is None:
+                raise ValueError(
+                    f"Could not find answer key for few-shot label '{y_examples.iloc[i]}' in question choices."
+                )
+        else:
+            label = y_examples.iloc[i]
+        logging.debug(f"shot {i}: label={label}\tindex={y_examples.index[i]}")
+        examples.append((X_examples.iloc[i], label))
 
-    # Add the target row without its label
-    prompt += encode_row_prompt(
-        row,
-        task=task,
-        add_task_description=False,
-        custom_prompt_prefix=custom_prompt_prefix,
-        question=question,
+    # prompt_config takes precedence over individual style parameters
+    config = prompt_config or PromptConfig.from_dict({}, task=task, question=question)
+    prompt = PromptBuilder(task).build_few_shot(
+        row=row,
+        config=config,
+        examples=examples,
+        question=question if prompt_config is not None else None,
+        example_order=few_shot_config.example_order,
+        show_example_question=few_shot_config.show_question_in_examples,
     )
+    logging.debug(prompt)
     return prompt
 
 
@@ -172,21 +833,22 @@ def tokenizer_supports_system_prompt(tokenizer: AutoTokenizer) -> bool:
 
 
 def resolve_chat_defaults(
-    numeric: bool,
-    system_prompt: str | None = None,
-    chat_prompt: str | None = None,
-) -> tuple[str, str]:
+    question: QAInterface,
+    system_prompt: str | None = PROMPT_DEFAULT,  # type: ignore[assignment]
+    chat_prompt: str | None = PROMPT_DEFAULT,  # type: ignore[assignment]
+) -> tuple[str | None, str | None]:
     """Resolve default system_prompt / chat_prompt for chat-template prompting.
 
-    A `None` value means "use the default for this mode". To explicitly disable
-    a role downstream, override the resolved value with `None` after calling
-    this function (which is what `Benchmark.make_benchmark` does for tokenizers
-    that reject the system role).
+    Defaults are read from ``question.default_system_prompt`` and
+    ``question.default_chat_prompt`` (``ClassVar``s defined on each
+    ``QAInterface`` subclass). Pass ``PROMPT_DEFAULT`` (or omit the argument)
+    to use the question's ClassVar default. Pass ``None`` explicitly to disable
+    a role entirely (e.g. for Gemma-style tokenizers that reject the system role).
     """
-    if system_prompt is None:
-        system_prompt = NUMERIC_SYSTEM_PROMPT if numeric else SYSTEM_PROMPT
-    if chat_prompt is None:
-        chat_prompt = NUMERIC_CHAT_PROMPT if numeric else ANTHROPIC_CHAT_PROMPT
+    if system_prompt is PROMPT_DEFAULT:
+        system_prompt = question.default_system_prompt
+    if chat_prompt is PROMPT_DEFAULT:
+        chat_prompt = question.default_chat_prompt
     return system_prompt, chat_prompt
 
 
@@ -194,11 +856,10 @@ def encode_row_prompt_chat(
     row: pd.Series,
     task: TaskMetadata,
     tokenizer: AutoTokenizer,
-    system_prompt: str | None = _DEFAULT,    # type: ignore[assignment]
-    chat_prompt: str | None = _DEFAULT,      # type: ignore[assignment]
-    numeric: bool = False,
+    system_prompt: str | None = PROMPT_DEFAULT,  # type: ignore[assignment]
+    chat_prompt: str | None = PROMPT_DEFAULT,  # type: ignore[assignment]
     question: QAInterface | None = None,
-    custom_prompt_prefix: str | None = None,
+    prompt_config: PromptConfig | None = None,
 ) -> str:
     """Encode a row prompt using the tokenizer's chat template.
 
@@ -211,47 +872,46 @@ def encode_row_prompt_chat(
     tokenizer : AutoTokenizer
         The tokenizer whose chat template will be applied.
     system_prompt : str | None, optional
-        System prompt text. If omitted, the mode-appropriate default selected
-        by `numeric` is used. Pass `None` explicitly to disable the system
-        role (e.g. for Gemma-style templates that reject it).
+        System prompt text. Only used when ``prompt_config`` is not provided;
+        passed straight to ``PromptConfig.from_dict`` which selects the
+        mode-appropriate default when omitted. Pass ``None`` explicitly to
+        disable the system role (e.g. for Gemma-style templates that reject
+        it). When ``prompt_config`` is provided, system_prompt is ignored —
+        patch the config directly instead.
     chat_prompt : str | None, optional
-        Assistant prefill text. If omitted, the mode-appropriate default
-        selected by `numeric` is used. Pass `None` explicitly to skip the
+        Assistant prefill text. If omitted, the mode-appropriate default is
+        selected from the question type. Pass ``None`` explicitly to skip the
         assistant prefill — note that this routes inference through
-        `add_generation_prompt=True` and breaks the last-token scoring
-        assumption used by `LLMClassifier`, so it is not appropriate for the
+        ``add_generation_prompt=True`` and breaks the last-token scoring
+        assumption used by ``LLMClassifier``, so it is not appropriate for the
         benchmark path.
-    numeric : bool, optional
-        Whether numeric risk prompting is being used. Selects which default
-        prompts are applied when `system_prompt` / `chat_prompt` are omitted.
     question : QAInterface, optional
-        The question interface to use.
-    custom_prompt_prefix : str, optional
-        A custom prompt prefix to prepend.
+        The question interface to use. When ``prompt_config`` is provided this
+        overrides only the suffix question (used for order-bias correction).
+    prompt_config : PromptConfig, optional
+        A pre-built config object. When provided, all style parameters are
+        ignored. ``question`` still overrides the suffix question when given.
 
     Returns
     -------
     str
         The fully formatted chat-template prompt.
     """
-    if system_prompt is _DEFAULT:
-        system_prompt = NUMERIC_SYSTEM_PROMPT if numeric else SYSTEM_PROMPT
-    if chat_prompt is _DEFAULT:
-        chat_prompt = NUMERIC_CHAT_PROMPT if numeric else ANTHROPIC_CHAT_PROMPT
-
-    # Skip the answer prefill in the user message: the chat path supplies it
-    # as the assistant turn (`chat_prompt`). Including it in both turns would
-    # duplicate the string in the rendered prompt and silently degrade scoring.
-    user_content = encode_row_prompt(
-        row, task, question=question,
-        custom_prompt_prefix=custom_prompt_prefix,
-        with_answer_prefill=False,
+    if prompt_config is not None:
+        return PromptBuilder(task).build_chat(
+            row[task.features],
+            prompt_config,
+            tokenizer,
+            question=question,
+            chat_prompt=chat_prompt,
+        )
+    config = PromptConfig.from_dict(
+        {}, task=task, question=question, system_prompt=system_prompt
     )
-
-    return apply_chat_template(
+    return PromptBuilder(task).build_chat(
+        row[task.features],
+        config,
         tokenizer,
-        user_prompt=user_content,
-        system_prompt=system_prompt,
         chat_prompt=chat_prompt,
     )
 
@@ -285,9 +945,11 @@ def apply_chat_template(
     header, not the prefill).
     """
     # Add system prompt
-    conversation = ([
-        {"role": "system", "content": system_prompt}
-    ] if system_prompt is not None else [])
+    conversation = (
+        [{"role": "system", "content": system_prompt}]
+        if system_prompt is not None
+        else []
+    )
 
     # Add user prompt
     conversation.append({"role": "user", "content": user_prompt})
@@ -301,7 +963,11 @@ def apply_chat_template(
         kwargs.setdefault("add_generation_prompt", True)
 
     # Apply prompt template
-    filled_prompt = tokenizer.apply_chat_template(
+    if kwargs.pop("tokenize", False):
+        raise ValueError(
+            "apply_chat_template always returns a string (tokenize=False); pass tokenize=False or omit it."
+        )
+    filled_prompt = tokenizer.apply_chat_template(  # ignore[attr-defined]
         conversation=conversation,
         tokenize=False,
         **kwargs,
