@@ -56,10 +56,8 @@ any other unknown keys with a warning.
   top-level public API (`Benchmark`, `BenchmarkConfig`, the classifiers, the
   `QAInterface` subclasses, `TaskMetadata`, `ACSDataset`) is the same.
 - **Chat system prompt refined.** The default multiple-choice *chat* system
-  prompt now ends with "Respond with a single answer choice." (previously it
-  stopped at "…based on the information provided."). This affects only the
-  chat-template / web-API path; the zero-shot and few-shot last-token scoring
-  paths do not use a system prompt and are unaffected.
+  prompt gained a final "Respond with a single answer choice." sentence — chat /
+  web-API path only (zero-shot and few-shot scoring don't use a system prompt).
 - **Stable results-file names.** `PromptConfig` / `FewShotConfig` are hashable
   and process-stable, so each distinct configuration writes to its own
   `results.bench-{hash}.json` — runs never silently overwrite one another.

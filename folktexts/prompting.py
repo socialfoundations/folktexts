@@ -48,14 +48,7 @@ from .qa_interface import (
 from .task import TaskMetadata
 
 PROMPT_DEFAULT = object()
-"""Sentinel distinguishing "use the mode-appropriate default" from ``None``.
-
-``PROMPT_DEFAULT`` inherits the default system / chat prompt from the
-``QAInterface`` subclass (``SYSTEM_PROMPT`` for multiple-choice, the numeric
-prompts for ``DirectNumericQA``, ``None`` for ``ChainOfThoughtQA``); passing
-``None`` explicitly disables the role (e.g. for Gemma-style chat templates that
-reject a system turn).
-"""
+"""Sentinel: "use the question type's default system / chat prompt" — as opposed to ``None``, which disables the role."""
 
 
 DEFAULT_PROMPT_STYLE: dict[str, Any] = {
@@ -67,13 +60,7 @@ DEFAULT_PROMPT_STYLE: dict[str, Any] = {
     "custom_prompt_suffix": None,
     "show_question": True,
 }
-"""Canonical default values for every prompt-variation key.
-
-Keys: ``format``, ``connector``, ``granularity``, ``order``,
-``custom_prompt_prefix``, ``custom_prompt_suffix``, ``show_question``. A
-``prompt_variation`` / ``--variation`` override is validated against these keys
-by :meth:`PromptConfig.from_dict` (an unknown key raises ``ValueError``).
-"""
+"""Default values for the seven prompt-variation keys; ``PromptConfig.from_dict`` validates overrides against them."""
 
 
 # ---------------------------------------------------------------------------
@@ -83,12 +70,7 @@ by :meth:`PromptConfig.from_dict` (an unknown key raises ``ValueError``).
 
 @dataclass
 class FeatureItem:
-    """Intermediate representation of one feature while building the INFO block.
-
-    The fields are populated as the item passes through the variation pipeline:
-    ``text_value`` is filled by :class:`VaryValueMap` and ``connected`` by
-    :class:`VaryConnector`.
-    """
+    """One feature mid-pipeline: ``text_value`` is set by :class:`VaryValueMap`, ``connected`` by :class:`VaryConnector`."""
 
     col: str  # pandas column name
     label: str  # human-readable name from ColumnToText.short_description
@@ -104,18 +86,7 @@ class FeatureItem:
 
 @dataclass(frozen=True)
 class VaryPrefix:
-    """
-    A stage for adding a prefix to the prompt.
-    Parameters
-    ----------
-    task_description : str
-        The description of the task to include in the prefix.
-    add_task_description : bool, optional
-        Whether to include the task description in the prefix. Default is True.
-    custom_prefix : str | None, optional
-        A custom string to include in the prefix after the task description and before
-        the encoded features. If None, no custom prefix is added. Default is None.
-    """
+    """Builds the prompt ``[PREFIX]``: the task description plus an optional custom prefix."""
 
     task_description: str
     add_task_description: bool = True
@@ -141,23 +112,7 @@ class VaryPrefix:
 
 @dataclass(frozen=True)
 class VarySuffix:
-    """
-    A stage for adding a suffix to the prompt, typically containing the question.
-    Parameters
-    ----------
-    question : QAInterface
-        The question interface to use for generating the question prompt or answer prefix.
-    show_question : bool, optional
-        Whether to include the full question prompt (True) or just the answer prefix (False). Default is True.
-    with_answer_prefill : bool, optional
-        Whether to include the answer prefill in the question prompt. Default is True. Ignored if show_question is False.
-    show_label : bool, optional
-        Whether to include the label in the suffix. Default is False.
-    label : Any, optional
-        The label to include in the suffix if show_label is True. Ignored otherwise.
-    custom_suffix : str | None, optional
-        Custom string to include in the suffix after the question. If None, no custom suffix is added. Default is None.
-    """
+    """Builds the prompt ``[SUFFIX]``: the question text and answer prefill (or just the prefill when ``show_question=False``)."""
 
     question: QAInterface
     show_question: bool = True
@@ -189,17 +144,7 @@ class VarySuffix:
 
 @dataclass(frozen=True)
 class VaryValueMap:
-    """
-    A stage for mapping raw feature values to human-readable text.
-    Parameters
-    ----------
-    cols_to_text : dict
-        A mapping from column names to ColumnToText objects, which provide the logic for converting raw values to text.
-    granularity : str, optional
-        Tag identifying the value-map variant; used for hashing only.
-        ``"original"`` (default) uses the full value maps; ``"low"`` uses
-        simplified maps (set by ``with_low_granularity``).
-    """
+    """Maps raw feature values to human-readable text; ``granularity`` (``"original"`` / ``"low"``) selects the value-map variant."""
 
     cols_to_text: dict = field(hash=False, compare=False)
     granularity: str = "original"
@@ -243,14 +188,7 @@ class VaryValueMap:
 
 @dataclass(frozen=True)
 class VaryOrder:
-    """
-    A stage for reordering the feature items.
-    Parameters
-    ----------
-    order : tuple | list | str | None, optional
-        Column names specifying the desired order of features in the prompt (a tuple/list,
-        or a comma-separated string). If None, the original order is preserved. Default is None.
-    """
+    """Reorders feature items by ``order`` (named columns first, the rest appended); ``None`` keeps the original order."""
 
     order: tuple | list | str | None = None  # column names; None → keep original
 
@@ -286,15 +224,7 @@ VaryFeatureOrder = VaryOrder  # alias for backward compatibility
 
 @dataclass(frozen=True)
 class VaryConnector:
-    """
-    A stage for connecting feature labels to their values in the prompt.
-    Parameters
-    ----------
-    connector : str, optional
-        The string placed between a feature label and its value. For example,
-        the default ``"is:"`` produces ``"Age is: 30"``, ``"is"`` produces
-        ``"Age is 30"``, and ``":"`` produces ``"Age: 30"``. Default is ``"is:"``.
-    """
+    """Joins each feature label to its value with ``connector`` (default ``"is:"`` -> ``"Age is: 30"``; e.g. ``"is"``, ``":"``)."""
 
     connector: str = "is:"  # match DEFAULT_PROMPT_STYLE; "is" (no colon) is a valid override
 
@@ -311,22 +241,7 @@ class VaryConnector:
 
 @dataclass(frozen=True)
 class VaryFormat:
-    """
-    A stage for formatting the connected feature strings into the final prompt.
-    Parameters
-    ----------
-    format : str, optional
-        The format to use for the final prompt. Options include:
-        - "bullet": Each feature on a new line, prefixed with "- " \
-            (e.g. "- Age is 30\n- Occupation is Engineer").
-        - "comma": All features on the same line, separated by commas \
-            (e.g. "Age is 30, Occupation is Engineer").
-        - "text": All features in a single line, each prefixed with "The " and suffixed with a period \
-            (e.g. "The Age is 30. The Occupation is Engineer.").
-        - "textbullet": Each feature on a new line, prefixed with "- The " and suffixed with a period \
-            (e.g. "- The Age is 30.\n- The Occupation is Engineer.").
-        Default is "textbullet".
-    """
+    """Collapses the feature list into the final layout: ``"textbullet"`` (default), ``"bullet"``, ``"comma"``, or ``"text"``."""
 
     format: str = "textbullet"
 
@@ -353,14 +268,7 @@ class VaryFormat:
 
 @dataclass(frozen=True)
 class VarySystemPrompt:
-    """
-    A stage for adding a system prompt to the chat context.
-    Parameters
-    ----------
-    system_prompt : str
-        The system prompt string to include in the chat context. This provides instructions or
-        context to the model before the user prompt.
-    """
+    """Holds the optional system-role string for the chat path."""
 
     system_prompt: str
 
@@ -458,33 +366,14 @@ class FewShotConfig:
 
 @dataclass(frozen=True)
 class PromptConfig:
-    """Typed, composable configuration for how one row is rendered into a prompt.
+    """How one row is rendered into a prompt — one instance of each variation stage.
 
-    Holds one instance of each variation stage. A prompt is built from a task
-    ``prefix``, a feature ``[INFO]`` block (the ``value_map → order → connector →
-    format`` pipeline), and a question ``suffix``; ``system_prompt`` carries the
-    optional system-role string for the chat path. Build one with
-    :meth:`from_dict` (or :meth:`default`) rather than instantiating the stages
-    directly. Frozen and hashable, so each distinct configuration maps to its own
-    ``results.bench-{hash}.json`` and runs never silently overwrite one another.
-
-    Attributes
-    ----------
-    prefix : VaryPrefix
-        Task description and optional custom prefix.
-    value_map : VaryValueMap
-        Maps raw feature values to human-readable text (the ``granularity`` knob).
-    order : VaryOrder
-        Feature ordering.
-    connector : VaryConnector
-        Label-to-value separator (e.g. ``"is:"``).
-    format : VaryFormat
-        Final layout of the feature block (``"textbullet"``, ``"bullet"``,
-        ``"comma"``, ``"text"``).
-    suffix : VarySuffix
-        Question text and answer prefill.
-    system_prompt : VarySystemPrompt | None, optional
-        Optional system-role string for the chat path; ``None`` if no system role.
+    A prompt is a task ``prefix``, a feature ``[INFO]`` block (the
+    ``value_map → order → connector → format`` pipeline), and a question
+    ``suffix``, plus an optional ``system_prompt`` for the chat path. Build one
+    with :meth:`from_dict` (or :meth:`default`) rather than instantiating the
+    stages directly. Frozen and hashable, so each distinct configuration gets its
+    own ``results.bench-{hash}.json``.
     """
 
     prefix: VaryPrefix

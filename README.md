@@ -307,6 +307,8 @@ options:
 
 
 ## Configuring prompts
+<details>
+<summary>click to expand</summary>
 
 Every prompt that `folktexts` builds for a tabular row is composed of three parts:
 
@@ -329,9 +331,6 @@ available from Python; see the
 [prompt-configuration guide](https://socialfoundations.github.io/folktexts/configuring_prompts.html)
 for the full `PromptConfig` / `FewShotConfig` reference and a migration note from
 the older flat-keyword API (`custom_prompt_prefix`, `class_balancing`, …).
-
-<details>
-<summary>CLI reference — question modes, <code>--variation</code>, few-shot, chat (click to expand)</summary>
 
 ### Question modes
 
