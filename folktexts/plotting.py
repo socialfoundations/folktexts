@@ -2,6 +2,7 @@
 """
 from __future__ import annotations
 
+import inspect
 import logging
 from pathlib import Path
 from typing import Callable
@@ -30,6 +31,17 @@ _error_msg = (
 
 # Minimum fraction of the dataset size to consider a group for plotting
 GROUP_SIZE_THRESHOLD = 0.04
+
+# sklearn >=1.7 takes matplotlib styling for ROC curves via `curve_kwargs` (plain
+# **kwargs removed in 1.9); `curve_kwargs` itself doesn't exist before 1.7.
+_ROC_HAS_CURVE_KWARGS = (
+    "curve_kwargs" in inspect.signature(RocCurveDisplay.from_predictions).parameters
+)
+
+
+def _roc_style(style: dict) -> dict:
+    """Wrap matplotlib styling for RocCurveDisplay per the installed sklearn."""
+    return {"curve_kwargs": style} if _ROC_HAS_CURVE_KWARGS else style
 
 
 def _check_plotting_deps() -> bool:
@@ -75,7 +87,10 @@ def render_evaluation_plots(
     # ### ### ### ###
     # Plot ROC curve
     # ### ### ### ###
-    disp = RocCurveDisplay.from_predictions(y_true=y_true, y_pred=y_pred_scores, plot_chance_level=True)
+    # NOTE: scores are passed positionally throughout: sklearn renamed the kwarg
+    # (y_pred/y_prob -> y_score in 1.7, old names removed in 1.9), and positional
+    # binding is the only spelling valid across all supported sklearn versions.
+    disp = RocCurveDisplay.from_predictions(y_true, y_pred_scores, plot_chance_level=True)
     disp.figure_.suptitle("ROC Curve" + model_str)
 
     # Plot ROC point
@@ -91,7 +106,7 @@ def render_evaluation_plots(
     # ### ### ### ### ### ###
     # Plot calibration curve
     # ### ### ### ### ### ###
-    disp = CalibrationDisplay.from_predictions(y_true=y_true, y_prob=y_pred_scores, n_bins=5, strategy="quantile")
+    disp = CalibrationDisplay.from_predictions(y_true, y_pred_scores, n_bins=5, strategy="quantile")
     disp.figure_.suptitle("Calibration Curve" + model_str)
     show_or_save(disp.figure_, "calibration_curve")
 
@@ -204,14 +219,16 @@ def render_fairness_plots(  # noqa: C901
 
         # Plot group-specific ROC curve
         RocCurveDisplay.from_predictions(
-            y_true=group_y_true, y_pred=group_y_pred_scores,
+            group_y_true, group_y_pred_scores,
             plot_chance_level=is_last_group,
             ax=ax,
+            name=group_value_map(s_value),
 
             # Group-specific visuals
-            linestyle=group_line_styles[idx],
-            color=group_colors[idx],
-            name=group_value_map(s_value),
+            **_roc_style({
+                "linestyle": group_line_styles[idx],
+                "color": group_colors[idx],
+            }),
         )
 
         # Plot group-specific ROC point
@@ -254,7 +271,7 @@ def render_fairness_plots(  # noqa: C901
 
         # Plot global calibration curve
         CalibrationDisplay.from_predictions(
-            y_true=group_y_true, y_prob=group_y_pred_scores,
+            group_y_true, group_y_pred_scores,
             n_bins=5, strategy="quantile",
             ax=ax,
 

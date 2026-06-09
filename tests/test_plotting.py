@@ -15,7 +15,7 @@ matplotlib = pytest.importorskip("matplotlib")
 matplotlib.use("Agg")
 pytest.importorskip("seaborn")
 
-from folktexts.plotting import render_evaluation_plots  # noqa: E402
+from folktexts.plotting import render_evaluation_plots, render_fairness_plots  # noqa: E402
 
 NON_KDE_PLOTS = {"roc_curve_path", "calibration_curve_path", "score_distribution_path"}
 
@@ -42,3 +42,22 @@ def test_render_evaluation_plots_spread_scores(y_true, tmp_path):
     results = render_evaluation_plots(y_true, y_scores, imgs_dir=tmp_path)
 
     assert (NON_KDE_PLOTS | {"score_distribution_per_label_path"}).issubset(results.keys())
+
+
+def test_render_fairness_plots(y_true, tmp_path):
+    """Group-wise ROC/calibration curves render across sklearn versions."""
+    rng = np.random.default_rng(7)
+    y_scores = np.clip(0.3 * y_true + rng.uniform(0, 0.7, len(y_true)), 0, 1)
+    sensitive_attribute = np.tile([1, 2], len(y_true) // 2)
+
+    results = render_fairness_plots(
+        y_true,
+        y_scores,
+        sensitive_attribute=sensitive_attribute,
+        group_value_map=str,
+        imgs_dir=tmp_path,
+    )
+
+    assert {"roc_curve_per_subgroup_path", "calibration_curve_per_subgroup_path"}.issubset(
+        results.keys()
+    )
