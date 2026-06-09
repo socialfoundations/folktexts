@@ -330,7 +330,9 @@ section if you want to *change* how prompts are rendered. Every knob below is al
 available from Python; see the
 [prompt-configuration guide](https://socialfoundations.github.io/folktexts/configuring_prompts.html)
 for the full `PromptConfig` / `FewShotConfig` reference and a migration note from
-the older flat-keyword API (`custom_prompt_prefix`, `class_balancing`, …).
+the older flat-keyword API (`custom_prompt_prefix`, `class_balancing`, …). For a
+hands-on, runnable walkthrough see the
+[example notebook](notebooks/configuring-prompts-example.ipynb).
 
 ### Question modes
 
