@@ -1,0 +1,422 @@
+
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configuring prompts &mdash; folktexts 0.6.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=fd6457a4" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=41710f8f" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8fa8b3e9"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="_static/custom.js?v=882eb7ae"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Updates" href="updates.html" />
+    <link rel="prev" title="README.md" href="readme.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  <a href="index.html" class="icon icon-home">
+    folktexts
+  </a>
+    <div class="version">0.6.0</div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">🏠 Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="readme.html">📖 Readme file</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">🎛️ Configuring prompts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#question-modes">Question modes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#the-variation-pipeline">The variation pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#promptconfig"><code class="docutils literal notranslate"><span class="pre">PromptConfig</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#the-prompt-default-sentinel">The <code class="docutils literal notranslate"><span class="pre">PROMPT_DEFAULT</span></code> sentinel</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#fewshotconfig"><code class="docutils literal notranslate"><span class="pre">FewShotConfig</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#migrating-from-the-flat-keyword-api">Migrating from the flat-keyword API</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="updates.html">📝 Updates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="source/modules.html">⚙️ API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebooks.html">📓 Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Configuring prompts</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/configuring_prompts.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="configuring-prompts">
+<h1>Configuring prompts<a class="headerlink" href="#configuring-prompts" title="Link to this heading"></a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>You configure every prompt through two frozen dataclasses, built once and passed
+down the call stack unchanged (they replace the older approach of threading
+individual keyword arguments through every call):</p>
+<ul class="simple">
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">PromptConfig</span></code></strong> — how one row is rendered: value mapping, ordering, the
+label↔value connector, the final layout, an optional custom prefix/suffix, and
+the system prompt.</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">FewShotConfig</span></code></strong> — whether and how in-context examples are prepended.</p></li>
+</ul>
+<p>Every prompt is then composed of three independently-built parts:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">PREFIX</span><span class="p">]</span>  <span class="n">task</span> <span class="n">description</span>                <span class="p">(</span><span class="n">constant</span> <span class="n">across</span> <span class="n">rows</span><span class="p">)</span>
+<span class="p">[</span><span class="n">INFO</span><span class="p">]</span>    <span class="n">serialized</span> <span class="n">feature</span><span class="o">-</span><span class="n">value</span> <span class="n">pairs</span>  <span class="p">(</span><span class="n">row</span><span class="o">-</span><span class="n">specific</span><span class="p">)</span>
+<span class="p">[</span><span class="n">SUFFIX</span><span class="p">]</span>  <span class="n">question</span> <span class="n">text</span> <span class="o">+</span> <span class="n">answer</span> <span class="n">prefill</span>  <span class="p">(</span><span class="n">constant</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <em>answer prefill</em> is the short lead-in the prompt ends on, so the model’s next
+token is the answer we score; its exact text depends on the question type
+(multiple-choice ends on <code class="docutils literal notranslate"><span class="pre">Answer:</span></code>, numeric on <code class="docutils literal notranslate"><span class="pre">Answer</span> <span class="pre">(between</span> <span class="pre">0</span> <span class="pre">and</span> <span class="pre">1):</span> <span class="pre">0.</span></code>,
+chain-of-thought generates free-form). In chat mode it becomes the assistant’s
+opening turn instead.</p>
+<p>Both configs are hashable, so each distinct configuration gets its own
+results-file name and runs never silently overwrite one another. The defaults
+reproduce the original paper’s prompts exactly; read on only to change how
+prompts are rendered. The command-line equivalents are summarized in the
+<a class="reference internal" href="readme.html"><span class="doc">README</span></a>.</p>
+</section>
+<section id="question-modes">
+<h2>Question modes<a class="headerlink" href="#question-modes" title="Link to this heading"></a></h2>
+<p>A run asks the model one of three kinds of question. The mode is a single choice
+that determines what the model is asked to produce and how that output becomes a
+probability:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Mode</p></th>
+<th class="head text-left"><p>Activate with</p></th>
+<th class="head text-left"><p>What the model does</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><strong>Multiple-choice</strong> (default)</p></td>
+<td class="text-left"><p><em>(nothing — it is the default)</em></p></td>
+<td class="text-left"><p>Answers a multiple-choice question; we score the answer-letter tokens and read the probability off them. Order-bias correction is on by default (<code class="docutils literal notranslate"><span class="pre">correct_order_bias</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong>Numeric</strong></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">numeric_risk_prompting=True</span></code> · <code class="docutils literal notranslate"><span class="pre">--numeric-risk-prompting</span></code></p></td>
+<td class="text-left"><p>Reports the probability directly — the prompt ends on <code class="docutils literal notranslate"><span class="pre">Answer</span> <span class="pre">(between</span> <span class="pre">0</span> <span class="pre">and</span> <span class="pre">1):</span> <span class="pre">0.</span></code> and we read the digit tokens.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><strong>Chain-of-thought</strong></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">cot_prompting=True</span></code> · <code class="docutils literal notranslate"><span class="pre">--cot-prompting</span></code></p></td>
+<td class="text-left"><p>Generates free-form reasoning and ends with a <code class="docutils literal notranslate"><span class="pre">Probability:</span> <span class="pre">X%</span></code> line, recovered by regex. Works on any model, with or without a chat template.</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">enable_thinking</span></code> / <code class="docutils literal notranslate"><span class="pre">--enable-thinking</span></code> is a sub-option of chain-of-thought: it
+turns on a tokenizer’s native thinking mode (e.g. Qwen3) via
+<code class="docutils literal notranslate"><span class="pre">apply_chat_template(...,</span> <span class="pre">enable_thinking=True)</span></code>, and the resulting
+<code class="docutils literal notranslate"><span class="pre">&lt;think&gt;…&lt;/think&gt;</span></code> block is stripped before extraction. It only applies when CoT
+is on — setting it alone implicitly enables CoT (and warns). If both
+<code class="docutils literal notranslate"><span class="pre">numeric_risk_prompting</span></code> and <code class="docutils literal notranslate"><span class="pre">cot_prompting</span></code> are set, chain-of-thought wins.</p>
+<p>The mode is separate from <em>how the prompt is delivered</em> — zero-shot (the
+default), few-shot (<code class="docutils literal notranslate"><span class="pre">FewShotConfig</span></code> / <code class="docutils literal notranslate"><span class="pre">--few-shot</span></code>), or chat-template formatting
+(<code class="docutils literal notranslate"><span class="pre">use_chat_template</span></code> / <code class="docutils literal notranslate"><span class="pre">--use-chat-template</span></code>). The allowed pairings:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p></p></th>
+<th class="head text-center"><p>zero-shot</p></th>
+<th class="head text-center"><p>few-shot</p></th>
+<th class="head text-center"><p>chat-template</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><strong>Multiple-choice</strong></p></td>
+<td class="text-center"><p>✓</p></td>
+<td class="text-center"><p>✓</p></td>
+<td class="text-center"><p>✓</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><strong>Numeric</strong></p></td>
+<td class="text-center"><p>✓</p></td>
+<td class="text-center"><p>✓</p></td>
+<td class="text-center"><p>✓</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><strong>Chain-of-thought</strong></p></td>
+<td class="text-center"><p>✓</p></td>
+<td class="text-center"><p>–</p></td>
+<td class="text-center"><p>✗</p></td>
+</tr>
+</tbody>
+</table>
+<p>✓ supported · ✗ raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> · – not a supported combination. Two pairings
+are rejected at config time: <strong>few-shot + chat-template</strong>, and **chain-of-thought</p>
+<ul class="simple">
+<li><p>chat-template** (CoT already applies the chat template internally, so an outer
+one would double-wrap the prompt). Few-shot and chat-template are themselves
+mutually exclusive — a run uses exactly one delivery path. Chain-of-thought is a
+standalone path: it runs zero-shot and is not combined with few-shot.</p></li>
+</ul>
+</section>
+<section id="the-variation-pipeline">
+<h2>The variation pipeline<a class="headerlink" href="#the-variation-pipeline" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">[INFO]</span></code> block is produced by a pipeline of <code class="docutils literal notranslate"><span class="pre">Vary*</span></code> stages whose order is
+enforced by their return types — each stage’s output type is the next stage’s
+input type, so they compose in exactly one order:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>VaryValueMap → VaryOrder → VaryConnector → VaryFormat
+(list→list)    (list→list)  (list→list)    (list→str)
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">VaryFormat</span></code> collapses the feature list into a single string, which is why no
+per-item stage can run after it. You don’t instantiate these stages yourself —
+set the keys in the last column below (via <code class="docutils literal notranslate"><span class="pre">--variation</span></code> or
+<code class="docutils literal notranslate"><span class="pre">PromptConfig.from_dict</span></code>).</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>INFO-pipeline stage</p></th>
+<th class="head text-left"><p>Controls</p></th>
+<th class="head text-left"><p><code class="docutils literal notranslate"><span class="pre">--variation</span></code> key</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">VaryValueMap</span></code></p></td>
+<td class="text-left"><p>How raw column values render as text; <code class="docutils literal notranslate"><span class="pre">low</span></code> granularity coarsens ACS values into broader bins (age ranges, grouped occupations).</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">granularity</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">VaryOrder</span></code></p></td>
+<td class="text-left"><p>Feature ordering (named columns first, the rest appended).</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">order</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">VaryConnector</span></code></p></td>
+<td class="text-left"><p>The label↔value separator (<code class="docutils literal notranslate"><span class="pre">is:</span></code>, <code class="docutils literal notranslate"><span class="pre">is</span></code>, <code class="docutils literal notranslate"><span class="pre">=</span></code>, <code class="docutils literal notranslate"><span class="pre">:</span></code>, …).</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">connector</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">VaryFormat</span></code></p></td>
+<td class="text-left"><p>Final layout (<code class="docutils literal notranslate"><span class="pre">textbullet</span></code>, <code class="docutils literal notranslate"><span class="pre">bullet</span></code>, <code class="docutils literal notranslate"><span class="pre">comma</span></code>, <code class="docutils literal notranslate"><span class="pre">text</span></code>).</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">format</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>The <code class="docutils literal notranslate"><span class="pre">[PREFIX]</span></code> and <code class="docutils literal notranslate"><span class="pre">[SUFFIX]</span></code> are built separately: <code class="docutils literal notranslate"><span class="pre">VaryPrefix</span></code> and <code class="docutils literal notranslate"><span class="pre">VarySuffix</span></code>
+each return their <code class="docutils literal notranslate"><span class="pre">str</span></code> directly, and <code class="docutils literal notranslate"><span class="pre">VarySystemPrompt</span></code> holds the optional
+system-role string for the chat path.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Prompt part</p></th>
+<th class="head text-left"><p>Controls</p></th>
+<th class="head text-left"><p>Key</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">VaryPrefix</span></code></p></td>
+<td class="text-left"><p>Task description + optional custom prefix.</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">custom_prompt_prefix</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">VarySuffix</span></code></p></td>
+<td class="text-left"><p>Question text / answer prefill.</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">custom_prompt_suffix</span></code>, <code class="docutils literal notranslate"><span class="pre">show_question</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">VarySystemPrompt</span></code></p></td>
+<td class="text-left"><p>Optional system-role string (chat path).</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">system_prompt=</span></code> / <code class="docutils literal notranslate"><span class="pre">--system-prompt</span></code> (not a <code class="docutils literal notranslate"><span class="pre">--variation</span></code> key)</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="promptconfig">
+<h2><code class="docutils literal notranslate"><span class="pre">PromptConfig</span></code><a class="headerlink" href="#promptconfig" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">PromptConfig</span></code> holds one instance of each <code class="docutils literal notranslate"><span class="pre">Vary*</span></code> stage — one each for the
+prefix, suffix, and system prompt, plus the four-stage pipeline for the feature
+block. Build one from a dictionary of overrides whose keys are the seven
+<code class="docutils literal notranslate"><span class="pre">--variation</span></code> keys from the tables above (<code class="docutils literal notranslate"><span class="pre">format</span></code>, <code class="docutils literal notranslate"><span class="pre">connector</span></code>, <code class="docutils literal notranslate"><span class="pre">granularity</span></code>,
+<code class="docutils literal notranslate"><span class="pre">order</span></code>, <code class="docutils literal notranslate"><span class="pre">custom_prompt_prefix</span></code>, <code class="docutils literal notranslate"><span class="pre">custom_prompt_suffix</span></code>, <code class="docutils literal notranslate"><span class="pre">show_question</span></code>),
+validated against <code class="docutils literal notranslate"><span class="pre">DEFAULT_PROMPT_STYLE</span></code> — an unknown key raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>, as
+does an unrecognized <code class="docutils literal notranslate"><span class="pre">granularity</span></code> or <code class="docutils literal notranslate"><span class="pre">format</span></code> value.
+The <code class="docutils literal notranslate"><span class="pre">task</span></code> argument must be a <code class="docutils literal notranslate"><span class="pre">TaskMetadata</span></code> object; resolve a task name with
+<code class="docutils literal notranslate"><span class="pre">TaskMetadata.get_task</span></code>:</p>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskMetadata</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.prompting</span><span class="w"> </span><span class="kn">import</span> <span class="n">PromptConfig</span>
+
+<span class="n">task</span> <span class="o">=</span> <span class="n">TaskMetadata</span><span class="o">.</span><span class="n">get_task</span><span class="p">(</span><span class="s2">&quot;ACSIncome&quot;</span><span class="p">)</span>
+<span class="n">prompt_config</span> <span class="o">=</span> <span class="n">PromptConfig</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="s2">&quot;bullet&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;connector&quot;</span><span class="p">:</span> <span class="s2">&quot;=&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;order&quot;</span><span class="p">:</span> <span class="s2">&quot;AGEP,SCHL,COW&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;custom_prompt_prefix&quot;</span><span class="p">:</span> <span class="s2">&quot;Consider the following person.&quot;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">from_dict</span></code> also takes two optional keyword arguments: <code class="docutils literal notranslate"><span class="pre">question=</span></code> overrides the
+task’s default question interface, and <code class="docutils literal notranslate"><span class="pre">add_task_description=</span></code> (default <code class="docutils literal notranslate"><span class="pre">True</span></code>) —
+set it to <code class="docutils literal notranslate"><span class="pre">False</span></code> to drop the task description from the prefix.</p>
+<p>Pass it straight to any classifier:</p>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.classifier</span><span class="w"> </span><span class="kn">import</span> <span class="n">VLLMClassifier</span>
+
+<span class="n">clf</span> <span class="o">=</span> <span class="n">VLLMClassifier</span><span class="p">(</span>
+    <span class="n">llm</span><span class="o">=</span><span class="n">llm</span><span class="p">,</span> <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span> <span class="n">task</span><span class="o">=</span><span class="s2">&quot;ACSIncome&quot;</span><span class="p">,</span>
+    <span class="n">prompt_config</span><span class="o">=</span><span class="n">prompt_config</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<section id="the-prompt-default-sentinel">
+<h3>The <code class="docutils literal notranslate"><span class="pre">PROMPT_DEFAULT</span></code> sentinel<a class="headerlink" href="#the-prompt-default-sentinel" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">system_prompt</span></code> (the system-role text) and <code class="docutils literal notranslate"><span class="pre">chat_prompt</span></code> (the assistant-turn
+prefill the model continues from in chat mode) have three modes: omit the
+argument for the
+built-in default, pass <code class="docutils literal notranslate"><span class="pre">None</span></code> to remove the role entirely (needed for
+Gemma-style templates that reject a system turn), or pass your own string. The
+“built-in default” mode is spelled with the public sentinel <code class="docutils literal notranslate"><span class="pre">PROMPT_DEFAULT</span></code> —
+which is distinct from <code class="docutils literal notranslate"><span class="pre">None</span></code>:</p>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.prompting</span><span class="w"> </span><span class="kn">import</span> <span class="n">PROMPT_DEFAULT</span><span class="p">,</span> <span class="n">PromptConfig</span>
+
+<span class="n">PromptConfig</span><span class="o">.</span><span class="n">from_dict</span><span class="p">({},</span> <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">)</span>                       <span class="c1"># default system prompt</span>
+<span class="n">PromptConfig</span><span class="o">.</span><span class="n">from_dict</span><span class="p">({},</span> <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span> <span class="n">system_prompt</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>   <span class="c1"># no system role at all</span>
+<span class="n">PromptConfig</span><span class="o">.</span><span class="n">from_dict</span><span class="p">({},</span> <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span> <span class="n">system_prompt</span><span class="o">=</span><span class="s2">&quot;...&quot;</span><span class="p">)</span>  <span class="c1"># custom system prompt</span>
+</pre></div>
+</div>
+<p>These defaults are <code class="docutils literal notranslate"><span class="pre">ClassVar</span></code>s on the <code class="docutils literal notranslate"><span class="pre">QAInterface</span></code> hierarchy: multiple-choice
+questions use the base <code class="docutils literal notranslate"><span class="pre">QAInterface</span></code> defaults, <code class="docutils literal notranslate"><span class="pre">DirectNumericQA</span></code> overrides them
+with numeric-specific prompts, and <code class="docutils literal notranslate"><span class="pre">ChainOfThoughtQA</span></code> sets them to <code class="docutils literal notranslate"><span class="pre">None</span></code>
+(free-form generation). The question type therefore supplies the right default,
+which is why there is no longer a separate <code class="docutils literal notranslate"><span class="pre">numeric=</span></code> argument to pass — pick the
+mode as described under <strong>Question modes</strong> above.</p>
+</section>
+</section>
+<section id="fewshotconfig">
+<h2><code class="docutils literal notranslate"><span class="pre">FewShotConfig</span></code><a class="headerlink" href="#fewshotconfig" title="Link to this heading"></a></h2>
+<p>Few-shot prompting is configured with a single frozen dataclass:</p>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.prompting</span><span class="w"> </span><span class="kn">import</span> <span class="n">FewShotConfig</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.benchmark</span><span class="w"> </span><span class="kn">import</span> <span class="n">Benchmark</span>
+
+<span class="n">bench</span> <span class="o">=</span> <span class="n">Benchmark</span><span class="o">.</span><span class="n">make_acs_benchmark</span><span class="p">(</span>
+    <span class="s2">&quot;ACSIncome&quot;</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">llm</span><span class="p">,</span> <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span> <span class="n">data_dir</span><span class="o">=</span><span class="s2">&quot;~/data&quot;</span><span class="p">,</span>
+    <span class="n">few_shot_config</span><span class="o">=</span><span class="n">FewShotConfig</span><span class="p">(</span>
+        <span class="n">n_shots</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+        <span class="n">compose</span><span class="o">=</span><span class="s2">&quot;balanced&quot;</span><span class="p">,</span>        <span class="c1"># &quot;random&quot; (default) | &quot;balanced&quot; | per-class counts in label order, e.g. (2, 2) = 2 of class 0 + 2 of class 1</span>
+        <span class="n">example_order</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>  <span class="c1"># optional permutation of the example indices</span>
+        <span class="n">reuse_examples</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>         <span class="c1"># default False (resamples per row); True reuses the same examples</span>
+        <span class="n">show_question_in_examples</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># default True; set False for answer-only examples</span>
+    <span class="p">),</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Few-shot prompting cannot be combined with the chat-template path
+(<code class="docutils literal notranslate"><span class="pre">use_chat_template=True</span></code>) — that combination raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p>
+</section>
+<section id="migrating-from-the-flat-keyword-api">
+<h2>Migrating from the flat-keyword API<a class="headerlink" href="#migrating-from-the-flat-keyword-api" title="Link to this heading"></a></h2>
+<p>Earlier versions configured prompts through scattered keyword arguments. Those
+have been consolidated into <code class="docutils literal notranslate"><span class="pre">PromptConfig</span></code> / <code class="docutils literal notranslate"><span class="pre">FewShotConfig</span></code>. Passing a removed
+keyword to a constructor or <code class="docutils literal notranslate"><span class="pre">encode_row_prompt*</span></code> now raises <code class="docutils literal notranslate"><span class="pre">TypeError</span></code> instead
+of being silently ignored. Saved benchmark configs from before the change still
+load: <code class="docutils literal notranslate"><span class="pre">BenchmarkConfig.load_from_disk</span></code> translates the legacy few-shot keys and
+ignores any other unknown keys with a warning.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Old</p></th>
+<th class="head text-left"><p>New</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">custom_prompt_prefix=&quot;...&quot;</span></code> (classifier / <code class="docutils literal notranslate"><span class="pre">encode_row_prompt*</span></code>)</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">prompt_config=PromptConfig.from_dict({&quot;custom_prompt_prefix&quot;:</span> <span class="pre">&quot;...&quot;},</span> <span class="pre">task)</span></code> or CLI <code class="docutils literal notranslate"><span class="pre">--variation</span> <span class="pre">custom_prompt_prefix=...</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">add_task_description=False</span></code></p></td>
+<td class="text-left"><p>now an argument to <code class="docutils literal notranslate"><span class="pre">PromptConfig.from_dict(...)</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">few_shot=N</span></code>, <code class="docutils literal notranslate"><span class="pre">reuse_few_shot_examples=...</span></code>, <code class="docutils literal notranslate"><span class="pre">balance_few_shot_examples=...</span></code> (<code class="docutils literal notranslate"><span class="pre">BenchmarkConfig</span></code>)</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">few_shot_config=FewShotConfig(n_shots=N,</span> <span class="pre">reuse_examples=...,</span> <span class="pre">compose=&quot;balanced&quot;)</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">class_balancing=True</span></code> (<code class="docutils literal notranslate"><span class="pre">sample_n_train_examples</span></code> / <code class="docutils literal notranslate"><span class="pre">encode_row_prompt_few_shot</span></code>)</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">compose=&quot;balanced&quot;</span></code> / CLI <code class="docutils literal notranslate"><span class="pre">--compose-few-shot-examples</span> <span class="pre">balanced</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p>CLI <code class="docutils literal notranslate"><span class="pre">--balance-few-shot-examples</span></code></p></td>
+<td class="text-left"><p>CLI <code class="docutils literal notranslate"><span class="pre">--compose-few-shot-examples</span> <span class="pre">balanced</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">numeric=True</span></code> (<code class="docutils literal notranslate"><span class="pre">encode_row_prompt_chat</span></code> / <code class="docutils literal notranslate"><span class="pre">resolve_chat_defaults</span></code>)</p></td>
+<td class="text-left"><p>removed — the default is derived from the <code class="docutils literal notranslate"><span class="pre">QAInterface</span></code> subclass (<code class="docutils literal notranslate"><span class="pre">DirectNumericQA</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">encode_row_prompt(row,</span> <span class="pre">task,</span> <span class="pre">question_obj)</span></code> (positional question)</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">question=</span></code> is now keyword-only</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">system_prompt=None</span></code> / <code class="docutils literal notranslate"><span class="pre">chat_prompt=None</span></code> to <em>mean</em> “default”</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">PROMPT_DEFAULT</span></code> means “default”; <code class="docutils literal notranslate"><span class="pre">None</span></code> now means “explicitly disable”</p></td>
+</tr>
+</tbody>
+</table>
+<p>The top-level public API (<code class="docutils literal notranslate"><span class="pre">Benchmark</span></code>, <code class="docutils literal notranslate"><span class="pre">BenchmarkConfig</span></code>, the classifiers, the
+<code class="docutils literal notranslate"><span class="pre">QAInterface</span></code> subclasses, <code class="docutils literal notranslate"><span class="pre">TaskMetadata</span></code>, <code class="docutils literal notranslate"><span class="pre">ACSDataset</span></code>) is unchanged.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="readme.html" class="btn btn-neutral float-left" title="README.md" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="updates.html" class="btn btn-neutral float-right" title="Updates" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

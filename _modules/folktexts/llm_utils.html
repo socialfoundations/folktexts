@@ -1,0 +1,811 @@
+
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>folktexts.llm_utils &mdash; folktexts 0.6.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=fd6457a4" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=41710f8f" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=8fa8b3e9"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../../_static/custom.js?v=882eb7ae"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  <a href="../../index.html" class="icon icon-home">
+    folktexts
+  </a>
+    <div class="version">0.6.0</div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">🏠 Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../readme.html">📖 Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../configuring_prompts.html">🎛️ Configuring prompts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../updates.html">📝 Updates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">⚙️ API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../notebooks.html">📓 Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">folktexts.llm_utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for folktexts.llm_utils</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Common functions to use with transformer LLMs.&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">jinja2</span><span class="w"> </span><span class="kn">import</span> <span class="n">TemplateError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">transformers</span><span class="w"> </span><span class="kn">import</span> <span class="n">AutoModelForCausalLM</span><span class="p">,</span> <span class="n">AutoTokenizer</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.qa_interface</span><span class="w"> </span><span class="kn">import</span> <span class="n">DirectNumericQA</span><span class="p">,</span> <span class="n">MultipleChoiceQA</span>
+
+<span class="c1"># Will warn if the sum of digit probabilities is below this threshold</span>
+<span class="n">PROB_WARN_THR</span> <span class="o">=</span> <span class="mf">0.5</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_apply_chat_template_batch</span><span class="p">(</span>
+    <span class="n">inputs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">AutoTokenizer</span><span class="p">,</span>
+    <span class="n">enable_thinking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">system_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply tokenizer chat template to a list of prompts, if requested.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    inputs : list[str]</span>
+<span class="sd">        Raw (non-chat) prompts.</span>
+<span class="sd">    tokenizer : AutoTokenizer</span>
+<span class="sd">        Tokenizer used to apply the chat template.</span>
+<span class="sd">    enable_thinking : bool | None</span>
+<span class="sd">        If None, no chat template is applied. If True/False, chat template is</span>
+<span class="sd">        applied and (if supported) the `enable_thinking` kwarg is forwarded.</span>
+<span class="sd">    system_prompt : str | None, optional</span>
+<span class="sd">        System prompt to prepend as a system role message. Ignored when</span>
+<span class="sd">        ``enable_thinking`` is None (no chat template applied).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    formatted_inputs : list[str]</span>
+<span class="sd">        Prompts formatted using the tokenizer&#39;s chat template when requested.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">enable_thinking</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">inputs</span>
+
+    <span class="c1"># Base models (e.g. raw Llama-3-8B, GPT-2) have no chat template; falling</span>
+    <span class="c1"># through to apply_chat_template would raise ValueError mid-batch. Use the</span>
+    <span class="c1"># raw prompts instead — the CoT prompt itself is already self-contained.</span>
+    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">tokenizer</span><span class="p">,</span> <span class="s2">&quot;chat_template&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">enable_thinking</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Tokenizer has no chat_template; cannot honor enable_thinking=True. &quot;</span>
+                <span class="s2">&quot;Falling back to raw prompts (base model).&quot;</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Tokenizer has no chat_template; using raw prompts (base model).&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">inputs</span>
+
+    <span class="n">processed</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">:</span>
+        <span class="c1"># Two features may be unsupported by a given tokenizer; track each</span>
+        <span class="c1"># independently and strip on the first exception that names it.</span>
+        <span class="n">use_system</span> <span class="o">=</span> <span class="n">system_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="n">use_thinking</span> <span class="o">=</span> <span class="n">enable_thinking</span>  <span class="c1"># set to None if TypeError is raised</span>
+
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">msgs</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">system_prompt</span><span class="p">},</span> <span class="p">{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">text</span><span class="p">}]</span>
+                <span class="k">if</span> <span class="n">use_system</span>
+                <span class="k">else</span> <span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">text</span><span class="p">}]</span>
+            <span class="p">)</span>
+            <span class="n">kw</span> <span class="o">=</span> <span class="p">{}</span> <span class="k">if</span> <span class="n">use_thinking</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">{</span><span class="s2">&quot;enable_thinking&quot;</span><span class="p">:</span> <span class="n">use_thinking</span><span class="p">}</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">processed</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">tokenizer</span><span class="o">.</span><span class="n">apply_chat_template</span><span class="p">(</span>
+                        <span class="n">msgs</span><span class="p">,</span> <span class="n">tokenize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">add_generation_prompt</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">break</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="c1"># `enable_thinking` kwarg not accepted — strip it and retry.</span>
+                <span class="k">if</span> <span class="n">use_thinking</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">use_thinking</span><span class="p">:</span>
+                        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                            <span class="s2">&quot;Tokenizer does not support &#39;enable_thinking&#39;; &quot;</span>
+                            <span class="s2">&quot;falling back to standard chat template.&quot;</span>
+                        <span class="p">)</span>
+                    <span class="n">use_thinking</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span>
+            <span class="k">except</span> <span class="p">(</span><span class="n">TemplateError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+                <span class="c1"># System role rejected (e.g. Gemma) — drop it and retry.</span>
+                <span class="k">if</span> <span class="n">use_system</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="s2">&quot;Tokenizer does not support system role; dropping system &quot;</span>
+                        <span class="s2">&quot;prompt for CoT generation.&quot;</span>
+                    <span class="p">)</span>
+                    <span class="n">use_system</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Applied chat template (enable_thinking=</span><span class="si">{</span><span class="n">enable_thinking</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">processed</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_postprocess_generated_text</span><span class="p">(</span>
+    <span class="n">full_text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">enable_thinking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the content to use for downstream extraction.</span>
+
+<span class="sd">    In thinking mode, the model may emit a `&lt;think&gt; ... &lt;/think&gt;` block. We log</span>
+<span class="sd">    the thinking content (debug) but return only the response content after</span>
+<span class="sd">    `&lt;/think&gt;` for extraction.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    full_text : str</span>
+<span class="sd">        Full decoded generation (new tokens only).</span>
+<span class="sd">    enable_thinking : bool | None</span>
+<span class="sd">        Whether thinking mode is enabled.</span>
+<span class="sd">    i : int</span>
+<span class="sd">        Index of this generation in the batch (0-based).</span>
+<span class="sd">    n : int</span>
+<span class="sd">        Total number of generations in the batch.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    response_text : str</span>
+<span class="sd">        Text to be used for probability extraction.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">enable_thinking</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;=== Generated output </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> ===&quot;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Content (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">full_text</span><span class="p">)</span><span class="si">}</span><span class="s2"> chars):</span><span class="se">\n</span><span class="si">{</span><span class="n">full_text</span><span class="p">[:</span><span class="mi">500</span><span class="p">]</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">full_text</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+    <span class="n">think_end_marker</span> <span class="o">=</span> <span class="s2">&quot;&lt;/think&gt;&quot;</span>
+    <span class="k">if</span> <span class="n">think_end_marker</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">full_text</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;&lt;/think&gt; marker not found in output (thinking mode was enabled). &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Using full generated text (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">full_text</span><span class="p">)</span><span class="si">}</span><span class="s2"> chars).&quot;</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">full_text</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+    <span class="n">parts</span> <span class="o">=</span> <span class="n">full_text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">think_end_marker</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">thinking_content</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">response_content</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;=== Generated output </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> ===&quot;</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Thinking content (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">thinking_content</span><span class="p">)</span><span class="si">}</span><span class="s2"> chars) [IGNORED for extraction]:&quot;</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">thinking_content</span><span class="p">[:</span><span class="mi">500</span><span class="p">]</span><span class="si">}</span><span class="s2">...&quot;</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">thinking_content</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">500</span> <span class="k">else</span> <span class="n">thinking_content</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Response content (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">response_content</span><span class="p">)</span><span class="si">}</span><span class="s2"> chars) [USED for extraction]:&quot;</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">response_content</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">response_content</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">response_content</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+        <span class="s2">&quot;Response content after &lt;/think&gt; is empty. &quot;</span>
+        <span class="s2">&quot;Model may not have generated a proper response. &quot;</span>
+        <span class="s2">&quot;Probability extraction will likely fail.&quot;</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="query_model_batch">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.llm_utils.query_model_batch">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">query_model_batch</span><span class="p">(</span>
+    <span class="n">text_inputs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">AutoModelForCausalLM</span><span class="p">,</span>
+    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">AutoTokenizer</span><span class="p">,</span>
+    <span class="n">context_size</span><span class="p">:</span> <span class="nb">int</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Queries the model with a batch of text inputs.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    text_inputs : list[str]</span>
+<span class="sd">        The inputs to the model as a list of strings.</span>
+<span class="sd">    model : AutoModelForCausalLM</span>
+<span class="sd">        The model to query.</span>
+<span class="sd">    tokenizer : AutoTokenizer</span>
+<span class="sd">        The tokenizer used to encode the text inputs.</span>
+<span class="sd">    context_size : int</span>
+<span class="sd">        The maximum context size to consider for each input (in tokens).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    last_token_probs : np.array</span>
+<span class="sd">        Model&#39;s last token *linear* probabilities for each input as an</span>
+<span class="sd">        np.array of shape (batch_size, vocab_size).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model_device</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span><span class="o">.</span><span class="n">device</span>
+
+    <span class="c1"># Tokenize</span>
+    <span class="n">token_inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&quot;pt&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()[</span><span class="o">-</span><span class="n">context_size</span><span class="p">:]</span> <span class="k">for</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">text_inputs</span><span class="p">]</span>
+    <span class="n">idx_last_token</span> <span class="o">=</span> <span class="p">[</span><span class="n">tok_seq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">tok_seq</span> <span class="ow">in</span> <span class="n">token_inputs</span><span class="p">]</span>
+
+    <span class="c1"># Pad</span>
+    <span class="n">tensor_inputs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">rnn</span><span class="o">.</span><span class="n">pad_sequence</span><span class="p">(</span>
+        <span class="n">token_inputs</span><span class="p">,</span>
+        <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">padding_value</span><span class="o">=</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_token_id</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model_device</span><span class="p">)</span>
+
+    <span class="c1"># Mask padded context</span>
+    <span class="n">attention_mask</span> <span class="o">=</span> <span class="n">tensor_inputs</span><span class="o">.</span><span class="n">ne</span><span class="p">(</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_token_id</span><span class="p">)</span>
+
+    <span class="c1"># Query: run one forward pass, i.e., generate the next token</span>
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="n">logits</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">input_ids</span><span class="o">=</span><span class="n">tensor_inputs</span><span class="p">,</span> <span class="n">attention_mask</span><span class="o">=</span><span class="n">attention_mask</span><span class="p">)</span><span class="o">.</span><span class="n">logits</span>
+
+    <span class="c1"># Probabilities corresponding to the last token after the prompt</span>
+    <span class="n">last_token_logits</span> <span class="o">=</span> <span class="n">logits</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">idx_last_token</span><span class="p">)),</span> <span class="n">idx_last_token</span><span class="p">]</span>
+    <span class="n">last_token_probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">last_token_logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">last_token_probs</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float16</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="query_model_batch_multiple_passes">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.llm_utils.query_model_batch_multiple_passes">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">query_model_batch_multiple_passes</span><span class="p">(</span>
+    <span class="n">text_inputs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">AutoModelForCausalLM</span><span class="p">,</span>
+    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">AutoTokenizer</span><span class="p">,</span>
+    <span class="n">context_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">n_passes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">digits_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Queries an LM for multiple forward passes.</span>
+
+<span class="sd">    Greedy token search over multiple forward passes: Each forward pass takes</span>
+<span class="sd">    the highest likelihood token from the previous pass.</span>
+
+<span class="sd">    NOTE: could use model.generate in the future!</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    text_inputs : list[str]</span>
+<span class="sd">        The batch inputs to the model as a list of strings.</span>
+<span class="sd">    model : AutoModelForCausalLM</span>
+<span class="sd">        The model to query.</span>
+<span class="sd">    tokenizer : AutoTokenizer</span>
+<span class="sd">        The tokenizer used to encode the text inputs.</span>
+<span class="sd">    context_size : int</span>
+<span class="sd">        The maximum context size to consider for each input (in tokens).</span>
+<span class="sd">    n_passes : int, optional</span>
+<span class="sd">        The number of forward passes to run.</span>
+<span class="sd">    digits_only : bool, optional</span>
+<span class="sd">        Whether to only sample for digit tokens.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    last_token_probs : np.array</span>
+<span class="sd">        Last token *linear* probabilities for each forward pass, for each text</span>
+<span class="sd">        in the input batch. The output has shape (batch_size, n_passes, vocab_size).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Mask is sized to the model&#39;s logits dim, not the tokenizer&#39;s vocab dict:</span>
+    <span class="c1"># neither `len(tokenizer.vocab)` nor `tokenizer.vocab_size` is reliable</span>
+    <span class="c1"># (Gemma-3 has `len(vocab) == vocab_size + 1`; Llama-3.2 has</span>
+    <span class="c1"># `len(vocab) == vocab_size + 256`). Only `model.config.vocab_size` matches</span>
+    <span class="c1"># the actual logits axis we&#39;re masking. Multimodal Gemma-3 puts vocab_size</span>
+    <span class="c1"># under `config.text_config` instead of the top-level config.</span>
+    <span class="n">vocab_dim</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;vocab_size&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">vocab_dim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">vocab_dim</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;text_config&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="s2">&quot;vocab_size&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">vocab_dim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Could not resolve vocab_size from </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">config</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="s2">&quot;(checked top-level and text_config).&quot;</span>
+        <span class="p">)</span>
+    <span class="n">allowed_tokens_filter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">vocab_dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">digits_only</span><span class="p">:</span>
+        <span class="n">allowed_token_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+            <span class="n">tok_id</span>
+            <span class="k">for</span> <span class="n">token</span><span class="p">,</span> <span class="n">tok_id</span> <span class="ow">in</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">token</span><span class="o">.</span><span class="n">isdecimal</span><span class="p">()</span> <span class="ow">and</span> <span class="n">tok_id</span> <span class="o">&lt;</span> <span class="n">vocab_dim</span>
+        <span class="p">])</span>
+
+        <span class="n">allowed_tokens_filter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">vocab_dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="n">allowed_tokens_filter</span><span class="p">[</span><span class="n">allowed_token_ids</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># Current text batch</span>
+    <span class="n">current_batch</span> <span class="o">=</span> <span class="n">text_inputs</span>
+
+    <span class="c1"># For each forward pass, add one token to each text in the batch</span>
+    <span class="n">last_token_probs</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="nb">iter</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_passes</span><span class="p">):</span>
+        <span class="c1"># Query the model with the current batch</span>
+        <span class="n">current_probs</span> <span class="o">=</span> <span class="n">query_model_batch</span><span class="p">(</span><span class="n">current_batch</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">,</span> <span class="n">context_size</span><span class="p">)</span>
+
+        <span class="c1"># Filter out probabilities for tokens that are not allowed</span>
+        <span class="n">current_probs</span><span class="p">[:,</span> <span class="o">~</span><span class="n">allowed_tokens_filter</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Sanity check digit probabilities</span>
+        <span class="k">if</span> <span class="nb">iter</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">digits_only</span><span class="p">:</span>
+            <span class="n">total_digit_probs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">current_probs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">probs</span> <span class="o">&lt;</span> <span class="n">PROB_WARN_THR</span> <span class="k">for</span> <span class="n">probs</span> <span class="ow">in</span> <span class="n">total_digit_probs</span><span class="p">):</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Digit probabilities are too low: </span><span class="si">{</span><span class="n">total_digit_probs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Add the highest likelihood token to each text in the batch</span>
+        <span class="n">next_tokens</span> <span class="o">=</span> <span class="p">[</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">probs</span><span class="p">)])</span> <span class="k">for</span> <span class="n">probs</span> <span class="ow">in</span> <span class="n">current_probs</span><span class="p">]</span>
+        <span class="n">current_batch</span> <span class="o">=</span> <span class="p">[</span><span class="n">text</span> <span class="o">+</span> <span class="n">next_token</span> <span class="k">for</span> <span class="n">text</span><span class="p">,</span> <span class="n">next_token</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">current_batch</span><span class="p">,</span> <span class="n">next_tokens</span><span class="p">)]</span>
+
+        <span class="c1"># Store the probabilities of the last token for each text in the batch</span>
+        <span class="n">last_token_probs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">current_probs</span><span class="p">)</span>
+
+    <span class="c1"># Cast output to np.array with correct shape</span>
+    <span class="n">last_token_probs_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">last_token_probs</span><span class="p">)</span>
+    <span class="n">last_token_probs_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="n">last_token_probs_array</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">last_token_probs_array</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">text_inputs</span><span class="p">),</span> <span class="n">n_passes</span><span class="p">,</span> <span class="n">vocab_dim</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">last_token_probs_array</span></div>
+
+
+
+<div class="viewcode-block" id="decode_topk_logprobs_to_risk_estimate">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.llm_utils.decode_topk_logprobs_to_risk_estimate">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">decode_topk_logprobs_to_risk_estimate</span><span class="p">(</span>
+    <span class="n">per_pass_topk</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">tokenizer_vocab</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+    <span class="n">vocab_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">question</span><span class="p">:</span> <span class="s2">&quot;MultipleChoiceQA | DirectNumericQA&quot;</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert top-K log-probabilities into a single risk-estimate float.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    per_pass_topk : list[dict[int, float]]</span>
+<span class="sd">        One dict per generated token position, mapping token_id -&gt; log-prob. The</span>
+<span class="sd">        token_ids must match the values in `tokenizer_vocab`. Tokens absent from</span>
+<span class="sd">        the top-K are assumed to have probability ~0.</span>
+<span class="sd">    tokenizer_vocab : dict[str, int]</span>
+<span class="sd">        Token string -&gt; token_id map used by the QA decoder for prefix-variant</span>
+<span class="sd">        lookup (MultipleChoiceQA) or digit/decimal lookup (DirectNumericQA).</span>
+<span class="sd">    vocab_dim : int</span>
+<span class="sd">        Size of the linear-probability array&#39;s vocab axis. For local backends</span>
+<span class="sd">        this is `model.config.vocab_size` (the logits axis); for the synthetic</span>
+<span class="sd">        WebAPI path it is the size of the synthesised vocab.</span>
+<span class="sd">    question : MultipleChoiceQA | DirectNumericQA</span>
+<span class="sd">        The QA interface used to interpret the probabilities.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    risk_estimate : float</span>
+<span class="sd">        Risk score in [0, 1] from `question.get_answer_from_model_output`.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Both the WebAPI backend (top_logprobs=20 from OpenAI-style responses) and</span>
+<span class="sd">    the vLLM backend (top-K logprobs from `SamplingParams(logprobs=K)`) call</span>
+<span class="sd">    this helper. The transformers backend reads the full softmax directly and</span>
+<span class="sd">    bypasses this path; see `query_model_batch_multiple_passes`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n_passes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">per_pass_topk</span><span class="p">)</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_passes</span><span class="p">,</span> <span class="n">vocab_dim</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">pass_dict</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">per_pass_topk</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">tok_id</span><span class="p">,</span> <span class="n">logprob</span> <span class="ow">in</span> <span class="n">pass_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">tok_id</span> <span class="o">&lt;</span> <span class="n">vocab_dim</span><span class="p">:</span>
+                <span class="n">probs</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">tok_id</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">logprob</span><span class="p">))</span>
+
+    <span class="c1"># Drop tokenizer-vocab entries that point past the array. MultipleChoiceQA&#39;s</span>
+    <span class="c1"># decoder does an unchecked `last_token_probs[choice_token_id]` lookup; on</span>
+    <span class="c1"># tokenizers where added tokens sit beyond `model.config.vocab_size`</span>
+    <span class="c1"># (Llama-3.2, Gemma-3) those ids would IndexError. DirectNumericQA already</span>
+    <span class="c1"># filters the same way internally — this keeps both modes consistent.</span>
+    <span class="n">in_range_vocab</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">tok</span><span class="p">:</span> <span class="n">tok_id</span>
+        <span class="k">for</span> <span class="n">tok</span><span class="p">,</span> <span class="n">tok_id</span> <span class="ow">in</span> <span class="n">tokenizer_vocab</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">tok_id</span> <span class="o">&lt;</span> <span class="n">vocab_dim</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">question</span><span class="o">.</span><span class="n">get_answer_from_model_output</span><span class="p">(</span>
+        <span class="n">probs</span><span class="p">,</span>
+        <span class="n">tokenizer_vocab</span><span class="o">=</span><span class="n">in_range_vocab</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="generate_text_batch">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.llm_utils.generate_text_batch">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">generate_text_batch</span><span class="p">(</span>
+    <span class="n">text_inputs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">AutoModelForCausalLM</span><span class="p">,</span>
+    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">AutoTokenizer</span><span class="p">,</span>
+    <span class="n">max_new_tokens</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
+    <span class="n">context_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">enable_thinking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">system_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generate text completions for a batch of prompts.</span>
+
+<span class="sd">    Uses the model&#39;s generate() method for autoregressive text generation,</span>
+<span class="sd">    suitable for chain-of-thought Q&amp;A where the model needs to produce</span>
+<span class="sd">    free-form text before outputting a probability estimate. Generation is</span>
+<span class="sd">    greedy (do_sample=False) so runs are reproducible — matches the web-API</span>
+<span class="sd">    path&#39;s temperature=0 contract.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    text_inputs : list[str]</span>
+<span class="sd">        The input prompts as a list of strings.</span>
+<span class="sd">    model : AutoModelForCausalLM</span>
+<span class="sd">        The model to use for generation.</span>
+<span class="sd">    tokenizer : AutoTokenizer</span>
+<span class="sd">        The tokenizer used to encode/decode text.</span>
+<span class="sd">    max_new_tokens : int, optional</span>
+<span class="sd">        Maximum number of new tokens to generate, by default 1024.</span>
+<span class="sd">    context_size : int, optional</span>
+<span class="sd">        The maximum context size for input tokens. If None, no truncation</span>
+<span class="sd">        is applied to inputs.</span>
+<span class="sd">    enable_thinking : bool, optional</span>
+<span class="sd">        Controls chat template application and thinking mode:</span>
+<span class="sd">        - None: Do not apply chat template (use raw prompts, for base models)</span>
+<span class="sd">        - False: Apply chat template WITHOUT thinking mode (for instruction-tuned models)</span>
+<span class="sd">        - True: Apply chat template WITH thinking mode, and extract response</span>
+<span class="sd">          content after &lt;/think&gt; marker (for thinking models like Qwen3)</span>
+<span class="sd">    system_prompt : str | None, optional</span>
+<span class="sd">        System prompt to inject as a system role message when applying the</span>
+<span class="sd">        chat template. Ignored when ``enable_thinking`` is None.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    generated_texts : list[str]</span>
+<span class="sd">        The generated text completions for each input prompt. Only the</span>
+<span class="sd">        newly generated tokens are returned (not the input prompt).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model_device</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span><span class="o">.</span><span class="n">device</span>
+
+    <span class="c1"># Save original padding side and set to left for generation</span>
+    <span class="c1"># (decoder-only models require left-padding for correct generation)</span>
+    <span class="n">original_padding_side</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">padding_side</span>
+    <span class="n">tokenizer</span><span class="o">.</span><span class="n">padding_side</span> <span class="o">=</span> <span class="s2">&quot;left&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">formatted_inputs</span> <span class="o">=</span> <span class="n">_apply_chat_template_batch</span><span class="p">(</span>
+            <span class="n">text_inputs</span><span class="p">,</span>
+            <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+            <span class="n">enable_thinking</span><span class="o">=</span><span class="n">enable_thinking</span><span class="p">,</span>
+            <span class="n">system_prompt</span><span class="o">=</span><span class="n">system_prompt</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">tokenized</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="p">(</span>
+            <span class="n">formatted_inputs</span><span class="p">,</span>
+            <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&quot;pt&quot;</span><span class="p">,</span>
+            <span class="n">padding</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">truncation</span><span class="o">=</span><span class="kc">True</span> <span class="k">if</span> <span class="n">context_size</span> <span class="k">else</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">max_length</span><span class="o">=</span><span class="n">context_size</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">tensor_inputs</span> <span class="o">=</span> <span class="n">tokenized</span><span class="o">.</span><span class="n">input_ids</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model_device</span><span class="p">)</span>
+        <span class="n">attention_mask</span> <span class="o">=</span> <span class="n">tokenized</span><span class="o">.</span><span class="n">attention_mask</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">model_device</span><span class="p">)</span>
+        <span class="n">input_seq_length</span> <span class="o">=</span> <span class="n">tensor_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">outputs</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+                <span class="n">input_ids</span><span class="o">=</span><span class="n">tensor_inputs</span><span class="p">,</span>
+                <span class="n">attention_mask</span><span class="o">=</span><span class="n">attention_mask</span><span class="p">,</span>
+                <span class="n">max_new_tokens</span><span class="o">=</span><span class="n">max_new_tokens</span><span class="p">,</span>
+                <span class="n">pad_token_id</span><span class="o">=</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_token_id</span><span class="p">,</span>
+                <span class="n">eos_token_id</span><span class="o">=</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">eos_token_id</span><span class="p">,</span>
+                <span class="n">do_sample</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">generated_texts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">output</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">outputs</span><span class="p">):</span>
+            <span class="n">generated_tokens</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="n">input_seq_length</span><span class="p">:]</span>
+            <span class="n">full_generated_text</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">generated_tokens</span><span class="p">,</span> <span class="n">skip_special_tokens</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">generated_texts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">_postprocess_generated_text</span><span class="p">(</span>
+                    <span class="n">full_generated_text</span><span class="p">,</span>
+                    <span class="n">enable_thinking</span><span class="o">=</span><span class="n">enable_thinking</span><span class="p">,</span>
+                    <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span>
+                    <span class="n">n</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">outputs</span><span class="p">),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">generated_texts</span>
+
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">tokenizer</span><span class="o">.</span><span class="n">padding_side</span> <span class="o">=</span> <span class="n">original_padding_side</span></div>
+
+
+
+<div class="viewcode-block" id="add_pad_token">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.llm_utils.add_pad_token">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_pad_token</span><span class="p">(</span><span class="n">tokenizer</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Add a pad token to the model and tokenizer if it doesn&#39;t already exist.</span>
+
+<span class="sd">    Here we&#39;re using the end-of-sentence token as the pad token. Both the model</span>
+<span class="sd">    weights and tokenizer vocabulary are untouched.</span>
+
+<span class="sd">    Another possible way would be to add a new token `[PAD]` to the tokenizer</span>
+<span class="sd">    and update the tokenizer vocabulary and model weight embeddings accordingly.</span>
+<span class="sd">    The embedding for the new pad token would be the average of all other</span>
+<span class="sd">    embeddings.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_token</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">tokenizer</span><span class="o">.</span><span class="n">add_special_tokens</span><span class="p">({</span><span class="s1">&#39;pad_token&#39;</span><span class="p">:</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">eos_token</span><span class="p">})</span></div>
+
+
+
+<div class="viewcode-block" id="is_bf16_compatible">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.llm_utils.is_bf16_compatible">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_bf16_compatible</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Checks if the current environment is bfloat16 compatible.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_bf16_supported</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="load_model_tokenizer">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.llm_utils.load_model_tokenizer">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_model_tokenizer</span><span class="p">(</span><span class="n">model_name_or_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">AutoModelForCausalLM</span><span class="p">,</span> <span class="n">AutoTokenizer</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load a model and tokenizer from the given local path (or using the model name).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model_name_or_path : str | Path</span>
+<span class="sd">        Model name or local path to the model folder.</span>
+<span class="sd">    kwargs : dict</span>
+<span class="sd">        Additional keyword arguments to pass to the model `from_pretrained` call.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple[AutoModelForCausalLM, AutoTokenizer]</span>
+<span class="sd">        The loaded model and tokenizer, respectively.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loading model &#39;</span><span class="si">{</span><span class="n">model_name_or_path</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Load tokenizer from disk</span>
+    <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">AutoTokenizer</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">model_name_or_path</span><span class="p">)</span>
+
+    <span class="c1"># Set default keyword arguments for loading the pretrained model</span>
+    <span class="n">model_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">torch_dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bfloat16</span> <span class="k">if</span> <span class="n">is_bf16_compatible</span><span class="p">()</span> <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">float16</span><span class="p">,</span>
+        <span class="n">trust_remote_code</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">device_map</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">model_kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c1"># Load model from disk</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">AutoModelForCausalLM</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
+        <span class="n">model_name_or_path</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">model_kwargs</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Add pad token to the tokenizer if it doesn&#39;t already exist</span>
+    <span class="n">add_pad_token</span><span class="p">(</span><span class="n">tokenizer</span><span class="p">)</span>
+
+    <span class="c1"># Move model to the correct device</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span>
+    <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;cuda&quot;</span>
+    <span class="k">elif</span> <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">mps</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;mps&quot;</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Moving model to device: </span><span class="si">{</span><span class="n">device</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="n">device</span><span class="p">:</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span></div>
+
+
+
+<div class="viewcode-block" id="load_vllm_model">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.llm_utils.load_vllm_model">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_vllm_model</span><span class="p">(</span>
+    <span class="n">model_name_or_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+    <span class="n">gpu_memory_utilization</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.85</span><span class="p">,</span>
+    <span class="n">max_model_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">tensor_parallel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">trust_remote_code</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+    <span class="n">max_logprobs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load a vLLM `LLM` engine and its tokenizer.</span>
+
+<span class="sd">    Mirrors `load_model_tokenizer` for the vLLM backend. vLLM allocates the KV</span>
+<span class="sd">    cache statically at startup based on `gpu_memory_utilization` and</span>
+<span class="sd">    `max_model_len`; tune these per-GPU. `vllm` is an optional install — if it</span>
+<span class="sd">    is not importable, this function raises a pointed error.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model_name_or_path : str | Path</span>
+<span class="sd">        Model name or local path to the model folder. Pre-cached snapshots</span>
+<span class="sd">        under `/fast/groups/sf/huggingface-models/` work without download.</span>
+<span class="sd">    dtype : str, optional</span>
+<span class="sd">        Compute dtype: ``&quot;auto&quot;`` (default; vLLM picks bf16/fp16 from the</span>
+<span class="sd">        config), ``&quot;bfloat16&quot;``, ``&quot;float16&quot;``, or ``&quot;float32&quot;``.</span>
+<span class="sd">    gpu_memory_utilization : float, optional</span>
+<span class="sd">        Fraction of GPU VRAM vLLM may use for weights + KV cache. Default 0.85</span>
+<span class="sd">        (vLLM&#39;s own default is 0.9, which is aggressive on shared cluster</span>
+<span class="sd">        nodes). vLLM fails fast at startup if this isn&#39;t enough — bump down</span>
+<span class="sd">        if you hit OOM at LLM().</span>
+<span class="sd">    max_model_len : int, optional</span>
+<span class="sd">        Maximum number of tokens (input + output) per request. If ``None``,</span>
+<span class="sd">        vLLM reads it from the model config — which on some Llama checkpoints</span>
+<span class="sd">        is 131072 and will allocate enormous KV cache. Pass an explicit value</span>
+<span class="sd">        sized as ``context_size + max_new_tokens + buffer`` for the workload.</span>
+<span class="sd">    tensor_parallel_size : int, optional</span>
+<span class="sd">        Number of GPUs to shard the model across; default 1. Set higher when</span>
+<span class="sd">        the cluster job grants multiple GPUs and the model fits with</span>
+<span class="sd">        tensor-parallel sharding.</span>
+<span class="sd">    trust_remote_code : bool, optional</span>
+<span class="sd">        Forwarded to vLLM (mirrors `load_model_tokenizer`).</span>
+<span class="sd">    seed : int, optional</span>
+<span class="sd">        Random seed for vLLM. Doesn&#39;t affect greedy (`temperature=0`) decoding</span>
+<span class="sd">        but pinned for safety.</span>
+<span class="sd">    max_logprobs : int, optional</span>
+<span class="sd">        Engine-level cap on top-K logprobs SamplingParams may request.</span>
+<span class="sd">        Default 50 — must be ≥ ``VLLMClassifier._TOPK_LOGPROBS`` or the engine</span>
+<span class="sd">        rejects the request at predict time (`VLLMValidationError: Requested</span>
+<span class="sd">        sample logprobs of K, which is greater than max allowed`).</span>
+<span class="sd">    **kwargs</span>
+<span class="sd">        Additional keyword arguments forwarded verbatim to ``vllm.LLM(...)``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple[vllm.LLM, AutoTokenizer]</span>
+<span class="sd">        Loaded engine and its tokenizer. The tokenizer has had `add_pad_token`</span>
+<span class="sd">        applied so it matches the transformers path&#39;s tokenizer state.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">vllm</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLM</span>
+    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>  <span class="c1"># pragma: no cover - exercised in user-facing CLI</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">&quot;vLLM is not installed. Install the optional extra with &quot;</span>
+            <span class="s2">&quot;`pip install &#39;folktexts[vllm]&#39;`, or run with &quot;</span>
+            <span class="s2">&quot;`--inference-backend transformers` to use the HuggingFace path.&quot;</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+
+    <span class="c1"># vLLM is extremely chatty during model loading; quieten it unless the</span>
+    <span class="c1"># caller has explicitly opted into verbose logs.</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;VLLM_LOGGING_LEVEL&quot;</span><span class="p">,</span> <span class="s2">&quot;WARNING&quot;</span><span class="p">)</span>
+
+    <span class="c1"># `processed_logprobs` returns top-K logprobs computed AFTER `allowed_token_ids`</span>
+    <span class="c1"># masking. The default `raw_logprobs` would return top-K from the unmasked</span>
+    <span class="c1"># distribution — which on `DirectNumericQA` causes the decoder to see non-digit</span>
+    <span class="c1"># tokens (e.g., &#39;.&#39;, &#39;\n&#39;) as high-probability &quot;numeric tokens&quot; and pick them</span>
+    <span class="c1"># over the only-allowed digit, collapsing Llama-3 base numeric output to 0.5</span>
+    <span class="c1"># (answer text &quot;5.&quot; → regex &quot;5&quot; → 0.5). MC has no `allowed_token_ids` so this</span>
+    <span class="c1"># defaults to the raw distribution either way; numeric is the only mode this</span>
+    <span class="c1"># affects.</span>
+    <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;logprobs_mode&quot;</span><span class="p">,</span> <span class="s2">&quot;processed_logprobs&quot;</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loading vLLM model &#39;</span><span class="si">{</span><span class="n">model_name_or_path</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+    <span class="n">llm</span> <span class="o">=</span> <span class="n">LLM</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">model_name_or_path</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">gpu_memory_utilization</span><span class="o">=</span><span class="n">gpu_memory_utilization</span><span class="p">,</span>
+        <span class="n">max_model_len</span><span class="o">=</span><span class="n">max_model_len</span><span class="p">,</span>
+        <span class="n">tensor_parallel_size</span><span class="o">=</span><span class="n">tensor_parallel_size</span><span class="p">,</span>
+        <span class="n">trust_remote_code</span><span class="o">=</span><span class="n">trust_remote_code</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+        <span class="n">max_logprobs</span><span class="o">=</span><span class="n">max_logprobs</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">llm</span><span class="o">.</span><span class="n">get_tokenizer</span><span class="p">()</span>
+    <span class="n">add_pad_token</span><span class="p">(</span><span class="n">tokenizer</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">llm</span><span class="p">,</span> <span class="n">tokenizer</span></div>
+
+
+
+<div class="viewcode-block" id="get_model_folder_path">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.llm_utils.get_model_folder_path">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_model_folder_path</span><span class="p">(</span><span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">root_dir</span><span class="o">=</span><span class="s2">&quot;/tmp&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the folder where the model is saved.&quot;&quot;&quot;</span>
+    <span class="n">folder_name</span> <span class="o">=</span> <span class="n">model_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="s2">&quot;--&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">root_dir</span><span class="p">)</span> <span class="o">/</span> <span class="n">folder_name</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="get_model_size_B">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.llm_utils.get_model_size_B">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_model_size_B</span><span class="p">(</span><span class="n">model_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the model size from the model name, in Billions of parameters.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;((?P&lt;times&gt;\d+)[xX])?(?P&lt;size&gt;\d+)[bB]&quot;</span><span class="p">,</span> <span class="n">model_name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">regex</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">regex</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;size&quot;</span><span class="p">))</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="n">regex</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;times&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">default</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not infer model size from name &#39;</span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">default</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

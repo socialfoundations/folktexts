@@ -1,0 +1,359 @@
+
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>folktexts.classifier.transformers_classifier &mdash; folktexts 0.6.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=41710f8f" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8fa8b3e9"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../../../_static/custom.js?v=882eb7ae"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  <a href="../../../index.html" class="icon icon-home">
+    folktexts
+  </a>
+    <div class="version">0.6.0</div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">🏠 Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">📖 Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../configuring_prompts.html">🎛️ Configuring prompts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../updates.html">📝 Updates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/modules.html">⚙️ API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">📓 Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">folktexts.classifier.transformers_classifier</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for folktexts.classifier.transformers_classifier</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Module for using huggingface transformers models as classifiers.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">transformers</span><span class="w"> </span><span class="kn">import</span> <span class="n">AutoModelForCausalLM</span><span class="p">,</span> <span class="n">AutoTokenizer</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.llm_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">generate_text_batch</span><span class="p">,</span> <span class="n">query_model_batch_multiple_passes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.qa_interface</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChainOfThoughtQA</span><span class="p">,</span> <span class="n">DirectNumericQA</span><span class="p">,</span> <span class="n">MultipleChoiceQA</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.task</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskMetadata</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">hash_dict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMClassifier</span>
+
+
+<div class="viewcode-block" id="TransformersLLMClassifier">
+<a class="viewcode-back" href="../../../source/folktexts.classifier.html#folktexts.classifier.transformers_classifier.TransformersLLMClassifier">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TransformersLLMClassifier</span><span class="p">(</span><span class="n">LLMClassifier</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Use a huggingface transformers model to produce risk scores.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">:</span> <span class="n">AutoModelForCausalLM</span><span class="p">,</span>
+        <span class="n">tokenizer</span><span class="p">:</span> <span class="n">AutoTokenizer</span><span class="p">,</span>
+        <span class="n">task</span><span class="p">:</span> <span class="n">TaskMetadata</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">encode_row</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">correct_order_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">inference_kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates an LLMClassifier based on a huggingface transformers model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : AutoModelForCausalLM</span>
+<span class="sd">            The torch language model to use for inference.</span>
+<span class="sd">        tokenizer : AutoTokenizer</span>
+<span class="sd">            The tokenizer used to train the model.</span>
+<span class="sd">        task : TaskMetadata | str</span>
+<span class="sd">            The task metadata object or name of an already created task.</span>
+<span class="sd">        encode_row : Callable[[pd.Series], str], optional</span>
+<span class="sd">            The function used to encode tabular rows into natural text. If not</span>
+<span class="sd">            provided, will use the default encoding function for the task.</span>
+<span class="sd">        threshold : float, optional</span>
+<span class="sd">            The classification threshold to use when outputting binary</span>
+<span class="sd">            predictions, by default 0.5. Must be between 0 and 1. Will be</span>
+<span class="sd">            re-calibrated if `fit` is called.</span>
+<span class="sd">        correct_order_bias : bool, optional</span>
+<span class="sd">            Whether to correct ordering bias in multiple-choice Q&amp;A questions,</span>
+<span class="sd">            by default True.</span>
+<span class="sd">        seed : int, optional</span>
+<span class="sd">            The random seed - used for reproducibility.</span>
+<span class="sd">        **inference_kwargs</span>
+<span class="sd">            Additional keyword arguments to be used at inference time. Options</span>
+<span class="sd">            include `context_size` and `batch_size`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Transformers objects for the model and tokenizer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span> <span class="o">=</span> <span class="n">tokenizer</span>
+
+        <span class="c1"># Fetch name for transformers model</span>
+        <span class="n">model_name</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">name_or_path</span><span class="p">)</span><span class="o">.</span><span class="n">name</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">model_name</span><span class="o">=</span><span class="n">model_name</span><span class="p">,</span>
+            <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span>
+            <span class="n">encode_row</span><span class="o">=</span><span class="n">encode_row</span><span class="p">,</span>
+            <span class="n">correct_order_bias</span><span class="o">=</span><span class="n">correct_order_bias</span><span class="p">,</span>
+            <span class="n">threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+            <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">inference_kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Logging controls (used mainly for ChainOfThoughtQA generation debugging).</span>
+        <span class="c1"># By default, log only the first N prompt/generation pairs; users can</span>
+        <span class="c1"># enable logging all generations via env var or CLI wrapper.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log_generations_all</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span>
+            <span class="s2">&quot;FOLKTEXTS_LOG_GENERATIONS&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="s2">&quot;true&quot;</span><span class="p">,</span> <span class="s2">&quot;True&quot;</span><span class="p">}</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log_generations_first_n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;FOLKTEXTS_LOG_GENERATIONS_FIRST_N&quot;</span><span class="p">,</span> <span class="s2">&quot;3&quot;</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log_generations_first_n</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_logged_generations_count</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Track ChainOfThoughtQA extraction failures across batches so we can warn</span>
+        <span class="c1"># if a non-trivial fraction of samples fall back to the silent 0.5</span>
+        <span class="c1"># default — otherwise a benchmark with collapsed AUC looks &quot;successful&quot;.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cot_total</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cot_failed</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_should_log_generation</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return True if we should log the next prompt/generation pair.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_log_generations_all</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logged_generations_count</span> <span class="o">&lt;</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_log_generations_first_n</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># Warn the first time the failure rate crosses 25% (after ≥20 samples) and</span>
+    <span class="c1"># again at every 200-sample boundary, so a benchmark with mostly-failing</span>
+    <span class="c1"># extractions surfaces in the logs instead of silently collapsing AUC to 0.5.</span>
+    <span class="n">_COT_FAILURE_WARN_THRESHOLD</span> <span class="o">=</span> <span class="mf">0.25</span>
+    <span class="n">_COT_FAILURE_WARN_MIN_SAMPLES</span> <span class="o">=</span> <span class="mi">20</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_maybe_warn_cot_failure_rate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cot_total</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_COT_FAILURE_WARN_MIN_SAMPLES</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cot_total</span> <span class="o">%</span> <span class="mi">200</span> <span class="o">!=</span> <span class="mi">0</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cot_total</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_COT_FAILURE_WARN_MIN_SAMPLES</span>
+        <span class="p">):</span>
+            <span class="k">return</span>
+        <span class="n">rate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cot_failed</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cot_total</span>
+        <span class="k">if</span> <span class="n">rate</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_COT_FAILURE_WARN_THRESHOLD</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;ChainOfThoughtQA: probability extraction failed for &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_cot_failed</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_cot_total</span><span class="si">}</span><span class="s2"> samples &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">rate</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2">); these fall back to 0.5 and will collapse AUC. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Inspect generations with FOLKTEXTS_LOG_GENERATIONS_FIRST_N.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate a unique hash for the LLMClassifier object.&quot;&quot;&quot;</span>
+
+        <span class="c1"># All parameters that affect the model&#39;s behavior</span>
+        <span class="n">hash_params</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">super_hash</span><span class="o">=</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__hash__</span><span class="p">(),</span>
+            <span class="n">model_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">num_parameters</span><span class="p">(),</span>
+            <span class="n">tokenizer_vocab_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">hash_dict</span><span class="p">(</span><span class="n">hash_params</span><span class="p">),</span> <span class="mi">16</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AutoModelForCausalLM</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tokenizer</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AutoTokenizer</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_query_prompt_risk_estimates_batch</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">prompts_batch</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">question</span><span class="p">:</span> <span class="n">MultipleChoiceQA</span> <span class="o">|</span> <span class="n">DirectNumericQA</span> <span class="o">|</span> <span class="n">ChainOfThoughtQA</span><span class="p">,</span>
+        <span class="n">context_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Query model with a batch of prompts and return risk estimates.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        prompts_batch : list[str]</span>
+<span class="sd">            A batch of string prompts to query the model with.</span>
+<span class="sd">        question : MultipleChoiceQA | DirectNumericQA | ChainOfThoughtQA</span>
+<span class="sd">            The question (`QAInterface`) object to use for querying the model.</span>
+<span class="sd">        context_size : int, optional</span>
+<span class="sd">            The maximum context size to consider for each input (in tokens).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        risk_estimates : np.ndarray</span>
+<span class="sd">            The risk estimates for each prompt in the batch.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Handle ChainOfThoughtQA with text generation</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">question</span><span class="p">,</span> <span class="n">ChainOfThoughtQA</span><span class="p">):</span>
+            <span class="c1"># Pass enable_thinking to generate_text_batch:</span>
+            <span class="c1"># - True: enable thinking mode (uses chat template with enable_thinking=True)</span>
+            <span class="c1"># - False: explicitly disable thinking mode (uses chat template with enable_thinking=False)</span>
+            <span class="c1"># Always apply chat template for ChainOfThoughtQA to properly format the prompt</span>
+            <span class="n">generated_texts</span> <span class="o">=</span> <span class="n">generate_text_batch</span><span class="p">(</span>
+                <span class="n">text_inputs</span><span class="o">=</span><span class="n">prompts_batch</span><span class="p">,</span>
+                <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">tokenizer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="p">,</span>
+                <span class="n">max_new_tokens</span><span class="o">=</span><span class="n">question</span><span class="o">.</span><span class="n">max_new_tokens</span><span class="p">,</span>
+                <span class="n">context_size</span><span class="o">=</span><span class="n">context_size</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_kwargs</span><span class="p">[</span><span class="s2">&quot;context_size&quot;</span><span class="p">],</span>
+                <span class="n">enable_thinking</span><span class="o">=</span><span class="n">question</span><span class="o">.</span><span class="n">enable_thinking</span><span class="p">,</span>
+                <span class="n">system_prompt</span><span class="o">=</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">prompt_config</span><span class="o">.</span><span class="n">system_prompt</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prompt_config</span><span class="o">.</span><span class="n">system_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                    <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Extract probability from generated text and log each sample</span>
+            <span class="n">risk_estimates_batch</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">generated_text</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+                <span class="nb">zip</span><span class="p">(</span><span class="n">prompts_batch</span><span class="p">,</span> <span class="n">generated_texts</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="n">extracted</span> <span class="o">=</span> <span class="n">question</span><span class="o">.</span><span class="n">extract_probability_from_text</span><span class="p">(</span><span class="n">generated_text</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_cot_total</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">extracted</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_cot_failed</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">risk_estimate</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="k">if</span> <span class="n">extracted</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">extracted</span>
+                <span class="n">risk_estimates_batch</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">risk_estimate</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_maybe_warn_cot_failure_rate</span><span class="p">()</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_log_generation</span><span class="p">():</span>
+                    <span class="c1"># Log prompt, generated answer, and extracted risk score at INFO level</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;[ChainOfThoughtQA Sample </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_logged_generations_count</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">]&quot;</span>
+                        <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="o">+</span> <span class="s2">&quot;PROMPT:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                        <span class="o">+</span> <span class="n">prompt</span>
+                        <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="o">+</span> <span class="s2">&quot;GENERATED ANSWER:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                        <span class="o">+</span> <span class="n">generated_text</span>
+                        <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;EXTRACTED RISK SCORE: </span><span class="si">{</span><span class="n">risk_estimate</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                        <span class="o">+</span> <span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">60</span>
+                    <span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_logged_generations_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">risk_estimates_batch</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+        <span class="c1"># TODO: Add support for any unicode character used as a prefix to &quot; A&quot;.</span>
+
+        <span class="c1"># Query model using token probabilities for DirectNumericQA and MultipleChoiceQA</span>
+        <span class="n">last_token_probs_batch</span> <span class="o">=</span> <span class="n">query_model_batch_multiple_passes</span><span class="p">(</span>
+            <span class="n">text_inputs</span><span class="o">=</span><span class="n">prompts_batch</span><span class="p">,</span>
+            <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+            <span class="n">tokenizer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="p">,</span>
+            <span class="n">context_size</span><span class="o">=</span><span class="n">context_size</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference_kwargs</span><span class="p">[</span><span class="s2">&quot;context_size&quot;</span><span class="p">],</span>
+            <span class="n">n_passes</span><span class="o">=</span><span class="n">question</span><span class="o">.</span><span class="n">num_forward_passes</span><span class="p">,</span>
+            <span class="n">digits_only</span><span class="o">=</span><span class="kc">True</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">question</span><span class="p">,</span> <span class="n">DirectNumericQA</span><span class="p">)</span> <span class="k">else</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Decode model output</span>
+        <span class="n">risk_estimates_batch</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">question</span><span class="o">.</span><span class="n">get_answer_from_model_output</span><span class="p">(</span>
+                <span class="n">ltp</span><span class="p">,</span>
+                <span class="n">tokenizer_vocab</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">vocab</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">ltp</span> <span class="ow">in</span> <span class="n">last_token_probs_batch</span>
+        <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">risk_estimates_batch</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

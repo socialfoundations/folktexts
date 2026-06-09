@@ -1,0 +1,697 @@
+
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>README.md &mdash; folktexts 0.6.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=fd6457a4" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=41710f8f" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8fa8b3e9"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="_static/custom.js?v=882eb7ae"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Configuring prompts" href="configuring_prompts.html" />
+    <link rel="prev" title="Welcome to folktexts’ documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  <a href="index.html" class="icon icon-home">
+    folktexts
+  </a>
+    <div class="version">0.6.0</div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">🏠 Home</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">📖 Readme file</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#table-of-contents">Table of contents   <!-- omit in toc --></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#getting-started">Getting started</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#installing">Installing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#basic-setup">Basic setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ready-to-use-datasets">Ready-to-use datasets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-usage">Example usage</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#benchmark-features-and-options">Benchmark features and options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuring-prompts">Configuring prompts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#question-modes">Question modes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#varying-the-feature-block-variation">Varying the feature block — <code class="docutils literal notranslate"><span class="pre">--variation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#few-shot-examples">Few-shot examples</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chat-system-prompt-and-chain-of-thought">Chat, system prompt, and chain-of-thought</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#evaluating-feature-importance">Evaluating feature importance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#faq">FAQ</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#citation">Citation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#license-and-terms-of-use">License and terms of use</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="configuring_prompts.html">🎛️ Configuring prompts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="updates.html">📝 Updates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="source/modules.html">⚙️ API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebooks.html">📓 Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">README.md</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/readme.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="readme-md">
+<h1>README.md<a class="headerlink" href="#readme-md" title="Link to this heading"></a></h1>
+ <!-- # Folktexts   <!-- omit in toc -->
+<p><img alt="Tests status" src="https://github.com/socialfoundations/folktexts/actions/workflows/python-tests.yml/badge.svg" />
+<img alt="PyPI status" src="https://github.com/socialfoundations/folktexts/actions/workflows/python-publish.yml/badge.svg" />
+<img alt="Documentation status" src="https://github.com/socialfoundations/folktexts/actions/workflows/python-docs.yml/badge.svg" />
+<img alt="PyPI version" src="https://badgen.net/pypi/v/folktexts" />
+<img alt="PyPI - License" src="https://img.shields.io/pypi/l/folktexts" />
+<img alt="Python compatibility" src="https://badgen.net/pypi/python/folktexts" />
+<a class="reference external" href="https://huggingface.co/datasets/acruz/folktexts"><img alt="Huggingface dataset" src="https://img.shields.io/badge/HuggingFace-FDEE21?style=flat&amp;logo=huggingface&amp;logoColor=black&amp;color=%23FFD21E" /></a></p>
+<img src="docs/_static/logo-wider.png">
+<h2>A toolbox for evaluating statistical properties of LLMs</h2>
+<p>Folktexts provides a suite of Q&amp;A datasets for evaluating <strong>uncertainty</strong>, <strong>calibration</strong>, <strong>accuracy</strong> and <strong>fairness</strong> of LLMs on individual outcome prediction tasks. It provides a flexible framework to derive prediction <strong>tasks from survey data</strong>, translates them into natural text prompts, extracts LLM-generated <em>risk scores</em>, and computes statistical properties of these risk scores by comparing them to the ground truth outcomes.</p>
+<p><strong>Use folktexts to benchmark your LLM:</strong></p>
+<ul class="simple">
+<li><p>Pre-defined Q&amp;A benchmark tasks are provided based on data from the American Community Survey (<a href="https://www.census.gov/programs-surveys/acs/microdata/documentation.html">ACS</a>). Each tabular prediction task from the popular
+<a class="reference external" href="https://github.com/socialfoundations/folktables">folktables</a> package is made available
+as a natural-language Q&amp;A task.</p></li>
+<li><p>Parsed and ready-to-use versions of each <em>folktexts</em> dataset can be found on
+<a href="https://huggingface.co/datasets/acruz/folktexts"> Huggingface</a>.</p></li>
+<li><p>The package can be used to customize your tasks. Select a feature to define your prediction target. Specify subsets of input features to vary outcome uncertainty. Modify prompting templates to evaluate mappings from tabular data to natural text prompts. Compare different methods to extract uncertainty values from LLM responses. Extract raw risk scores and outcomes to perform custom statistical evaluations. Package documentation can be found <a class="reference external" href="https://socialfoundations.github.io/folktexts/">here</a>.</p></li>
+</ul>
+<!-- ![folktexts-diagram](docs/_static/folktexts-loop-diagram.png) -->
+<p align="center">
+    <img src="docs/_static/folktexts-loop-diagram.png" alt="folktexts-diagram" width="700px">
+</p>
+<blockquote>
+<div><p><strong>🆕 v0.6.0</strong> adds typed, composable prompt configuration — build prompts from <code class="docutils literal notranslate"><span class="pre">PromptConfig</span></code> / <code class="docutils literal notranslate"><span class="pre">FewShotConfig</span></code> and vary the feature block with the <code class="docutils literal notranslate"><span class="pre">--variation</span></code> CLI flag; see <a class="reference internal" href="#configuring-prompts"><span class="xref myst">Configuring prompts</span></a>. The v0.4.0 <a class="reference external" href="https://github.com/vllm-project/vllm">vLLM</a> backend remains the default local-inference path (<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">'folktexts[vllm]'</span></code>, CUDA GPU required). Full release notes in <a class="reference internal" href="#docs/updates.md"><span class="xref myst"><code class="docutils literal notranslate"><span class="pre">docs/updates.md</span></code></span></a>.</p>
+</div></blockquote>
+<section id="table-of-contents">
+<h2>Table of contents   <!-- omit in toc --><a class="headerlink" href="#table-of-contents" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="#getting-started"><span class="xref myst">Getting started</span></a></p>
+<ul>
+<li><p><a class="reference internal" href="#installing"><span class="std std-ref">Installing</span></a></p></li>
+<li><p><a class="reference internal" href="#basic-setup"><span class="xref myst">Basic setup</span></a></p></li>
+<li><p><a class="reference internal" href="#ready-to-use-datasets"><span class="xref myst">Ready-to-use datasets</span></a></p></li>
+<li><p><a class="reference internal" href="#example-usage"><span class="xref myst">Example usage</span></a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#benchmark-features-and-options"><span class="xref myst">Benchmark features and options</span></a></p></li>
+<li><p><a class="reference internal" href="#configuring-prompts"><span class="xref myst">Configuring prompts</span></a></p></li>
+<li><p><a class="reference internal" href="#evaluating-feature-importance"><span class="xref myst">Evaluating feature importance</span></a></p></li>
+<li><p><a class="reference internal" href="#faq"><span class="std std-ref">FAQ</span></a></p></li>
+<li><p><a class="reference internal" href="#citation"><span class="std std-ref">Citation</span></a></p></li>
+<li><p><a class="reference internal" href="#license-and-terms-of-use"><span class="xref myst">License and terms of use</span></a></p></li>
+</ul>
+</section>
+<section id="getting-started">
+<h2>Getting started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h2>
+<section id="installing">
+<h3>Installing<a class="headerlink" href="#installing" title="Link to this heading"></a></h3>
+<p>Install package from <a class="reference external" href="https://pypi.org/project/folktexts/">PyPI</a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">folktexts</span>
+</pre></div>
+</div>
+</section>
+<section id="basic-setup">
+<h3>Basic setup<a class="headerlink" href="#basic-setup" title="Link to this heading"></a></h3>
+<blockquote>
+<div><p>Go through the following steps to run the benchmark tasks.
+Alternatively, if you only want ready-to-use datasets, see <a class="reference internal" href="#ready-to-use-datasets"><span class="xref myst">this section</span></a>.</p>
+</div></blockquote>
+<ol class="arabic simple">
+<li><p>Create the environment and install folktexts</p></li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">-</span><span class="n">n</span> <span class="n">folktexts</span> <span class="n">python</span><span class="o">=</span><span class="mf">3.11</span> <span class="o">&amp;&amp;</span> <span class="n">conda</span> <span class="n">activate</span> <span class="n">folktexts</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="s1">&#39;folktexts[vllm]&#39;</span>    <span class="c1"># drop the [vllm] extra to skip the default GPU backend</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p>Create the working folders and download a model</p></li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mkdir</span> <span class="n">results</span> <span class="n">models</span> <span class="n">data</span>
+<span class="n">download_models</span> <span class="o">--</span><span class="n">model</span> <span class="s1">&#39;google/gemma-2b&#39;</span> <span class="o">--</span><span class="n">save</span><span class="o">-</span><span class="nb">dir</span> <span class="n">models</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="3">
+<li><p>Run a benchmark task</p></li>
+</ol>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">run_acs_benchmark</span> <span class="o">--</span><span class="n">results</span><span class="o">-</span><span class="nb">dir</span> <span class="n">results</span> <span class="o">--</span><span class="n">data</span><span class="o">-</span><span class="nb">dir</span> <span class="n">data</span> <span class="o">--</span><span class="n">task</span> <span class="s1">&#39;ACSIncome&#39;</span> <span class="o">--</span><span class="n">model</span> <span class="n">models</span><span class="o">/</span><span class="n">google</span><span class="o">--</span><span class="n">gemma</span><span class="o">-</span><span class="mi">2</span><span class="n">b</span>
+</pre></div>
+</div>
+<p>Run <code class="docutils literal notranslate"><span class="pre">run_acs_benchmark</span> <span class="pre">--help</span></code> to get a list of all available benchmark flags.</p>
+</section>
+<section id="ready-to-use-datasets">
+<h3>Ready-to-use datasets<a class="headerlink" href="#ready-to-use-datasets" title="Link to this heading"></a></h3>
+<details>
+<summary>click to expand</summary>
+<p>Pre-rendered Q&amp;A datasets generated from the 2018 American Community Survey are available on
+<a href="https://huggingface.co/datasets/acruz/folktexts">
+<span style="display: inline-block; vertical-align: middle;">
+<img src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg" alt="Logo" style="height: 1em; vertical-align: text-bottom;">
+</span>
+Hugging Face</a> — handy if you only need the prompts/labels and don’t want to run the LLM scoring pipeline yourself.</p>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">datasets</span>
+<span class="n">acs_task_qa</span> <span class="o">=</span> <span class="n">datasets</span><span class="o">.</span><span class="n">load_dataset</span><span class="p">(</span>
+    <span class="n">path</span><span class="o">=</span><span class="s2">&quot;acruz/folktexts&quot;</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ACSIncome&quot;</span><span class="p">,</span>   <span class="c1"># Choose which task you want to load</span>
+    <span class="n">split</span><span class="o">=</span><span class="s2">&quot;test&quot;</span><span class="p">)</span>       <span class="c1"># Choose split according to your intended use case</span>
+</pre></div>
+</div>
+</details>
+</section>
+<section id="example-usage">
+<h3>Example usage<a class="headerlink" href="#example-usage" title="Link to this heading"></a></h3>
+<p>Load a model and produce risk scores on the test split using the default vLLM backend:</p>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.llm_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_vllm_model</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.classifier</span><span class="w"> </span><span class="kn">import</span> <span class="n">VLLMClassifier</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.acs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ACSDataset</span>
+
+<span class="c1"># BF16 + gpu_memory_utilization=0.85 by default; tune `max_model_len` for your VRAM.</span>
+<span class="n">llm</span><span class="p">,</span> <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">load_vllm_model</span><span class="p">(</span><span class="s2">&quot;/path/to/model&quot;</span><span class="p">,</span> <span class="n">max_model_len</span><span class="o">=</span><span class="mi">2048</span><span class="p">)</span>
+
+<span class="n">clf</span> <span class="o">=</span> <span class="n">VLLMClassifier</span><span class="p">(</span>
+    <span class="n">llm</span><span class="o">=</span><span class="n">llm</span><span class="p">,</span> <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+    <span class="n">task</span><span class="o">=</span><span class="s2">&quot;ACSIncome&quot;</span><span class="p">,</span>
+    <span class="n">model_name_or_path</span><span class="o">=</span><span class="s2">&quot;/path/to/model&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">ACSDataset</span><span class="o">.</span><span class="n">make_from_task</span><span class="p">(</span><span class="s2">&quot;ACSIncome&quot;</span><span class="p">)</span>    <span class="c1"># `.subsample(0.01)` for faster approximate results</span>
+<span class="n">X_test</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">get_test</span><span class="p">()</span>
+<span class="n">test_scores</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">VLLMClassifier</span></code>, <code class="docutils literal notranslate"><span class="pre">TransformersLLMClassifier</span></code>, and <code class="docutils literal notranslate"><span class="pre">WebAPILLMClassifier</span></code> all expose the
+same <code class="docutils literal notranslate"><span class="pre">.predict_proba</span></code> / <code class="docutils literal notranslate"><span class="pre">.predict</span></code> / <code class="docutils literal notranslate"><span class="pre">.fit</span></code> interface — switching backends is a one-line
+change to how the model is loaded.</p>
+<details>
+<summary><strong>Using the 🤗 transformers backend instead</strong> (click to expand)</summary>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.llm_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_model_tokenizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.classifier</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransformersLLMClassifier</span>
+
+<span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">load_model_tokenizer</span><span class="p">(</span><span class="s2">&quot;gpt2&quot;</span><span class="p">)</span>     <span class="c1"># tiny model for example</span>
+<span class="n">clf</span> <span class="o">=</span> <span class="n">TransformersLLMClassifier</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span> <span class="n">task</span><span class="o">=</span><span class="s2">&quot;ACSIncome&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For web-hosted models (OpenAI, Anthropic, …), use <code class="docutils literal notranslate"><span class="pre">WebAPILLMClassifier</span></code> with any
+<a class="reference external" href="https://docs.litellm.ai">litellm</a>-compatible identifier that exposes log-probabilities
+(<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">'folktexts[apis]'</span></code>).</p>
+</details>
+<details>
+<summary><strong>Running the full benchmark suite</strong> (click to expand)</summary>
+<p>If you only care about overall metrics rather than per-row scores, use
+<code class="docutils literal notranslate"><span class="pre">Benchmark.make_benchmark</span></code>. The backend is autodetected from the model handle
+(vLLM <code class="docutils literal notranslate"><span class="pre">LLM</span></code> → <code class="docutils literal notranslate"><span class="pre">vllm</span></code>, HF <code class="docutils literal notranslate"><span class="pre">PreTrainedModel</span></code> → <code class="docutils literal notranslate"><span class="pre">transformers</span></code>, model-id string →
+<code class="docutils literal notranslate"><span class="pre">webapi</span></code>); pass <code class="docutils literal notranslate"><span class="pre">backend=</span></code> explicitly to override.</p>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.benchmark</span><span class="w"> </span><span class="kn">import</span> <span class="n">Benchmark</span>
+<span class="n">bench</span> <span class="o">=</span> <span class="n">Benchmark</span><span class="o">.</span><span class="n">make_benchmark</span><span class="p">(</span>
+    <span class="n">task</span><span class="o">=</span><span class="s2">&quot;ACSIncome&quot;</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">llm</span><span class="p">,</span> <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+    <span class="n">numeric_risk_prompting</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>    <span class="c1"># see the options table below for the full list</span>
+<span class="p">)</span>
+<span class="n">bench_results</span> <span class="o">=</span> <span class="n">bench</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">results_root_dir</span><span class="o">=</span><span class="s2">&quot;results&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</details>
+<details>
+<summary><strong>Chain-of-thought prompting</strong> (click to expand)</summary>
+<p>The model generates free-form reasoning text before emitting a probability,
+which is then extracted via regex. <code class="docutils literal notranslate"><span class="pre">enable_thinking=True</span></code> is a sub-option of
+chain-of-thought that activates the Qwen3-style thinking-mode chat template and
+strips the <code class="docutils literal notranslate"><span class="pre">&lt;think&gt;</span></code> block before extraction; setting it on its own enables
+chain-of-thought automatically (with a warning).</p>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.benchmark</span><span class="w"> </span><span class="kn">import</span> <span class="n">Benchmark</span><span class="p">,</span> <span class="n">BenchmarkConfig</span>
+
+<span class="n">config</span> <span class="o">=</span> <span class="n">BenchmarkConfig</span><span class="p">(</span><span class="n">cot_prompting</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">enable_thinking</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">bench</span> <span class="o">=</span> <span class="n">Benchmark</span><span class="o">.</span><span class="n">make_benchmark</span><span class="p">(</span>
+    <span class="n">task</span><span class="o">=</span><span class="s2">&quot;ACSIncome&quot;</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span>
+    <span class="n">model</span><span class="o">=</span><span class="n">llm</span><span class="p">,</span> <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">bench_results</span> <span class="o">=</span> <span class="n">bench</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">results_root_dir</span><span class="o">=</span><span class="s2">&quot;results&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</details>
+<details>
+<summary><strong>Fitting a binarization threshold</strong> (click to expand)</summary>
+<p>Fit a decision threshold on a small training slice (this is <em>not</em> fine-tuning —
+only the post-hoc threshold is learned), then call <code class="docutils literal notranslate"><span class="pre">.predict()</span></code> for discretized
+labels:</p>
+<div class="highlight-py notranslate"><div class="highlight"><pre><span></span><span class="n">clf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="o">*</span><span class="n">dataset</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">100</span><span class="p">])</span>    <span class="c1"># `dataset[...]` indexes into training data</span>
+<span class="n">test_preds</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+</pre></div>
+</div>
+</details>
+</section>
+</section>
+<section id="benchmark-features-and-options">
+<h2>Benchmark features and options<a class="headerlink" href="#benchmark-features-and-options" title="Link to this heading"></a></h2>
+<details>
+<summary>click to expand</summary>
+<p>Here’s a summary list of the most important benchmark options/flags used in
+conjunction with the <code class="docutils literal notranslate"><span class="pre">run_acs_benchmark</span></code> command line script, or with the
+<code class="docutils literal notranslate"><span class="pre">Benchmark</span></code> class.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Option</p></th>
+<th class="head text-left"><p>Description</p></th>
+<th class="head text-center"><p>Examples</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--model</span></code></p></td>
+<td class="text-left"><p>Name of the model on huggingface transformers, or local path to folder with pretrained model and tokenizer. Can also use web-hosted models with <code class="docutils literal notranslate"><span class="pre">&quot;[provider]/[model-name]&quot;</span></code>.</p></td>
+<td class="text-center"><p><code class="docutils literal notranslate"><span class="pre">meta-llama/Meta-Llama-3-8B</span></code>, <code class="docutils literal notranslate"><span class="pre">openai/gpt-4o-mini</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--task</span></code></p></td>
+<td class="text-left"><p>Name of the ACS task to run benchmark on.</p></td>
+<td class="text-center"><p><code class="docutils literal notranslate"><span class="pre">ACSIncome</span></code>, <code class="docutils literal notranslate"><span class="pre">ACSEmployment</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--results-dir</span></code></p></td>
+<td class="text-left"><p>Path to directory under which benchmark results will be saved.</p></td>
+<td class="text-center"><p><code class="docutils literal notranslate"><span class="pre">results</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--data-dir</span></code></p></td>
+<td class="text-left"><p>Root folder to find datasets in (or download ACS data to).</p></td>
+<td class="text-center"><p><code class="docutils literal notranslate"><span class="pre">~/data</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--numeric-risk-prompting</span></code></p></td>
+<td class="text-left"><p>Whether to use verbalized numeric risk prompting, i.e., directly query model for a probability estimate. <strong>By default</strong> will use standard multiple-choice Q&amp;A, and extract risk scores from internal token probabilities.</p></td>
+<td class="text-center"><p>Boolean flag (<code class="docutils literal notranslate"><span class="pre">True</span></code> if present, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise)</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--use-chat-template</span></code></p></td>
+<td class="text-left"><p>Format prompts using the tokenizer’s chat template (recommended for instruct/chat models). Pair with <code class="docutils literal notranslate"><span class="pre">--system-prompt</span></code> and/or <code class="docutils literal notranslate"><span class="pre">--chat-prompt</span></code> to override the defaults. Mutually exclusive with <code class="docutils literal notranslate"><span class="pre">--cot-prompting</span></code>. <strong>By default</strong> uses zero-shot prompting without a chat template.</p></td>
+<td class="text-center"><p>Boolean flag (<code class="docutils literal notranslate"><span class="pre">True</span></code> if present, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise)</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--cot-prompting</span></code></p></td>
+<td class="text-left"><p>Use chain-of-thought (CoT) prompting: the model generates free-form reasoning text before outputting a probability estimate, which is extracted from the generated text via regex.</p></td>
+<td class="text-center"><p>Boolean flag (<code class="docutils literal notranslate"><span class="pre">True</span></code> if present, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise)</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--enable-thinking</span></code></p></td>
+<td class="text-left"><p>Enable thinking mode for tokenizers that support it (e.g. Qwen3). Only applies with <code class="docutils literal notranslate"><span class="pre">--cot-prompting</span></code>; calls <code class="docutils literal notranslate"><span class="pre">apply_chat_template(enable_thinking=True)</span></code> and strips the <code class="docutils literal notranslate"><span class="pre">&lt;think&gt;</span></code> block before extraction.</p></td>
+<td class="text-center"><p>Boolean flag (<code class="docutils literal notranslate"><span class="pre">True</span></code> if present, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise)</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--use-web-api-model</span></code></p></td>
+<td class="text-left"><p>Whether the given <code class="docutils literal notranslate"><span class="pre">--model</span></code> name corresponds to a web-hosted model or not. <strong>By default</strong> this is False (assumes a local model). If this flag is provided, <code class="docutils literal notranslate"><span class="pre">--model</span></code> must contain a <a class="reference external" href="https://docs.litellm.ai">litellm</a> model identifier (<a class="reference external" href="https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models">examples here</a>).</p></td>
+<td class="text-center"><p>Boolean flag (<code class="docutils literal notranslate"><span class="pre">True</span></code> if present, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise)</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--inference-backend</span></code></p></td>
+<td class="text-left"><p>Local inference backend. <strong>Default</strong> <code class="docutils literal notranslate"><span class="pre">vllm</span></code> for high-throughput continuous batching (requires <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">'folktexts[vllm]'</span></code> and a CUDA GPU); pass <code class="docutils literal notranslate"><span class="pre">transformers</span></code> to use the HuggingFace path instead. Ignored when <code class="docutils literal notranslate"><span class="pre">--use-web-api-model</span></code> is set.</p></td>
+<td class="text-center"><p><code class="docutils literal notranslate"><span class="pre">vllm</span></code>, <code class="docutils literal notranslate"><span class="pre">transformers</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--gpu-memory-utilization</span></code></p></td>
+<td class="text-left"><p>vLLM only. Fraction of GPU VRAM vLLM may pre-allocate for KV cache. Lower if vLLM OOMs at startup.</p></td>
+<td class="text-center"><p><code class="docutils literal notranslate"><span class="pre">0.85</span></code> (default)</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--max-model-len</span></code></p></td>
+<td class="text-left"><p>vLLM only. Maximum tokens (input + output) per request. Defaults to <code class="docutils literal notranslate"><span class="pre">--context-size</span> <span class="pre">+</span> <span class="pre">ChainOfThoughtQA.max_new_tokens</span> <span class="pre">+</span> <span class="pre">256</span></code> for CoT runs (600 + 8000 + 256 = 8856 with the default <code class="docutils literal notranslate"><span class="pre">--context-size</span></code> of 600), otherwise <code class="docutils literal notranslate"><span class="pre">--context-size</span> <span class="pre">+</span> <span class="pre">1</span> <span class="pre">+</span> <span class="pre">256</span></code>. Override on tighter VRAM.</p></td>
+<td class="text-center"><p><code class="docutils literal notranslate"><span class="pre">2048</span></code>, <code class="docutils literal notranslate"><span class="pre">8192</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--vllm-dtype</span></code></p></td>
+<td class="text-left"><p>vLLM only. Compute dtype.</p></td>
+<td class="text-center"><p><code class="docutils literal notranslate"><span class="pre">auto</span></code>, <code class="docutils literal notranslate"><span class="pre">bfloat16</span></code>, <code class="docutils literal notranslate"><span class="pre">float16</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--tensor-parallel-size</span></code></p></td>
+<td class="text-left"><p>vLLM only. Number of GPUs to shard the model across; auto-detects from <code class="docutils literal notranslate"><span class="pre">CUDA_VISIBLE_DEVICES</span></code>.</p></td>
+<td class="text-center"><p><code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">2</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--subsampling</span></code></p></td>
+<td class="text-left"><p>Which fraction of the dataset to use for the benchmark. <strong>By default</strong> will use the whole test set.</p></td>
+<td class="text-center"><p><code class="docutils literal notranslate"><span class="pre">0.01</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--fit-threshold</span></code></p></td>
+<td class="text-left"><p>Whether to use the given number of samples to fit the binarization threshold. <strong>By default</strong> will use a fixed $t=0.5$ threshold instead of fitting on data.</p></td>
+<td class="text-center"><p><code class="docutils literal notranslate"><span class="pre">100</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--batch-size</span></code></p></td>
+<td class="text-left"><p>The number of samples to process in each inference batch. Choose according to your available VRAM.</p></td>
+<td class="text-center"><p><code class="docutils literal notranslate"><span class="pre">10</span></code>, <code class="docutils literal notranslate"><span class="pre">32</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<details>
+<summary><strong>Full list of options</strong> (click to expand)</summary>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">run_acs_benchmark</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="o">--</span><span class="n">model</span> <span class="n">MODEL</span> <span class="o">--</span><span class="n">results</span><span class="o">-</span><span class="nb">dir</span> <span class="n">RESULTS_DIR</span> <span class="o">--</span><span class="n">data</span><span class="o">-</span><span class="nb">dir</span> <span class="n">DATA_DIR</span> <span class="p">[</span><span class="o">--</span><span class="n">task</span> <span class="n">TASK</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">few</span><span class="o">-</span><span class="n">shot</span> <span class="n">FEW_SHOT</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">batch</span><span class="o">-</span><span class="n">size</span> <span class="n">BATCH_SIZE</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">context</span><span class="o">-</span><span class="n">size</span> <span class="n">CONTEXT_SIZE</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">threshold</span> <span class="n">FIT_THRESHOLD</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">subsampling</span> <span class="n">SUBSAMPLING</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">seed</span> <span class="n">SEED</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">web</span><span class="o">-</span><span class="n">api</span><span class="o">-</span><span class="n">model</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">inference</span><span class="o">-</span><span class="n">backend</span> <span class="p">{</span><span class="n">transformers</span><span class="p">,</span><span class="n">vllm</span><span class="p">}]</span> <span class="p">[</span><span class="o">--</span><span class="n">gpu</span><span class="o">-</span><span class="n">memory</span><span class="o">-</span><span class="n">utilization</span> <span class="n">GPU_MEMORY_UTILIZATION</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="nb">max</span><span class="o">-</span><span class="n">model</span><span class="o">-</span><span class="nb">len</span> <span class="n">MAX_MODEL_LEN</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">vllm</span><span class="o">-</span><span class="n">dtype</span> <span class="n">VLLM_DTYPE</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">tensor</span><span class="o">-</span><span class="n">parallel</span><span class="o">-</span><span class="n">size</span> <span class="n">TENSOR_PARALLEL_SIZE</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">dont</span><span class="o">-</span><span class="n">correct</span><span class="o">-</span><span class="n">order</span><span class="o">-</span><span class="n">bias</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">numeric</span><span class="o">-</span><span class="n">risk</span><span class="o">-</span><span class="n">prompting</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">cot</span><span class="o">-</span><span class="n">prompting</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">enable</span><span class="o">-</span><span class="n">thinking</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">reuse</span><span class="o">-</span><span class="n">few</span><span class="o">-</span><span class="n">shot</span><span class="o">-</span><span class="n">examples</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">compose</span><span class="o">-</span><span class="n">few</span><span class="o">-</span><span class="n">shot</span><span class="o">-</span><span class="n">examples</span> <span class="n">COMPOSE_FEW_SHOT_EXAMPLES</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">example</span><span class="o">-</span><span class="n">order</span> <span class="n">EXAMPLE_ORDER</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">few</span><span class="o">-</span><span class="n">shot</span><span class="o">-</span><span class="n">hide</span><span class="o">-</span><span class="n">question</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">variation</span> <span class="p">[</span><span class="n">VARIATION</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">chat</span><span class="o">-</span><span class="n">template</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">chat</span><span class="o">-</span><span class="n">prompt</span> <span class="n">CHAT_PROMPT</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">system</span><span class="o">-</span><span class="n">prompt</span> <span class="n">SYSTEM_PROMPT</span><span class="p">]</span>
+                         <span class="p">[</span><span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">feature</span><span class="o">-</span><span class="n">subset</span> <span class="n">USE_FEATURE_SUBSET</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">population</span><span class="o">-</span><span class="nb">filter</span> <span class="n">USE_POPULATION_FILTER</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="nb">max</span><span class="o">-</span><span class="n">api</span><span class="o">-</span><span class="n">rpm</span> <span class="n">MAX_API_RPM</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">logger</span><span class="o">-</span><span class="n">level</span> <span class="p">{</span><span class="n">DEBUG</span><span class="p">,</span><span class="n">INFO</span><span class="p">,</span><span class="n">WARNING</span><span class="p">,</span><span class="n">ERROR</span><span class="p">,</span><span class="n">CRITICAL</span><span class="p">}]</span>
+
+<span class="n">Benchmark</span> <span class="n">risk</span> <span class="n">scores</span> <span class="n">produced</span> <span class="n">by</span> <span class="n">a</span> <span class="n">language</span> <span class="n">model</span> <span class="n">on</span> <span class="n">ACS</span> <span class="n">data</span><span class="o">.</span>
+
+<span class="n">options</span><span class="p">:</span>
+  <span class="o">-</span><span class="n">h</span><span class="p">,</span> <span class="o">--</span><span class="n">help</span>            <span class="n">show</span> <span class="n">this</span> <span class="n">help</span> <span class="n">message</span> <span class="ow">and</span> <span class="n">exit</span>
+  <span class="o">--</span><span class="n">model</span> <span class="n">MODEL</span>         <span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">Model</span> <span class="n">name</span> <span class="ow">or</span> <span class="n">path</span> <span class="n">to</span> <span class="n">model</span> <span class="n">saved</span> <span class="n">on</span> <span class="n">disk</span>
+  <span class="o">--</span><span class="n">results</span><span class="o">-</span><span class="nb">dir</span> <span class="n">RESULTS_DIR</span>
+                        <span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">Directory</span> <span class="n">under</span> <span class="n">which</span> <span class="n">this</span> <span class="n">experiment</span><span class="s1">&#39;s results will be saved</span>
+  <span class="o">--</span><span class="n">data</span><span class="o">-</span><span class="nb">dir</span> <span class="n">DATA_DIR</span>   <span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">Root</span> <span class="n">folder</span> <span class="n">to</span> <span class="n">find</span> <span class="n">datasets</span> <span class="n">on</span>
+  <span class="o">--</span><span class="n">task</span> <span class="n">TASK</span>           <span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">Name</span> <span class="n">of</span> <span class="n">the</span> <span class="n">ACS</span> <span class="n">task</span> <span class="n">to</span> <span class="n">run</span> <span class="n">the</span> <span class="n">experiment</span> <span class="n">on</span>
+  <span class="o">--</span><span class="n">few</span><span class="o">-</span><span class="n">shot</span> <span class="n">FEW_SHOT</span>   <span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="n">Use</span> <span class="n">few</span><span class="o">-</span><span class="n">shot</span> <span class="n">prompting</span> <span class="k">with</span> <span class="n">the</span> <span class="n">given</span> <span class="n">number</span> <span class="n">of</span> <span class="n">shots</span>
+  <span class="o">--</span><span class="n">batch</span><span class="o">-</span><span class="n">size</span> <span class="n">BATCH_SIZE</span>
+                        <span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="n">The</span> <span class="n">batch</span> <span class="n">size</span> <span class="n">to</span> <span class="n">use</span> <span class="k">for</span> <span class="n">inference</span>
+  <span class="o">--</span><span class="n">context</span><span class="o">-</span><span class="n">size</span> <span class="n">CONTEXT_SIZE</span>
+                        <span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="n">The</span> <span class="n">maximum</span> <span class="n">context</span> <span class="n">size</span> <span class="n">when</span> <span class="n">prompting</span> <span class="n">the</span> <span class="n">LLM</span>
+  <span class="o">--</span><span class="n">fit</span><span class="o">-</span><span class="n">threshold</span> <span class="n">FIT_THRESHOLD</span>
+                        <span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="n">Whether</span> <span class="n">to</span> <span class="n">fit</span> <span class="n">the</span> <span class="n">prediction</span> <span class="n">threshold</span><span class="p">,</span> <span class="ow">and</span> <span class="n">on</span> <span class="n">how</span> <span class="n">many</span> <span class="n">samples</span>
+  <span class="o">--</span><span class="n">subsampling</span> <span class="n">SUBSAMPLING</span>
+                        <span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="n">Which</span> <span class="n">fraction</span> <span class="n">of</span> <span class="n">the</span> <span class="n">dataset</span> <span class="n">to</span> <span class="n">use</span> <span class="p">(</span><span class="k">if</span> <span class="n">omitted</span> <span class="n">will</span> <span class="n">use</span> <span class="nb">all</span> <span class="n">data</span><span class="p">)</span>
+  <span class="o">--</span><span class="n">seed</span> <span class="n">SEED</span>           <span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="n">Random</span> <span class="n">seed</span> <span class="o">--</span> <span class="n">to</span> <span class="nb">set</span> <span class="k">for</span> <span class="n">reproducibility</span>
+  <span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">web</span><span class="o">-</span><span class="n">api</span><span class="o">-</span><span class="n">model</span>   <span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="n">Whether</span> <span class="n">use</span> <span class="n">a</span> <span class="n">model</span> <span class="n">hosted</span> <span class="n">on</span> <span class="n">a</span> <span class="n">web</span> <span class="n">API</span> <span class="p">(</span><span class="n">instead</span> <span class="n">of</span> <span class="n">a</span> <span class="n">local</span> <span class="n">model</span><span class="p">)</span>
+  <span class="o">--</span><span class="n">inference</span><span class="o">-</span><span class="n">backend</span> <span class="p">{</span><span class="n">transformers</span><span class="p">,</span><span class="n">vllm</span><span class="p">}</span>
+                        <span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">Local</span> <span class="n">inference</span> <span class="n">backend</span> <span class="n">to</span> <span class="n">use</span><span class="p">;</span> <span class="n">default</span> <span class="ow">is</span> <span class="s1">&#39;vllm&#39;</span><span class="o">.</span> <span class="n">Pass</span> <span class="s1">&#39;transformers&#39;</span> <span class="n">to</span> <span class="n">fall</span> <span class="n">back</span> <span class="n">to</span> <span class="n">the</span> <span class="n">HuggingFace</span> <span class="n">path</span><span class="o">.</span> <span class="n">Ignored</span> <span class="n">when</span> <span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">web</span><span class="o">-</span><span class="n">api</span><span class="o">-</span><span class="n">model</span> <span class="ow">is</span> <span class="nb">set</span><span class="o">.</span>
+  <span class="o">--</span><span class="n">gpu</span><span class="o">-</span><span class="n">memory</span><span class="o">-</span><span class="n">utilization</span> <span class="n">GPU_MEMORY_UTILIZATION</span>
+                        <span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="n">vLLM</span> <span class="n">gpu_memory_utilization</span> <span class="p">(</span><span class="n">default</span> <span class="mf">0.85</span><span class="p">)</span><span class="o">.</span> <span class="n">Lower</span> <span class="k">if</span> <span class="n">vLLM</span> <span class="n">OOMs</span> <span class="n">at</span> <span class="n">startup</span><span class="o">.</span>
+  <span class="o">--</span><span class="nb">max</span><span class="o">-</span><span class="n">model</span><span class="o">-</span><span class="nb">len</span> <span class="n">MAX_MODEL_LEN</span>
+                        <span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="n">vLLM</span> <span class="n">max_model_len</span> <span class="p">(</span><span class="nb">input</span> <span class="o">+</span> <span class="n">output</span> <span class="n">tokens</span><span class="p">)</span><span class="o">.</span> <span class="n">If</span> <span class="n">unset</span><span class="p">,</span> <span class="n">derived</span> <span class="kn">from</span><span class="w"> </span><span class="o">--</span><span class="n">context</span><span class="o">-</span><span class="n">size</span> <span class="o">+</span> <span class="n">ChainOfThoughtQA</span><span class="o">.</span><span class="n">max_new_tokens</span> <span class="k">for</span> <span class="n">the</span> <span class="n">prompting</span> <span class="n">mode</span> <span class="p">(</span><span class="n">currently</span> <span class="mi">8000</span> <span class="k">for</span> <span class="n">CoT</span><span class="o">/</span><span class="n">thinking</span><span class="p">,</span> <span class="mi">1</span> <span class="n">otherwise</span><span class="p">)</span><span class="o">.</span>
+  <span class="o">--</span><span class="n">vllm</span><span class="o">-</span><span class="n">dtype</span> <span class="n">VLLM_DTYPE</span>
+                        <span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">vLLM</span> <span class="n">compute</span> <span class="n">dtype</span> <span class="p">(</span><span class="n">auto</span><span class="o">/</span><span class="n">bfloat16</span><span class="o">/</span><span class="n">float16</span><span class="o">/</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span>
+  <span class="o">--</span><span class="n">tensor</span><span class="o">-</span><span class="n">parallel</span><span class="o">-</span><span class="n">size</span> <span class="n">TENSOR_PARALLEL_SIZE</span>
+                        <span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="n">vLLM</span> <span class="n">tensor_parallel_size</span><span class="o">.</span> <span class="n">If</span> <span class="n">unset</span><span class="p">,</span> <span class="n">auto</span><span class="o">-</span><span class="n">detected</span> <span class="kn">from</span><span class="w"> </span><span class="nn">CUDA_VISIBLE_DEVICES</span> <span class="p">(</span><span class="mi">1</span> <span class="k">if</span> <span class="n">unset</span><span class="p">)</span><span class="o">.</span>
+  <span class="o">--</span><span class="n">dont</span><span class="o">-</span><span class="n">correct</span><span class="o">-</span><span class="n">order</span><span class="o">-</span><span class="n">bias</span>
+                        <span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="n">Whether</span> <span class="n">to</span> <span class="n">avoid</span> <span class="n">correcting</span> <span class="n">ordering</span> <span class="n">bias</span><span class="p">,</span> <span class="n">by</span> <span class="n">default</span> <span class="n">will</span> <span class="n">correct</span> <span class="n">it</span>
+  <span class="o">--</span><span class="n">numeric</span><span class="o">-</span><span class="n">risk</span><span class="o">-</span><span class="n">prompting</span>
+                        <span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="n">Whether</span> <span class="n">to</span> <span class="n">prompt</span> <span class="k">for</span> <span class="n">numeric</span> <span class="n">risk</span><span class="o">-</span><span class="n">estimates</span> <span class="n">instead</span> <span class="n">of</span> <span class="n">multiple</span><span class="o">-</span><span class="n">choice</span> <span class="n">Q</span><span class="o">&amp;</span><span class="n">A</span>
+  <span class="o">--</span><span class="n">cot</span><span class="o">-</span><span class="n">prompting</span>       <span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="n">Whether</span> <span class="n">to</span> <span class="n">use</span> <span class="n">chain</span><span class="o">-</span><span class="n">of</span><span class="o">-</span><span class="n">thought</span> <span class="p">(</span><span class="n">CoT</span><span class="p">)</span> <span class="n">prompting</span> <span class="n">where</span> <span class="n">the</span> <span class="n">model</span> <span class="n">reasons</span> <span class="n">step</span><span class="o">-</span><span class="n">by</span><span class="o">-</span><span class="n">step</span> <span class="n">before</span> <span class="n">outputting</span> <span class="n">a</span> <span class="n">probability</span>
+  <span class="o">--</span><span class="n">enable</span><span class="o">-</span><span class="n">thinking</span>     <span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="n">Whether</span> <span class="n">to</span> <span class="n">enable</span> <span class="n">thinking</span> <span class="n">mode</span> <span class="k">for</span> <span class="n">tokenizers</span> <span class="n">that</span> <span class="n">support</span> <span class="n">it</span> <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span><span class="p">,</span> <span class="n">Qwen3</span><span class="p">)</span><span class="o">.</span> <span class="n">Only</span> <span class="n">applies</span> <span class="k">with</span> <span class="o">--</span><span class="n">cot</span><span class="o">-</span><span class="n">prompting</span>
+  <span class="o">--</span><span class="n">reuse</span><span class="o">-</span><span class="n">few</span><span class="o">-</span><span class="n">shot</span><span class="o">-</span><span class="n">examples</span>
+                        <span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="n">Whether</span> <span class="n">to</span> <span class="n">reuse</span> <span class="n">the</span> <span class="n">same</span> <span class="n">samples</span> <span class="k">for</span> <span class="n">few</span><span class="o">-</span><span class="n">shot</span> <span class="n">prompting</span> <span class="p">(</span><span class="ow">or</span> <span class="n">sample</span> <span class="n">new</span> <span class="n">ones</span> <span class="n">every</span> <span class="n">time</span><span class="p">)</span>
+  <span class="o">--</span><span class="n">compose</span><span class="o">-</span><span class="n">few</span><span class="o">-</span><span class="n">shot</span><span class="o">-</span><span class="n">examples</span> <span class="n">COMPOSE_FEW_SHOT_EXAMPLES</span>
+                        <span class="p">[</span><span class="nb">str</span><span class="o">|</span><span class="nb">list</span><span class="p">]</span> <span class="n">How</span> <span class="n">to</span> <span class="n">select</span> <span class="n">samples</span> <span class="ow">in</span> <span class="n">few</span><span class="o">-</span><span class="n">shot</span> <span class="n">prompting</span><span class="p">:</span> <span class="n">random</span><span class="p">,</span> <span class="n">balanced</span> <span class="ow">or</span> <span class="n">a</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">specified</span> <span class="k">class</span><span class="w"> </span><span class="nc">counts</span><span class="o">.</span> <span class="n">Defaults</span> <span class="n">to</span> <span class="n">random</span><span class="o">.</span>
+  <span class="o">--</span><span class="n">example</span><span class="o">-</span><span class="n">order</span> <span class="n">EXAMPLE_ORDER</span>
+                        <span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">Comma</span><span class="o">-</span><span class="n">separated</span> <span class="n">permutation</span> <span class="n">of</span> <span class="n">few</span><span class="o">-</span><span class="n">shot</span> <span class="n">example</span> <span class="n">indices</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="s1">&#39;2,0,1&#39;</span><span class="o">.</span> <span class="n">Only</span> <span class="n">used</span> <span class="n">when</span> <span class="o">--</span><span class="n">few</span><span class="o">-</span><span class="n">shot</span> <span class="ow">is</span> <span class="nb">set</span><span class="o">.</span>
+  <span class="o">--</span><span class="n">few</span><span class="o">-</span><span class="n">shot</span><span class="o">-</span><span class="n">hide</span><span class="o">-</span><span class="n">question</span>
+                        <span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="n">In</span> <span class="n">few</span><span class="o">-</span><span class="n">shot</span> <span class="n">examples</span> <span class="n">show</span> <span class="n">only</span> <span class="n">the</span> <span class="n">answer</span> <span class="p">(</span><span class="n">omit</span> <span class="n">the</span> <span class="n">repeated</span> <span class="n">question</span><span class="p">)</span><span class="o">.</span> <span class="n">By</span> <span class="n">default</span> <span class="n">each</span> <span class="n">example</span> <span class="n">includes</span> <span class="n">the</span> <span class="n">question</span><span class="o">.</span> <span class="n">Only</span> <span class="n">used</span> <span class="n">when</span> <span class="o">--</span><span class="n">few</span><span class="o">-</span><span class="n">shot</span> <span class="ow">is</span> <span class="nb">set</span><span class="o">.</span>
+  <span class="o">--</span><span class="n">variation</span> <span class="p">[</span><span class="n">VARIATION</span> <span class="o">...</span><span class="p">]</span>
+                        <span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="n">Prompt</span><span class="o">-</span><span class="n">style</span> <span class="n">overrides</span> <span class="k">as</span> <span class="n">key</span><span class="o">=</span><span class="n">value</span> <span class="n">pairs</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">g</span><span class="o">.</span> <span class="o">--</span><span class="n">variation</span> <span class="n">connector</span><span class="o">=</span><span class="ow">is</span> <span class="nb">format</span><span class="o">=</span><span class="n">bullet</span> <span class="p">(</span><span class="n">keys</span><span class="p">:</span> <span class="nb">format</span><span class="p">,</span> <span class="n">connector</span><span class="p">,</span> <span class="n">granularity</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">custom_prompt_prefix</span><span class="p">,</span> <span class="n">custom_prompt_suffix</span><span class="p">,</span> <span class="n">show_question</span><span class="p">)</span><span class="o">.</span>
+  <span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">chat</span><span class="o">-</span><span class="n">template</span>   <span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="n">Whether</span> <span class="n">to</span> <span class="nb">format</span> <span class="n">prompts</span> <span class="n">using</span> <span class="n">the</span> <span class="n">tokenizer</span><span class="s1">&#39;s chat template (for instruct/chat models)</span>
+  <span class="o">--</span><span class="n">chat</span><span class="o">-</span><span class="n">prompt</span> <span class="n">CHAT_PROMPT</span>
+                        <span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">Custom</span> <span class="n">assistant</span> <span class="n">prefill</span> <span class="n">text</span> <span class="n">to</span> <span class="n">use</span> <span class="k">with</span> <span class="n">chat</span> <span class="n">templates</span>
+  <span class="o">--</span><span class="n">system</span><span class="o">-</span><span class="n">prompt</span> <span class="n">SYSTEM_PROMPT</span>
+                        <span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">Custom</span> <span class="n">system</span> <span class="n">prompt</span> <span class="n">text</span> <span class="n">to</span> <span class="n">use</span> <span class="k">with</span> <span class="n">chat</span> <span class="n">templates</span>
+  <span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">feature</span><span class="o">-</span><span class="n">subset</span> <span class="n">USE_FEATURE_SUBSET</span>
+                        <span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">Optional</span> <span class="n">subset</span> <span class="n">of</span> <span class="n">features</span> <span class="n">to</span> <span class="n">use</span> <span class="k">for</span> <span class="n">prediction</span><span class="p">,</span> <span class="n">comma</span> <span class="n">separated</span>
+  <span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">population</span><span class="o">-</span><span class="nb">filter</span> <span class="n">USE_POPULATION_FILTER</span>
+                        <span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">Optional</span> <span class="n">population</span> <span class="nb">filter</span> <span class="k">for</span> <span class="n">this</span> <span class="n">benchmark</span><span class="p">;</span> <span class="n">must</span> <span class="n">follow</span> <span class="n">the</span> <span class="nb">format</span> <span class="s1">&#39;column_name=value&#39;</span> <span class="n">to</span> <span class="nb">filter</span> <span class="n">the</span> <span class="n">dataset</span> <span class="n">by</span> <span class="n">a</span> <span class="n">specific</span> <span class="n">value</span><span class="o">.</span>
+  <span class="o">--</span><span class="nb">max</span><span class="o">-</span><span class="n">api</span><span class="o">-</span><span class="n">rpm</span> <span class="n">MAX_API_RPM</span>
+                        <span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="n">Maximum</span> <span class="n">number</span> <span class="n">of</span> <span class="n">API</span> <span class="n">requests</span> <span class="n">per</span> <span class="n">minute</span> <span class="p">(</span><span class="k">if</span> <span class="n">using</span> <span class="n">a</span> <span class="n">web</span><span class="o">-</span><span class="n">hosted</span> <span class="n">model</span><span class="p">)</span>
+  <span class="o">--</span><span class="n">logger</span><span class="o">-</span><span class="n">level</span> <span class="p">{</span><span class="n">DEBUG</span><span class="p">,</span><span class="n">INFO</span><span class="p">,</span><span class="n">WARNING</span><span class="p">,</span><span class="n">ERROR</span><span class="p">,</span><span class="n">CRITICAL</span><span class="p">}</span>
+                        <span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">The</span> <span class="n">logging</span> <span class="n">level</span> <span class="n">to</span> <span class="n">use</span> <span class="k">for</span> <span class="n">the</span> <span class="n">experiment</span>
+</pre></div>
+</div>
+</details>
+</details>
+</section>
+<section id="configuring-prompts">
+<h2>Configuring prompts<a class="headerlink" href="#configuring-prompts" title="Link to this heading"></a></h2>
+<details>
+<summary>click to expand</summary>
+<p>Every prompt that <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> builds for a tabular row is composed of three parts:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">PREFIX</span><span class="p">]</span>  <span class="n">task</span> <span class="n">description</span>                <span class="p">(</span><span class="n">constant</span> <span class="n">across</span> <span class="n">rows</span><span class="p">)</span>
+<span class="p">[</span><span class="n">INFO</span><span class="p">]</span>    <span class="n">serialized</span> <span class="n">feature</span><span class="o">-</span><span class="n">value</span> <span class="n">pairs</span>  <span class="p">(</span><span class="n">row</span><span class="o">-</span><span class="n">specific</span><span class="p">)</span>
+<span class="p">[</span><span class="n">SUFFIX</span><span class="p">]</span>  <span class="n">question</span> <span class="n">text</span> <span class="o">+</span> <span class="n">answer</span> <span class="n">prefill</span>  <span class="p">(</span><span class="n">constant</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <em>answer prefill</em> is the fixed lead-in the prompt ends on (e.g. <code class="docutils literal notranslate"><span class="pre">Answer:</span></code>), so
+the next token the model emits is the answer we score; in chat mode it becomes the
+assistant’s opening turn instead.</p>
+<p>These parts are set through a single <code class="docutils literal notranslate"><span class="pre">PromptConfig</span></code> object (plus <code class="docutils literal notranslate"><span class="pre">FewShotConfig</span></code>
+for in-context examples), built once and passed down unchanged.</p>
+<p>The defaults reproduce the original paper’s prompts exactly — you only need this
+section if you want to <em>change</em> how prompts are rendered. Every knob below is also
+available from Python; see the
+<a class="reference external" href="https://socialfoundations.github.io/folktexts/configuring_prompts.html">prompt-configuration guide</a>
+for the full <code class="docutils literal notranslate"><span class="pre">PromptConfig</span></code> / <code class="docutils literal notranslate"><span class="pre">FewShotConfig</span></code> reference and a migration note from
+the older flat-keyword API (<code class="docutils literal notranslate"><span class="pre">custom_prompt_prefix</span></code>, <code class="docutils literal notranslate"><span class="pre">class_balancing</span></code>, …). For a
+hands-on, runnable walkthrough see the
+<a class="reference internal" href="notebooks/configuring-prompts-example.html"><span class="std std-doc">example notebook</span></a>.</p>
+<section id="question-modes">
+<h3>Question modes<a class="headerlink" href="#question-modes" title="Link to this heading"></a></h3>
+<p>Each run asks one of three kinds of question:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Mode</p></th>
+<th class="head text-left"><p>Flag</p></th>
+<th class="head text-left"><p>What the model does</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p>Multiple-choice</p></td>
+<td class="text-left"><p><em>(default)</em></p></td>
+<td class="text-left"><p>Picks an answer choice; we score the answer-letter tokens.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p>Numeric</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--numeric-risk-prompting</span></code></p></td>
+<td class="text-left"><p>Reports the probability directly (<code class="docutils literal notranslate"><span class="pre">Answer</span> <span class="pre">(between</span> <span class="pre">0</span> <span class="pre">and</span> <span class="pre">1):</span> <span class="pre">0.…</span></code>).</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p>Chain-of-thought</p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--cot-prompting</span></code></p></td>
+<td class="text-left"><p>Reasons step-by-step, then ends with a <code class="docutils literal notranslate"><span class="pre">Probability:</span> <span class="pre">X%</span></code> line. Add <code class="docutils literal notranslate"><span class="pre">--enable-thinking</span></code> for Qwen3-style thinking mode.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The mode is independent of the delivery path — zero-shot (default), <code class="docutils literal notranslate"><span class="pre">--few-shot</span></code>,
+or <code class="docutils literal notranslate"><span class="pre">--use-chat-template</span></code>. Two combinations raise an error: <code class="docutils literal notranslate"><span class="pre">--few-shot</span></code> with
+<code class="docutils literal notranslate"><span class="pre">--use-chat-template</span></code>, and <code class="docutils literal notranslate"><span class="pre">--cot-prompting</span></code> with <code class="docutils literal notranslate"><span class="pre">--use-chat-template</span></code> (CoT
+applies the chat template itself). Chain-of-thought runs zero-shot (it is not
+combined with <code class="docutils literal notranslate"><span class="pre">--few-shot</span></code>); multiple-choice and numeric work with every delivery
+path.</p>
+</section>
+<section id="varying-the-feature-block-variation">
+<h3>Varying the feature block — <code class="docutils literal notranslate"><span class="pre">--variation</span></code><a class="headerlink" href="#varying-the-feature-block-variation" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">--variation</span></code> flag takes one or more <code class="docutils literal notranslate"><span class="pre">key=value</span></code> overrides that change how
+the <code class="docutils literal notranslate"><span class="pre">[INFO]</span></code> block is rendered. Keys (with their defaults) are:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Key</p></th>
+<th class="head text-left"><p>Default</p></th>
+<th class="head text-left"><p>Allowed values</p></th>
+<th class="head text-left"><p>Effect</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">format</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">textbullet</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">textbullet</span></code>, <code class="docutils literal notranslate"><span class="pre">bullet</span></code>, <code class="docutils literal notranslate"><span class="pre">comma</span></code>, <code class="docutils literal notranslate"><span class="pre">text</span></code></p></td>
+<td class="text-left"><p>Layout of the feature list: <code class="docutils literal notranslate"><span class="pre">textbullet</span></code> → <code class="docutils literal notranslate"><span class="pre">-</span> <span class="pre">The</span> <span class="pre">Age</span> <span class="pre">is:</span> <span class="pre">42.</span></code>, <code class="docutils literal notranslate"><span class="pre">bullet</span></code> → <code class="docutils literal notranslate"><span class="pre">-</span> <span class="pre">Age</span> <span class="pre">is:</span> <span class="pre">42</span></code>, <code class="docutils literal notranslate"><span class="pre">comma</span></code> → <code class="docutils literal notranslate"><span class="pre">Age</span> <span class="pre">is:</span> <span class="pre">42,</span> <span class="pre">…</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">connector</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">is:</span></code></p></td>
+<td class="text-left"><p>any string, e.g. <code class="docutils literal notranslate"><span class="pre">is</span></code>, <code class="docutils literal notranslate"><span class="pre">=</span></code>, <code class="docutils literal notranslate"><span class="pre">:</span></code></p></td>
+<td class="text-left"><p>Separator between a feature label and its value.</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">granularity</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">original</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">original</span></code>, <code class="docutils literal notranslate"><span class="pre">low</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">low</span></code> coarsens ACS feature values into broader bins (age ranges, grouped occupations). ACS-only.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">order</span></code></p></td>
+<td class="text-left"><p><em>(original)</em></p></td>
+<td class="text-left"><p>comma-separated column names</p></td>
+<td class="text-left"><p>Reorders features: the named columns come first, the rest are appended (nothing is dropped).</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">custom_prompt_prefix</span></code></p></td>
+<td class="text-left"><p><em>(none)</em></p></td>
+<td class="text-left"><p>any string</p></td>
+<td class="text-left"><p>Extra text inserted after the task description and before the feature block.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">custom_prompt_suffix</span></code></p></td>
+<td class="text-left"><p><em>(none)</em></p></td>
+<td class="text-left"><p>any string</p></td>
+<td class="text-left"><p>Extra text appended after the question / answer prefill (it does not replace the question — use <code class="docutils literal notranslate"><span class="pre">show_question=false</span></code> for that).</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">show_question</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">true</span></code>, <code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td class="text-left"><p>When <code class="docutils literal notranslate"><span class="pre">false</span></code>, drops the repeated question and relies on the answer prefill.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plain bullets, &quot;=&quot; between each label and value, age/education first</span>
+<span class="c1"># (connector== sets the separator to the literal &quot;=&quot;):</span>
+run_acs_benchmark<span class="w"> </span>--model<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$MODEL</span><span class="s2">&quot;</span><span class="w"> </span>--task<span class="w"> </span>ACSIncome<span class="w"> </span>--results-dir<span class="w"> </span>results<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--variation<span class="w"> </span><span class="nv">format</span><span class="o">=</span>bullet<span class="w"> </span><span class="nv">connector</span><span class="o">==</span><span class="w"> </span><span class="nv">order</span><span class="o">=</span>AGEP,SCHL,COW
+
+<span class="c1"># Coarser feature values (low granularity) rendered as a comma-separated list:</span>
+run_acs_benchmark<span class="w"> </span>--model<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$MODEL</span><span class="s2">&quot;</span><span class="w"> </span>--task<span class="w"> </span>ACSIncome<span class="w"> </span>--results-dir<span class="w"> </span>results<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--variation<span class="w"> </span><span class="nv">granularity</span><span class="o">=</span>low<span class="w"> </span><span class="nv">format</span><span class="o">=</span>comma
+</pre></div>
+</div>
+<p>Each distinct variation produces its own deterministic results-file name, so
+runs never overwrite one another.</p>
+</section>
+<section id="few-shot-examples">
+<h3>Few-shot examples<a class="headerlink" href="#few-shot-examples" title="Link to this heading"></a></h3>
+<p>Few-shot prompting is enabled with <code class="docutils literal notranslate"><span class="pre">--few-shot</span> <span class="pre">N</span></code> and tuned with:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>Flag</p></th>
+<th class="head text-left"><p>Effect</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--reuse-few-shot-examples</span></code></p></td>
+<td class="text-left"><p>Reuse the same <code class="docutils literal notranslate"><span class="pre">N</span></code> examples for every row (faster, deterministic) instead of resampling.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--compose-few-shot-examples</span></code></p></td>
+<td class="text-left"><p>How examples are drawn: <code class="docutils literal notranslate"><span class="pre">random</span></code> (default), <code class="docutils literal notranslate"><span class="pre">balanced</span></code> (equal per class), or per-class counts in label order like <code class="docutils literal notranslate"><span class="pre">2,2</span></code> (2 of class 0, 2 of class 1).</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--example-order</span></code></p></td>
+<td class="text-left"><p>Comma-separated permutation of the example indices, e.g. <code class="docutils literal notranslate"><span class="pre">3,2,1,0</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p><code class="docutils literal notranslate"><span class="pre">--few-shot-hide-question</span></code></p></td>
+<td class="text-left"><p>Show only the answer in each example (omit the repeated question).</p></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>run_acs_benchmark<span class="w"> </span>--model<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$MODEL</span><span class="s2">&quot;</span><span class="w"> </span>--task<span class="w"> </span>ACSIncome<span class="w"> </span>--results-dir<span class="w"> </span>results<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--few-shot<span class="w"> </span><span class="m">4</span><span class="w"> </span>--compose-few-shot-examples<span class="w"> </span>balanced<span class="w"> </span>--reuse-few-shot-examples
+</pre></div>
+</div>
+<blockquote>
+<div><p>Few-shot prompting cannot be combined with <code class="docutils literal notranslate"><span class="pre">--use-chat-template</span></code> (raises an error).</p>
+</div></blockquote>
+</section>
+<section id="chat-system-prompt-and-chain-of-thought">
+<h3>Chat, system prompt, and chain-of-thought<a class="headerlink" href="#chat-system-prompt-and-chain-of-thought" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">--use-chat-template</span></code> formats prompts with the tokenizer’s chat template; pair it
+with <code class="docutils literal notranslate"><span class="pre">--system-prompt</span> <span class="pre">&quot;...&quot;</span></code> and/or <code class="docutils literal notranslate"><span class="pre">--chat-prompt</span> <span class="pre">&quot;...&quot;</span></code> to override the role
+text. Passing <code class="docutils literal notranslate"><span class="pre">--system-prompt</span></code> or <code class="docutils literal notranslate"><span class="pre">--chat-prompt</span></code> without <code class="docutils literal notranslate"><span class="pre">--use-chat-template</span></code>
+has no effect and warns. <code class="docutils literal notranslate"><span class="pre">--cot-prompting</span></code> is its own generation path (see
+<strong>Question modes</strong>) and is mutually exclusive with <code class="docutils literal notranslate"><span class="pre">--use-chat-template</span></code>.</p>
+</details>
+</section>
+</section>
+<section id="evaluating-feature-importance">
+<h2>Evaluating feature importance<a class="headerlink" href="#evaluating-feature-importance" title="Link to this heading"></a></h2>
+<details>
+<summary>click to expand</summary>
+<p>By evaluating LLMs on tabular classification tasks, we can use standard feature importance methods to assess which features the model uses to compute risk scores.</p>
+<p>You can do so yourself by calling <code class="docutils literal notranslate"><span class="pre">folktexts.cli.eval_feature_importance</span></code> (add <code class="docutils literal notranslate"><span class="pre">--help</span></code> for a full list of options).</p>
+<p>Here’s an example for the Llama3-70B-Instruct model on the ACSIncome task (<em>warning: takes 24h on an Nvidia H100</em>):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">folktexts</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">eval_feature_importance</span> <span class="o">--</span><span class="n">model</span> <span class="s1">&#39;meta-llama/Meta-Llama-3-70B-Instruct&#39;</span> <span class="o">--</span><span class="n">task</span> <span class="n">ACSIncome</span> <span class="o">--</span><span class="n">subsampling</span> <span class="mf">0.1</span>
+</pre></div>
+</div>
+<div style="text-align: center;">
+<img src="docs/_static/feat-imp_meta-llama--Meta-Llama-3-70B-Instruct.png" alt="feature importance on llama3 70b it" width="50%">
+</div>
+<p>This script uses sklearn’s <a class="reference external" href="https://scikit-learn.org/stable/modules/generated/sklearn.inspection.permutation_importance.html#sklearn.inspection.permutation_importance"><code class="docutils literal notranslate"><span class="pre">permutation_importance</span></code></a> to assess which features contribute the most for the ROC AUC metric (other metrics can be assessed using the <code class="docutils literal notranslate"><span class="pre">--scorer</span> <span class="pre">[scorer]</span></code> parameter).</p>
+</details>
+</section>
+<section id="faq">
+<h2>FAQ<a class="headerlink" href="#faq" title="Link to this heading"></a></h2>
+<details>
+<summary>click to expand</summary>
+<ol class="arabic">
+<li><p><strong>Q:</strong> Can I use <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> with a different dataset?</p>
+<p><strong>A:</strong> <strong>Yes!</strong> Folktexts provides the whole ML pipeline needed to produce risk scores using LLMs, together with a few example ACS datasets. You can easily apply these same utilities to a different dataset following the <a class="reference internal" href="notebooks/custom-dataset-example.html"><span class="std std-doc">example jupyter notebook</span></a>.</p>
+</li>
+<li><p><strong>Q:</strong> How do I create a custom prediction task based on American Community Survey data?</p>
+<p><strong>A:</strong> Simply create a new <code class="docutils literal notranslate"><span class="pre">TaskMetadata</span></code> object with the parameters you want. Follow the <a class="reference internal" href="notebooks/custom-acs-task-example.html"><span class="std std-doc">example jupyter notebook</span></a> for more details.</p>
+</li>
+<li><p><strong>Q:</strong> Can I use <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> with closed-source models?</p>
+<p><strong>A:</strong> <strong>Yes!</strong> Local LLMs run on a high-throughput <a class="reference external" href="https://github.com/vllm-project/vllm">vLLM</a> backend by default (install with <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">'folktexts[vllm]'</span></code>); pass <code class="docutils literal notranslate"><span class="pre">--inference-backend</span> <span class="pre">transformers</span></code> to fall back to the <a class="reference external" href="https://github.com/huggingface/transformers">🤗 transformers</a> path. Web-hosted LLMs are supported via <a class="reference external" href="https://github.com/BerriAI/litellm">litellm</a> — for example, <code class="docutils literal notranslate"><span class="pre">--model='gpt-4o'</span> <span class="pre">--use-web-api-model</span></code> runs GPT-4o through the OpenAI API. <a class="reference external" href="https://docs.litellm.ai/docs/providers/openai#openai-chat-completion-models">Here’s a complete list</a> of compatible OpenAI models. Note that some models are not compatible as they don’t enable access to log-probabilities.
+Using models through a web API requires installing extra optional dependencies with <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">'folktexts[apis]'</span></code>.</p>
+</li>
+<li><p><strong>Q:</strong> Can I use <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> to fine-tune LLMs on survey prediction tasks?</p>
+<p><strong>A:</strong> The package does not feature specific fine-tuning functionality, but you can use the data and Q&amp;A prompts generated by <code class="docutils literal notranslate"><span class="pre">folktexts</span></code> to fine-tune an LLM for a specific prediction task.</p>
+ <!-- **A:** Yes. Although the package does not feature specific fine-tuning functionality, you can use the data and Q&A prompts generated by `folktexts` to fine-tune an LLM for a specific prediction task. Follow the [example jupyter notebook](notebooks/finetuning-llms-example.ipynb) for more details. In the future we may bring this functionality into the main package implementation. -->
+</li>
+</ol>
+</details>
+</section>
+<section id="citation">
+<h2>Citation<a class="headerlink" href="#citation" title="Link to this heading"></a></h2>
+<div class="highlight-bib notranslate"><div class="highlight"><pre><span></span><span class="nc">@inproceedings</span><span class="p">{</span><span class="nl">cruz2024evaluating</span><span class="p">,</span>
+<span class="w">    </span><span class="na">title</span><span class="p">=</span><span class="s">{Evaluating language models as risk scores}</span><span class="p">,</span>
+<span class="w">    </span><span class="na">author</span><span class="p">=</span><span class="s">{Andr\&#39;{e} F. Cruz and Moritz Hardt and Celestine Mendler-D\&quot;{u}nner}</span><span class="p">,</span>
+<span class="w">    </span><span class="na">booktitle</span><span class="p">=</span><span class="s">{The Thirty-eight Conference on Neural Information Processing Systems Datasets and Benchmarks Track}</span><span class="p">,</span>
+<span class="w">    </span><span class="na">year</span><span class="p">=</span><span class="s">{2024}</span><span class="p">,</span>
+<span class="w">    </span><span class="na">url</span><span class="p">=</span><span class="s">{https://openreview.net/forum?id=qrZxL3Bto9}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="license-and-terms-of-use">
+<h2>License and terms of use<a class="headerlink" href="#license-and-terms-of-use" title="Link to this heading"></a></h2>
+<p>Code licensed under the <a class="reference internal" href="#LICENSE"><span class="xref myst">MIT license</span></a>.</p>
+<p>The American Community Survey (ACS) Public Use Microdata Sample (PUMS) is
+governed by the U.S. Census Bureau <a class="reference external" href="https://www.census.gov/data/developers/about/terms-of-service.html">terms of service</a>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to folktexts’ documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="configuring_prompts.html" class="btn btn-neutral float-right" title="Configuring prompts" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

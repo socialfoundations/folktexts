@@ -1,0 +1,1110 @@
+
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>folktexts.benchmark &mdash; folktexts 0.6.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=fd6457a4" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=41710f8f" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=8fa8b3e9"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../../_static/custom.js?v=882eb7ae"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  <a href="../../index.html" class="icon icon-home">
+    folktexts
+  </a>
+    <div class="version">0.6.0</div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">🏠 Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../readme.html">📖 Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../configuring_prompts.html">🎛️ Configuring prompts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../updates.html">📝 Updates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">⚙️ API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../notebooks.html">📓 Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">folktexts.benchmark</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for folktexts.benchmark</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;A benchmark class for measuring and evaluating LLM calibration.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">dataclasses</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">transformers</span><span class="w"> </span><span class="kn">import</span> <span class="n">AutoModelForCausalLM</span><span class="p">,</span> <span class="n">AutoTokenizer</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">._io</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_json</span><span class="p">,</span> <span class="n">save_json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_current_timestamp</span><span class="p">,</span> <span class="n">hash_dict</span><span class="p">,</span> <span class="n">is_valid_number</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.acs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ACSDataset</span><span class="p">,</span> <span class="n">ACSTaskMetadata</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.classifier</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">LLMClassifier</span><span class="p">,</span>
+    <span class="n">TransformersLLMClassifier</span><span class="p">,</span>
+    <span class="n">VLLMClassifier</span><span class="p">,</span>
+    <span class="n">WebAPILLMClassifier</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.evaluation</span><span class="w"> </span><span class="kn">import</span> <span class="n">evaluate_predictions</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.plotting</span><span class="w"> </span><span class="kn">import</span> <span class="n">render_evaluation_plots</span><span class="p">,</span> <span class="n">render_fairness_plots</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.prompting</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PROMPT_DEFAULT</span><span class="p">,</span>
+    <span class="n">FewShotConfig</span><span class="p">,</span>
+    <span class="n">PromptConfig</span><span class="p">,</span>
+    <span class="n">encode_row_prompt</span><span class="p">,</span>
+    <span class="n">encode_row_prompt_chat</span><span class="p">,</span>
+    <span class="n">encode_row_prompt_few_shot</span><span class="p">,</span>
+    <span class="n">resolve_chat_defaults</span><span class="p">,</span>
+    <span class="n">tokenizer_supports_system_prompt</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.qa_interface</span><span class="w"> </span><span class="kn">import</span> <span class="n">ChainOfThoughtQA</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.task</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskMetadata</span>
+
+<span class="n">DEFAULT_SEED</span> <span class="o">=</span> <span class="mi">42</span>
+<span class="n">DEFAULT_FIT_THRESHOLD_N</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">DEFAULT_ROOT_RESULTS_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="BenchmarkConfig">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.benchmark.BenchmarkConfig">[docs]</a>
+<span class="nd">@dataclasses</span><span class="o">.</span><span class="n">dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">eq</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">BenchmarkConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A dataclass to hold the configuration for risk-score benchmark.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    numeric_risk_prompting : bool, optional</span>
+<span class="sd">        Whether to prompt for numeric risk-estimates instead of multiple-choice</span>
+<span class="sd">        Q&amp;A, by default False.</span>
+<span class="sd">    cot_prompting : bool, optional</span>
+<span class="sd">        Whether to use chain-of-thought prompting: the model generates</span>
+<span class="sd">        free-form reasoning text and ends with a `Probability: X%` line that</span>
+<span class="sd">        is recovered via regex. Works on any model regardless of chat</span>
+<span class="sd">        template. By default False.</span>
+<span class="sd">    enable_thinking : bool, optional</span>
+<span class="sd">        Whether to enable thinking mode for tokenizers that support it (e.g.,</span>
+<span class="sd">        Qwen3). Only applies when `cot_prompting=True`. When enabled, calls</span>
+<span class="sd">        `apply_chat_template(..., enable_thinking=True)` and the resulting</span>
+<span class="sd">        `&lt;think&gt;...&lt;/think&gt;` block is stripped before regex extraction.</span>
+<span class="sd">        Default is False.</span>
+<span class="sd">    few_shot_config : FewShotConfig | None, optional</span>
+<span class="sd">        Few-shot prompting configuration (number of shots, composition, example</span>
+<span class="sd">        order, reuse). ``None`` means zero-shot prompting.</span>
+<span class="sd">    use_chat_template : bool, optional</span>
+<span class="sd">        Whether to format prompts using the tokenizer&#39;s chat template, by</span>
+<span class="sd">        default False. Only supported for local transformers models.</span>
+<span class="sd">    chat_prompt : str | None, optional</span>
+<span class="sd">        The assistant prefill text to use with chat templates. Defaults to</span>
+<span class="sd">        ``PROMPT_DEFAULT``, which selects the appropriate default from the QA</span>
+<span class="sd">        subclass (``ANTHROPIC_CHAT_PROMPT`` for MC, ``NUMERIC_CHAT_PROMPT`` for</span>
+<span class="sd">        numeric, ``None`` for CoT). Pass ``None`` explicitly to disable the</span>
+<span class="sd">        assistant prefill entirely.</span>
+<span class="sd">    system_prompt : str | None, optional</span>
+<span class="sd">        System prompt text to use with chat templates. Defaults to</span>
+<span class="sd">        ``PROMPT_DEFAULT``, which selects the appropriate default from the QA</span>
+<span class="sd">        subclass (``SYSTEM_PROMPT`` for MC, ``NUMERIC_SYSTEM_PROMPT`` for</span>
+<span class="sd">        numeric, ``None`` for CoT). Pass ``None`` explicitly to disable the</span>
+<span class="sd">        system role (e.g. for Gemma-style tokenizers that reject it).</span>
+<span class="sd">    batch_size : int | None, optional</span>
+<span class="sd">        The batch size to use for inference.</span>
+<span class="sd">    context_size : int | None, optional</span>
+<span class="sd">        The maximum context size when prompting the LLM.</span>
+<span class="sd">    correct_order_bias : bool, optional</span>
+<span class="sd">        Whether to correct the ordering bias in multiple-choice Q&amp;A when</span>
+<span class="sd">        prompting the LLM, by default True.</span>
+<span class="sd">    feature_subset : list[str] | None, optional</span>
+<span class="sd">        Whether to use a subset of the standard feature set for the task. The</span>
+<span class="sd">        list should contain the names of the columns of features to use.</span>
+<span class="sd">    population_filter : dict | None, optional</span>
+<span class="sd">        Optional population filter for this benchmark; must follow the format</span>
+<span class="sd">        `{&quot;column_name&quot;: &quot;value&quot;}`.</span>
+<span class="sd">    seed : int, optional</span>
+<span class="sd">        Random seed -- to set for reproducibility.</span>
+<span class="sd">    prompt_variation : dict | None, optional</span>
+<span class="sd">        Dictionary of prompt style overrides (e.g. ``{&quot;format&quot;: &quot;bullet&quot;,</span>
+<span class="sd">        &quot;connector&quot;: &quot;is&quot;}``). ``None`` means no variation is applied.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">numeric_risk_prompting</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">cot_prompting</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">enable_thinking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">few_shot_config</span><span class="p">:</span> <span class="n">FewShotConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">use_chat_template</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">chat_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">PROMPT_DEFAULT</span>  <span class="c1"># type: ignore[assignment]</span>
+    <span class="n">system_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">PROMPT_DEFAULT</span>  <span class="c1"># type: ignore[assignment]</span>
+    <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">context_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">correct_order_bias</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">feature_subset</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">population_filter</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">DEFAULT_SEED</span>
+    <span class="n">prompt_variation</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="BenchmarkConfig.default_config">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.benchmark.BenchmarkConfig.default_config">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default_config</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">changes</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the default configuration with optional changes.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">changes</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BenchmarkConfig.update">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.benchmark.BenchmarkConfig.update">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">changes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BenchmarkConfig</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update the configuration with new values.&quot;&quot;&quot;</span>
+        <span class="n">possible_keys</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="n">valid_changes</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">changes</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">possible_keys</span><span class="p">}</span>
+
+        <span class="c1"># Log config changes</span>
+        <span class="k">if</span> <span class="n">valid_changes</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Updating benchmark configuration with: </span><span class="si">{</span><span class="n">valid_changes</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Log unused kwargs</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">valid_changes</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">changes</span><span class="p">):</span>
+            <span class="n">unused_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">changes</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">possible_keys</span><span class="p">}</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unused config arguments: </span><span class="si">{</span><span class="n">unused_kwargs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">valid_changes</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BenchmarkConfig.load_from_disk">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.benchmark.BenchmarkConfig.load_from_disk">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_from_disk</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load the configuration from disk (tolerant of pre-refactor JSON).&quot;&quot;&quot;</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">load_json</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid configuration file &#39;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Back-compat: translate the pre-refactor flat few-shot keys into a FewShotConfig.</span>
+        <span class="n">legacy_n_shots</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;few_shot&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">legacy_reuse</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;reuse_few_shot_examples&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="n">legacy_balance</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;balance_few_shot_examples&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">legacy_n_shots</span> <span class="ow">and</span> <span class="n">obj</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;few_shot_config&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">obj</span><span class="p">[</span><span class="s2">&quot;few_shot_config&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FewShotConfig</span><span class="p">(</span>
+                <span class="n">n_shots</span><span class="o">=</span><span class="n">legacy_n_shots</span><span class="p">,</span>
+                <span class="n">reuse_examples</span><span class="o">=</span><span class="n">legacy_reuse</span><span class="p">,</span>
+                <span class="n">compose</span><span class="o">=</span><span class="s2">&quot;balanced&quot;</span> <span class="k">if</span> <span class="n">legacy_balance</span> <span class="k">else</span> <span class="s2">&quot;random&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;few_shot_config&quot;</span><span class="p">),</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">obj</span><span class="p">[</span><span class="s2">&quot;few_shot_config&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FewShotConfig</span><span class="p">(</span><span class="o">**</span><span class="n">obj</span><span class="p">[</span><span class="s2">&quot;few_shot_config&quot;</span><span class="p">])</span>
+        <span class="c1"># Restore PROMPT_DEFAULT sentinel from its serialized form.</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;system_prompt&quot;</span><span class="p">,</span> <span class="s2">&quot;chat_prompt&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">obj</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;default&quot;</span><span class="p">:</span>
+                <span class="n">obj</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">PROMPT_DEFAULT</span>
+
+        <span class="c1"># Drop any remaining unknown keys (removed fields, or result-file metadata)</span>
+        <span class="c1"># so old config/result JSON still loads instead of raising TypeError.</span>
+        <span class="n">valid</span> <span class="o">=</span> <span class="p">{</span><span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">fields</span><span class="p">(</span><span class="bp">cls</span><span class="p">)}</span>
+        <span class="n">unknown</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="o">-</span> <span class="n">valid</span>
+        <span class="k">if</span> <span class="n">unknown</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Ignoring unknown config keys when loading &#39;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">unknown</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">obj</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">valid</span><span class="p">}</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">obj</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BenchmarkConfig.save_to_disk">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.benchmark.BenchmarkConfig.save_to_disk">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_to_disk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save the configuration to disk.&quot;&quot;&quot;</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;system_prompt&quot;</span><span class="p">,</span> <span class="s2">&quot;chat_prompt&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="ow">is</span> <span class="n">PROMPT_DEFAULT</span><span class="p">:</span>
+                <span class="n">d</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span>
+        <span class="n">save_json</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generates a unique hash for the configuration.&quot;&quot;&quot;</span>
+        <span class="n">cfg</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;system_prompt&quot;</span><span class="p">,</span> <span class="s2">&quot;chat_prompt&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="ow">is</span> <span class="n">PROMPT_DEFAULT</span><span class="p">:</span>
+                <span class="n">cfg</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span>
+        <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;feature_subset&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">tuple</span><span class="p">(</span><span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;feature_subset&quot;</span><span class="p">])</span> <span class="k">if</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;feature_subset&quot;</span><span class="p">]</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;population_filter_hash&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">hash_dict</span><span class="p">(</span><span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;population_filter&quot;</span><span class="p">])</span> <span class="k">if</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;population_filter&quot;</span><span class="p">]</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;prompt_variation&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">hash_dict</span><span class="p">(</span><span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;prompt_variation&quot;</span><span class="p">])</span> <span class="k">if</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;prompt_variation&quot;</span><span class="p">]</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="c1"># Hash the few-shot config deterministically. Python&#39;s builtin hash() is salted</span>
+        <span class="c1"># (PYTHONHASHSEED), so hash(self.few_shot_config) gave result-file names a different</span>
+        <span class="c1"># name every process; hash_dict (json-based) is stable. cfg[&quot;few_shot_config&quot;] is</span>
+        <span class="c1"># already the asdict form from the top-level dataclasses.asdict(self) above.</span>
+        <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;few_shot_config&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">hash_dict</span><span class="p">(</span><span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;few_shot_config&quot;</span><span class="p">])</span> <span class="k">if</span> <span class="n">cfg</span><span class="p">[</span><span class="s2">&quot;few_shot_config&quot;</span><span class="p">]</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">hash_dict</span><span class="p">(</span><span class="n">cfg</span><span class="p">),</span> <span class="mi">16</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Benchmark">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.benchmark.Benchmark">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Benchmark</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Measures and evaluates risk scores produced by an LLM.&quot;&quot;&quot;</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Standardized configurations for the ACS data to use for benchmarking.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ACS_DATASET_CONFIGS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="c1"># ACS survey configs</span>
+        <span class="s2">&quot;survey_year&quot;</span><span class="p">:</span> <span class="s2">&quot;2018&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;horizon&quot;</span><span class="p">:</span> <span class="s2">&quot;1-Year&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;survey&quot;</span><span class="p">:</span> <span class="s2">&quot;person&quot;</span><span class="p">,</span>
+        <span class="c1"># Data split configs</span>
+        <span class="s2">&quot;test_size&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="s2">&quot;val_size&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="s2">&quot;subsampling&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="c1"># Fixed random seed</span>
+        <span class="s2">&quot;seed&quot;</span><span class="p">:</span> <span class="mi">42</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">llm_clf</span><span class="p">:</span> <span class="n">LLMClassifier</span><span class="p">,</span>
+        <span class="n">dataset</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span>
+        <span class="n">config</span><span class="p">:</span> <span class="n">BenchmarkConfig</span> <span class="o">=</span> <span class="n">BenchmarkConfig</span><span class="o">.</span><span class="n">default_config</span><span class="p">(),</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;A benchmark object to measure and evaluate risk scores produced by an LLM.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        llm_clf : LLMClassifier</span>
+<span class="sd">            A language model classifier object (can be local or web-hosted).</span>
+<span class="sd">        dataset : Dataset</span>
+<span class="sd">            The dataset object to use for the benchmark.÷</span>
+<span class="sd">        config : BenchmarkConfig, optional</span>
+<span class="sd">            The configuration object used to create the benchmark parameters.</span>
+<span class="sd">            **NOTE**: This is used to uniquely identify the benchmark object for</span>
+<span class="sd">            reproducibility; it **will not be used to change the benchmark</span>
+<span class="sd">            behavior**. To configure the benchmark, pass a configuration object</span>
+<span class="sd">            to the Benchmark.make_benchmark method.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">llm_clf</span> <span class="o">=</span> <span class="n">llm_clf</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_y_test_scores</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_results_root_dir</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="n">DEFAULT_ROOT_RESULTS_DIR</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_results</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_plots</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Log initialization</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">** Benchmark initialization **</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Model: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="si">}</span><span class="s2">;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Task: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Hash: </span><span class="si">{</span><span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="s2">;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">configs_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">cnf</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
+        <span class="c1"># Use &quot;default&quot; (same token as save_to_disk) so load_from_disk can restore</span>
+        <span class="c1"># PROMPT_DEFAULT correctly. Resolving to q.default_system_prompt would write</span>
+        <span class="c1"># null for tasks like ChainOfThoughtQA, which load_from_disk cannot distinguish</span>
+        <span class="c1"># from an explicit None (disable-role), breaking benchmark reproduction.</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;system_prompt&quot;</span><span class="p">,</span> <span class="s2">&quot;chat_prompt&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="ow">is</span> <span class="n">PROMPT_DEFAULT</span><span class="p">:</span>
+                <span class="n">cnf</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span>
+
+        <span class="c1"># Add info on model, task, and dataset</span>
+        <span class="n">cnf</span><span class="p">[</span><span class="s2">&quot;model_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_name</span>
+        <span class="n">cnf</span><span class="p">[</span><span class="s2">&quot;model_hash&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">llm_clf</span><span class="p">)</span>
+        <span class="n">cnf</span><span class="p">[</span><span class="s2">&quot;task_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">cnf</span><span class="p">[</span><span class="s2">&quot;task_hash&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="p">)</span>
+        <span class="n">cnf</span><span class="p">[</span><span class="s2">&quot;dataset_name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">cnf</span><span class="p">[</span><span class="s2">&quot;dataset_subsampling&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">subsampling</span>
+        <span class="n">cnf</span><span class="p">[</span><span class="s2">&quot;dataset_hash&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">cnf</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_results</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm_clf</span><span class="o">.</span><span class="n">task</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">model_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm_clf</span><span class="o">.</span><span class="n">model_name</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">results_root_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_results_root_dir</span><span class="p">)</span>
+
+    <span class="nd">@results_root_dir</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">results_root_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_results_root_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">results_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the results directory for this benchmark.&quot;&quot;&quot;</span>
+        <span class="c1"># Get subfolder name</span>
+        <span class="n">subfolder_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">model_name</span><span class="si">}</span><span class="s2">_bench-</span><span class="si">{</span><span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">subfolder_dir_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">results_root_dir</span><span class="p">)</span> <span class="o">/</span> <span class="n">subfolder_name</span>
+
+        <span class="c1"># Create subfolder directory if it does not exist</span>
+        <span class="n">subfolder_dir_path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">subfolder_dir_path</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="n">hash_params</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">llm_clf_hash</span><span class="o">=</span><span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">llm_clf</span><span class="p">),</span>
+            <span class="n">dataset_hash</span><span class="o">=</span><span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">),</span>
+            <span class="n">config_hash</span><span class="o">=</span><span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">hash_dict</span><span class="p">(</span><span class="n">hash_params</span><span class="p">),</span> <span class="mi">16</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_predictions_save_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_split</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Standardized path to file containing predictions for the given data split.&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">data_split</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="s2">&quot;val&quot;</span><span class="p">,</span> <span class="s2">&quot;test&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">results_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">data_split</span><span class="si">}</span><span class="s2">_predictions.csv&quot;</span>
+
+<div class="viewcode-block" id="Benchmark.run">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.benchmark.Benchmark.run">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">results_root_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">,</span>
+        <span class="n">fit_threshold</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run the calibration benchmark experiment.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        results_root_dir : str | Path</span>
+<span class="sd">            Path to root directory under which results will be saved.</span>
+<span class="sd">        fit_threshold : int | bool, optional</span>
+<span class="sd">            Whether to fit the binarization threshold on a given number of</span>
+<span class="sd">            training samples, by default 0 (will not fit the threshold).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            Dictionary of evaluation results.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_results</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Benchmark was already run. Overriding previous results.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Update results directory</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">results_root_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">results_root_dir</span><span class="p">)</span>
+
+        <span class="c1"># Get test data</span>
+        <span class="n">X_test</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">get_test</span><span class="p">()</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Test data features shape: </span><span class="si">{</span><span class="n">X_test</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Get sensitive attribute data if available</span>
+        <span class="n">s_test</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Sensitive attribute defined by task: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">sensitive_attribute</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">sensitive_attribute</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">s_test</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">get_sensitive_attribute_data</span><span class="p">()</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">y_test</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+
+        <span class="c1"># Get LLM risk-estimate predictions for each row in the test set</span>
+        <span class="n">test_predictions_save_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_predictions_save_path</span><span class="p">(</span><span class="s2">&quot;test&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_y_test_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm_clf</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">X_test</span><span class="p">,</span>
+            <span class="n">predictions_save_path</span><span class="o">=</span><span class="n">test_predictions_save_path</span><span class="p">,</span>
+            <span class="n">labels</span><span class="o">=</span><span class="n">y_test</span><span class="p">,</span>  <span class="c1"># used only to save alongside predictions in disk</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_y_test_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm_clf</span><span class="o">.</span><span class="n">_get_positive_class_scores</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_y_test_scores</span>
+        <span class="p">)</span>
+
+        <span class="c1"># If requested, fit the threshold on a small portion of the train set</span>
+        <span class="k">if</span> <span class="n">fit_threshold</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">fit_threshold</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">fit_threshold</span> <span class="o">=</span> <span class="n">DEFAULT_FIT_THRESHOLD_N</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="n">is_valid_number</span><span class="p">(</span><span class="n">fit_threshold</span><span class="p">)</span> <span class="ow">or</span> <span class="n">fit_threshold</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid fit_threshold=</span><span class="si">{</span><span class="n">fit_threshold</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">llm_clf</span><span class="o">.</span><span class="n">_threshold_fitted_on</span> <span class="o">=</span> <span class="n">fit_threshold</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fitting threshold on </span><span class="si">{</span><span class="n">fit_threshold</span><span class="si">}</span><span class="s2"> train samples&quot;</span><span class="p">)</span>
+            <span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">sample_n_train_examples</span><span class="p">(</span><span class="n">fit_threshold</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">llm_clf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
+
+        <span class="c1"># Evaluate test risk scores</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_results</span> <span class="o">=</span> <span class="n">evaluate_predictions</span><span class="p">(</span>
+            <span class="n">y_true</span><span class="o">=</span><span class="n">y_test</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span>
+            <span class="n">y_pred_scores</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_y_test_scores</span><span class="p">,</span>
+            <span class="n">sensitive_attribute</span><span class="o">=</span><span class="n">s_test</span><span class="p">,</span>
+            <span class="n">threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">llm_clf</span><span class="o">.</span><span class="n">threshold</span><span class="p">,</span>
+            <span class="n">model_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">llm_clf</span><span class="o">.</span><span class="n">model_name</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_results</span><span class="p">[</span><span class="s2">&quot;threshold_fitted_on&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm_clf</span><span class="o">.</span><span class="n">_threshold_fitted_on</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">sensitive_attribute</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_results</span><span class="p">[</span><span class="s2">&quot;sensitive_attribute&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">sensitive_attribute</span>
+
+        <span class="c1"># Save predictions save path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_results</span><span class="p">[</span><span class="s2">&quot;predictions_path&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">test_predictions_save_path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span>
+
+        <span class="c1"># Add benchmark metadata</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_results</span><span class="p">[</span><span class="s2">&quot;config&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configs_dict</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_results</span><span class="p">[</span><span class="s2">&quot;benchmark_hash&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_results</span><span class="p">[</span><span class="s2">&quot;results_dir&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">results_dir</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_results</span><span class="p">[</span><span class="s2">&quot;results_root_dir&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">results_root_dir</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_results</span><span class="p">[</span><span class="s2">&quot;current_time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_current_timestamp</span><span class="p">()</span>
+
+        <span class="c1"># Log main results</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">** Test results **</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Model: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">llm_clf</span><span class="o">.</span><span class="n">model_name</span><span class="si">}</span><span class="s2">;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2"> ECE:       </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_results</span><span class="p">[</span><span class="s1">&#39;ece&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2">;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2"> ROC AUC :  </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_results</span><span class="p">[</span><span class="s1">&#39;roc_auc&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2">;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2"> Accuracy:  </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_results</span><span class="p">[</span><span class="s1">&#39;accuracy&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2">;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2"> Bal. acc.: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_results</span><span class="p">[</span><span class="s1">&#39;balanced_accuracy&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.1%</span><span class="si">}</span><span class="s2">;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="c1"># Render plots</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">plot_results</span><span class="p">(</span><span class="n">show_plots</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to render plots: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Save results to disk</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_results</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_results</span></div>
+
+
+<div class="viewcode-block" id="Benchmark.plot_results">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.benchmark.Benchmark.plot_results">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">show_plots</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Render evaluation plots and save to disk.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        show_plots : bool, optional</span>
+<span class="sd">            Whether to show plots, by default True.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        plots_paths : dict[str, str]</span>
+<span class="sd">            The paths to the saved plots.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_results</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_y_test_scores</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No results to plot. Run the benchmark first.&quot;</span><span class="p">)</span>
+
+        <span class="n">imgs_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">results_dir</span><span class="p">)</span> <span class="o">/</span> <span class="s2">&quot;imgs&quot;</span>
+        <span class="n">imgs_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">parents</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">get_test</span><span class="p">()</span>
+
+        <span class="n">plots_paths</span> <span class="o">=</span> <span class="n">render_evaluation_plots</span><span class="p">(</span>
+            <span class="n">y_true</span><span class="o">=</span><span class="n">y_test</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span>
+            <span class="n">y_pred_scores</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_y_test_scores</span><span class="p">,</span>
+            <span class="n">eval_results</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">,</span>
+            <span class="n">model_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">llm_clf</span><span class="o">.</span><span class="n">model_name</span><span class="p">,</span>
+            <span class="n">imgs_dir</span><span class="o">=</span><span class="n">imgs_dir</span><span class="p">,</span>
+            <span class="n">show_plots</span><span class="o">=</span><span class="n">show_plots</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Plot fairness plots if sensitive attribute is provided</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">sensitive_attribute</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">s_test</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">get_sensitive_attribute_data</span><span class="p">()</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">y_test</span><span class="o">.</span><span class="n">index</span><span class="p">]</span>
+
+            <span class="n">plots_paths</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="n">render_fairness_plots</span><span class="p">(</span>
+                    <span class="n">y_true</span><span class="o">=</span><span class="n">y_test</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span>
+                    <span class="n">y_pred_scores</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_y_test_scores</span><span class="p">,</span>
+                    <span class="n">sensitive_attribute</span><span class="o">=</span><span class="n">s_test</span><span class="p">,</span>
+                    <span class="n">eval_results</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">,</span>
+                    <span class="n">model_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">llm_clf</span><span class="o">.</span><span class="n">model_name</span><span class="p">,</span>
+                    <span class="n">group_value_map</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">sensitive_attribute_value_map</span><span class="p">(),</span>
+                    <span class="n">imgs_dir</span><span class="o">=</span><span class="n">imgs_dir</span><span class="p">,</span>
+                    <span class="n">show_plots</span><span class="o">=</span><span class="n">show_plots</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_results</span><span class="p">[</span><span class="s2">&quot;plots&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">plots_paths</span>
+
+        <span class="k">return</span> <span class="n">plots_paths</span></div>
+
+
+<div class="viewcode-block" id="Benchmark.save_results">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.benchmark.Benchmark.save_results">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">results_root_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save the benchmark results to disk.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        results_root_dir : str | Path, optional</span>
+<span class="sd">            Path to root directory under which results will be saved. By default</span>
+<span class="sd">            will use `self.results_root_dir`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">results</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No results to save. Run the benchmark first.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Update results directory if provided</span>
+        <span class="k">if</span> <span class="n">results_root_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">results_root_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">results_root_dir</span><span class="p">)</span>
+
+        <span class="c1"># Save results to disk</span>
+        <span class="n">results_file_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;results.bench-</span><span class="si">{</span><span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="s2">.json&quot;</span>
+        <span class="n">results_file_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">results_dir</span> <span class="o">/</span> <span class="n">results_file_name</span>
+
+        <span class="n">save_json</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">results</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">results_file_path</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved experiment results to &#39;</span><span class="si">{</span><span class="n">results_file_path</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Benchmark.make_acs_benchmark">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.benchmark.Benchmark.make_acs_benchmark">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">make_acs_benchmark</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">task_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">:</span> <span class="n">AutoModelForCausalLM</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">tokenizer</span><span class="p">:</span> <span class="n">AutoTokenizer</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">data_dir</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_api_rpm</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">config</span><span class="p">:</span> <span class="n">BenchmarkConfig</span> <span class="o">=</span> <span class="n">BenchmarkConfig</span><span class="o">.</span><span class="n">default_config</span><span class="p">(),</span>
+        <span class="n">backend</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">model_name_or_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Benchmark</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a standardized calibration benchmark on ACS data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        task_name : str</span>
+<span class="sd">            The name of the ACS task to use.</span>
+<span class="sd">        model : AutoModelForCausalLM | str</span>
+<span class="sd">            The transformers language model to use, or the model ID for a webAPI</span>
+<span class="sd">            hosted model (e.g., &quot;openai/gpt-4o-mini&quot;).</span>
+<span class="sd">        tokenizer : AutoTokenizer, optional</span>
+<span class="sd">            The tokenizer used to train the model (if using a transformers</span>
+<span class="sd">            model). Not required for webAPI models.</span>
+<span class="sd">        data_dir : str | Path, optional</span>
+<span class="sd">            Path to the directory to load data from and save data in.</span>
+<span class="sd">        max_api_rpm : int, optional</span>
+<span class="sd">            The maximum number of API requests per minute for webAPI models.</span>
+<span class="sd">        config : BenchmarkConfig, optional</span>
+<span class="sd">            Extra benchmark configurations, by default will use</span>
+<span class="sd">            `BenchmarkConfig.default_config()`.</span>
+<span class="sd">        **kwargs</span>
+<span class="sd">            Additional arguments passed to `ACSDataset` and `BenchmarkConfig`.</span>
+<span class="sd">            By default will use a set of standardized configurations for</span>
+<span class="sd">            reproducibility.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bench : Benchmark</span>
+<span class="sd">            The ACS calibration benchmark object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Handle non-standard ACS arguments</span>
+        <span class="n">acs_dataset_configs</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ACS_DATASET_CONFIGS</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">acs_dataset_configs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">and</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">arg</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">ACS_DATASET_CONFIGS</span><span class="p">[</span><span class="n">arg</span><span class="p">]:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Received non-standard ACS argument &#39;</span><span class="si">{</span><span class="n">arg</span><span class="si">}</span><span class="s2">&#39; (using &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">arg</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">kwargs</span><span class="p">[</span><span class="n">arg</span><span class="p">]</span><span class="si">}</span><span class="s2"> instead of default </span><span class="si">{</span><span class="n">arg</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="n">ACS_DATASET_CONFIGS</span><span class="p">[</span><span class="n">arg</span><span class="p">]</span><span class="si">}</span><span class="s2">). &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;This may affect reproducibility.&quot;</span>
+                <span class="p">)</span>
+                <span class="n">acs_dataset_configs</span><span class="p">[</span><span class="n">arg</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+
+        <span class="c1"># Update config with any additional kwargs</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Fetch ACS task and dataset</span>
+        <span class="c1"># NOTE: Only set use_numeric_qa if not using CoT mode (cot_prompting or</span>
+        <span class="c1"># enable_thinking), since ChainOfThoughtQA will override the Q&amp;A mode anyway.</span>
+        <span class="n">use_numeric_qa</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">numeric_risk_prompting</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="n">config</span><span class="o">.</span><span class="n">cot_prompting</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="n">config</span><span class="o">.</span><span class="n">enable_thinking</span>
+        <span class="p">)</span>
+        <span class="n">acs_task</span> <span class="o">=</span> <span class="n">ACSTaskMetadata</span><span class="o">.</span><span class="n">get_task</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">task_name</span><span class="p">,</span> <span class="n">use_numeric_qa</span><span class="o">=</span><span class="n">use_numeric_qa</span>
+        <span class="p">)</span>
+
+        <span class="n">acs_dataset</span> <span class="o">=</span> <span class="n">ACSDataset</span><span class="o">.</span><span class="n">make_from_task</span><span class="p">(</span>
+            <span class="n">task</span><span class="o">=</span><span class="n">acs_task</span><span class="p">,</span> <span class="n">cache_dir</span><span class="o">=</span><span class="n">data_dir</span><span class="p">,</span> <span class="o">**</span><span class="n">acs_dataset_configs</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">make_benchmark</span><span class="p">(</span>
+            <span class="n">task</span><span class="o">=</span><span class="n">acs_task</span><span class="p">,</span>
+            <span class="n">dataset</span><span class="o">=</span><span class="n">acs_dataset</span><span class="p">,</span>
+            <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+            <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+            <span class="n">max_api_rpm</span><span class="o">=</span><span class="n">max_api_rpm</span><span class="p">,</span>
+            <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
+            <span class="n">backend</span><span class="o">=</span><span class="n">backend</span><span class="p">,</span>
+            <span class="n">model_name_or_path</span><span class="o">=</span><span class="n">model_name_or_path</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_resolve_backend</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">backend</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Pick the inference backend for this benchmark run.</span>
+
+<span class="sd">        Explicit `backend` overrides autodetection. Autodetection rules:</span>
+<span class="sd">        - `model` is a string -&gt; &quot;webapi&quot; (model ID for litellm).</span>
+<span class="sd">        - `model` is a `vllm.LLM`-like object (has `.generate` and `.get_tokenizer`) -&gt; &quot;vllm&quot;.</span>
+<span class="sd">        - Otherwise -&gt; &quot;transformers&quot;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">backend</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">backend</span> <span class="o">=</span> <span class="n">backend</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">backend</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;transformers&quot;</span><span class="p">,</span> <span class="s2">&quot;vllm&quot;</span><span class="p">,</span> <span class="s2">&quot;webapi&quot;</span><span class="p">}:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Unknown inference backend &#39;</span><span class="si">{</span><span class="n">backend</span><span class="si">}</span><span class="s2">&#39;. &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Expected one of: &#39;transformers&#39;, &#39;vllm&#39;, &#39;webapi&#39;.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">backend</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s2">&quot;webapi&quot;</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;generate&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;get_tokenizer&quot;</span><span class="p">):</span>
+            <span class="c1"># Duck-typed vLLM `LLM`. transformers models also expose `.generate`,</span>
+            <span class="c1"># but not `.get_tokenizer` — that&#39;s the discriminator.</span>
+            <span class="k">return</span> <span class="s2">&quot;vllm&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;transformers&quot;</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_configure_task_question</span><span class="p">(</span><span class="n">task</span><span class="p">:</span> <span class="n">TaskMetadata</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">BenchmarkConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Pick the Q&amp;A interface (CoT / numeric / multiple-choice) on `task`.</span>
+
+<span class="sd">        `TaskMetadata.get_task` returns a cached singleton, so this method must</span>
+<span class="sd">        also *clear* prior Q&amp;A state when switching to plain MC: without an</span>
+<span class="sd">        explicit reset, a chat_mcq config (none of cot/enable_thinking/numeric</span>
+<span class="sd">        set) leaves whatever a previous CoT or numeric cell wrote on the task,</span>
+<span class="sd">        and `task.question` keeps returning the stale interface — silently</span>
+<span class="sd">        dispatching `ChainOfThoughtQA` (max_new_tokens=8000) for what should be</span>
+<span class="sd">        a 1-token MC prediction.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">cot_prompting</span> <span class="ow">or</span> <span class="n">config</span><span class="o">.</span><span class="n">enable_thinking</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">enable_thinking</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">config</span><span class="o">.</span><span class="n">cot_prompting</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;enable_thinking=True requires the chain-of-thought QA &quot;</span>
+                    <span class="s2">&quot;interface; implicitly enabling cot_prompting mode.&quot;</span>
+                <span class="p">)</span>
+            <span class="n">base_question</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">direct_numeric_qa</span>
+            <span class="k">if</span> <span class="n">base_question</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Task &#39;</span><span class="si">{</span><span class="n">task</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; does not have a question defined. &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Cannot create ChainOfThoughtQA for cot_prompting or enable_thinking mode.&quot;</span>
+                <span class="p">)</span>
+            <span class="n">task</span><span class="o">.</span><span class="n">set_question</span><span class="p">(</span>
+                <span class="n">ChainOfThoughtQA</span><span class="p">(</span>
+                    <span class="n">column</span><span class="o">=</span><span class="n">base_question</span><span class="o">.</span><span class="n">column</span><span class="p">,</span>
+                    <span class="n">text</span><span class="o">=</span><span class="n">base_question</span><span class="o">.</span><span class="n">text</span><span class="p">,</span>
+                    <span class="n">enable_thinking</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">enable_thinking</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">config</span><span class="o">.</span><span class="n">numeric_risk_prompting</span><span class="p">:</span>
+            <span class="n">task</span><span class="o">.</span><span class="n">use_numeric_qa</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Plain multiple-choice — clear any leftover CoT/numeric state on</span>
+            <span class="c1"># the cached singleton. Both flags must be reset explicitly: the</span>
+            <span class="c1"># `use_numeric_qa = False` setter doesn&#39;t touch `_use_cot_qa`, and</span>
+            <span class="c1"># vice versa.</span>
+            <span class="n">task</span><span class="o">.</span><span class="n">use_cot_qa</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">task</span><span class="o">.</span><span class="n">use_numeric_qa</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_validate_config</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n">BenchmarkConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reject incompatible config combinations and warn on no-op overrides.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">few_shot_config</span> <span class="ow">and</span> <span class="n">config</span><span class="o">.</span><span class="n">use_chat_template</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Cannot use both few-shot prompting and chat template formatting. &quot;</span>
+                <span class="s2">&quot;Please choose one or the other.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">use_chat_template</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">cot_prompting</span> <span class="ow">or</span> <span class="n">config</span><span class="o">.</span><span class="n">enable_thinking</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Cannot combine `use_chat_template=True` with `cot_prompting` &quot;</span>
+                <span class="s2">&quot;or `enable_thinking`: the CoT path applies the tokenizer&#39;s &quot;</span>
+                <span class="s2">&quot;chat template internally inside `generate_text_batch`, so an &quot;</span>
+                <span class="s2">&quot;outer `encode_row_prompt_chat` would double-wrap the prompt. &quot;</span>
+                <span class="s2">&quot;Drop `--use-chat-template` when running with chain-of-thought.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">_user_set</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+            <span class="c1"># PROMPT_DEFAULT (unset) and None (explicitly disabled) are not user-provided</span>
+            <span class="c1"># values, so they must not trigger the chat-only warning.</span>
+            <span class="k">return</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">PROMPT_DEFAULT</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">config</span><span class="o">.</span><span class="n">use_chat_template</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="n">_user_set</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">system_prompt</span><span class="p">)</span> <span class="ow">or</span> <span class="n">_user_set</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">chat_prompt</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="c1"># Warn loudly: chat-only knobs are silently ignored on the</span>
+            <span class="c1"># zero-shot / few-shot paths, which is rarely what the user wants.</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;`system_prompt` / `chat_prompt` were provided but &quot;</span>
+                <span class="s2">&quot;`use_chat_template=False`; these arguments are only used by &quot;</span>
+                <span class="s2">&quot;the chat-template path and will be ignored.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_chat_encode_row_function</span><span class="p">(</span>
+        <span class="n">task</span><span class="p">:</span> <span class="n">TaskMetadata</span><span class="p">,</span>
+        <span class="n">tokenizer</span><span class="p">:</span> <span class="n">AutoTokenizer</span><span class="p">,</span>
+        <span class="n">config</span><span class="p">:</span> <span class="n">BenchmarkConfig</span><span class="p">,</span>
+        <span class="n">prompt_config</span><span class="p">:</span> <span class="n">PromptConfig</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build the chat-template `encode_row_prompt_chat` partial, honoring tokenizer quirks.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple[Callable, PromptConfig]</span>
+<span class="sd">            The encode function and the (possibly patched) prompt_config actually used.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">tokenizer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Chat template formatting requires a local tokenizer. &quot;</span>
+                <span class="s2">&quot;It is not supported for web API models.&quot;</span>
+            <span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using chat template prompting.&quot;</span><span class="p">)</span>
+
+        <span class="n">system_prompt</span><span class="p">,</span> <span class="n">chat_prompt</span> <span class="o">=</span> <span class="n">resolve_chat_defaults</span><span class="p">(</span>
+            <span class="n">question</span><span class="o">=</span><span class="n">task</span><span class="o">.</span><span class="n">question</span><span class="p">,</span>
+            <span class="n">system_prompt</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">system_prompt</span><span class="p">,</span>
+            <span class="n">chat_prompt</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">chat_prompt</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="c1"># Drop the system prompt if the tokenizer&#39;s template doesn&#39;t accept</span>
+        <span class="c1"># one (e.g. Gemma). Warn loudly when this discards a user-supplied</span>
+        <span class="c1"># value so it isn&#39;t silently lost.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">tokenizer_supports_system_prompt</span><span class="p">(</span><span class="n">tokenizer</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">system_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">PROMPT_DEFAULT</span>
+                <span class="ow">and</span> <span class="n">config</span><span class="o">.</span><span class="n">system_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="p">):</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;Tokenizer&#39;s chat template rejects the `system` role; &quot;</span>
+                    <span class="s2">&quot;the user-supplied `system_prompt` will be discarded. &quot;</span>
+                    <span class="s2">&quot;Consider folding the instruction into `custom_prompt_prefix` &quot;</span>
+                    <span class="s2">&quot;or the user message instead.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;Tokenizer&#39;s chat template rejects the `system` role; &quot;</span>
+                    <span class="s2">&quot;running without a system prompt.&quot;</span>
+                <span class="p">)</span>
+            <span class="n">system_prompt</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="c1"># patch prompt config so the caller also gets the updated version</span>
+            <span class="n">prompt_config</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                <span class="n">prompt_config</span><span class="p">,</span> <span class="n">system_prompt</span><span class="o">=</span><span class="n">system_prompt</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">partial</span><span class="p">(</span>
+            <span class="n">encode_row_prompt_chat</span><span class="p">,</span>
+            <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span>
+            <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+            <span class="n">chat_prompt</span><span class="o">=</span><span class="n">chat_prompt</span><span class="p">,</span>
+            <span class="n">prompt_config</span><span class="o">=</span><span class="n">prompt_config</span><span class="p">,</span>
+        <span class="p">),</span> <span class="n">prompt_config</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_encode_row_function</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">task</span><span class="p">:</span> <span class="n">TaskMetadata</span><span class="p">,</span>
+        <span class="n">dataset</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span>
+        <span class="n">tokenizer</span><span class="p">:</span> <span class="n">AutoTokenizer</span><span class="p">,</span>
+        <span class="n">config</span><span class="p">:</span> <span class="n">BenchmarkConfig</span><span class="p">,</span>
+        <span class="n">prompt_config</span><span class="p">:</span> <span class="n">PromptConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Pick the prompting function based on config (few-shot, chat-template, or zero-shot).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple[Callable, PromptConfig]</span>
+<span class="sd">            The encode function and the prompt_config actually used (may differ from</span>
+<span class="sd">            the input when the Gemma path drops the system prompt).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Build PromptConfig once from the variation dict.</span>
+        <span class="k">if</span> <span class="n">prompt_config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">prompt_config</span> <span class="o">=</span> <span class="n">PromptConfig</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
+                <span class="n">pv</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">prompt_variation</span> <span class="ow">or</span> <span class="p">{},</span>
+                <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span>
+                <span class="n">question</span><span class="o">=</span><span class="n">task</span><span class="o">.</span><span class="n">question</span><span class="p">,</span>
+                <span class="n">system_prompt</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">system_prompt</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">few_shot_config</span><span class="p">:</span>
+            <span class="n">few_shot_config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">few_shot_config</span>
+            <span class="c1"># When correcting order bias, encode_row is called once per answer-key</span>
+            <span class="c1"># permutation for each row. With reuse_examples=False (the default) each</span>
+            <span class="c1"># call re-samples fresh training examples, so the averaged score conflates</span>
+            <span class="c1"># example-selection variance with ordering variance. Force reuse so that</span>
+            <span class="c1"># all permutations of the same row see identical few-shot context.</span>
+            <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">correct_order_bias</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">few_shot_config</span><span class="o">.</span><span class="n">reuse_examples</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;correct_order_bias=True with reuse_examples=False: forcing &quot;</span>
+                    <span class="s2">&quot;reuse_examples=True so all answer-order permutations use the &quot;</span>
+                    <span class="s2">&quot;same few-shot examples.&quot;</span>
+                <span class="p">)</span>
+                <span class="n">few_shot_config</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">few_shot_config</span><span class="p">,</span> <span class="n">reuse_examples</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Using few-shot prompting (n=</span><span class="si">{</span><span class="n">few_shot_config</span><span class="o">.</span><span class="n">n_shots</span><span class="si">}</span><span class="s2">).&quot;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">partial</span><span class="p">(</span>
+                <span class="n">encode_row_prompt_few_shot</span><span class="p">,</span>
+                <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span>
+                <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span>
+                <span class="n">few_shot_config</span><span class="o">=</span><span class="n">few_shot_config</span><span class="p">,</span>
+                <span class="n">prompt_config</span><span class="o">=</span><span class="n">prompt_config</span><span class="p">,</span>
+            <span class="p">),</span> <span class="n">prompt_config</span>
+
+        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">use_chat_template</span><span class="p">:</span>
+            <span class="c1"># _build_chat_encode_row_function already returns (encode_fn, prompt_config)</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_build_chat_encode_row_function</span><span class="p">(</span>
+                <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span>
+                <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+                <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
+                <span class="n">prompt_config</span><span class="o">=</span><span class="n">prompt_config</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using zero-shot prompting.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">partial</span><span class="p">(</span>
+            <span class="n">encode_row_prompt</span><span class="p">,</span> <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span> <span class="n">prompt_config</span><span class="o">=</span><span class="n">prompt_config</span>
+        <span class="p">),</span> <span class="n">prompt_config</span>
+
+<div class="viewcode-block" id="Benchmark.make_benchmark">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.benchmark.Benchmark.make_benchmark">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">make_benchmark</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">task</span><span class="p">:</span> <span class="n">TaskMetadata</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">dataset</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">:</span> <span class="n">AutoModelForCausalLM</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">tokenizer</span><span class="p">:</span> <span class="n">AutoTokenizer</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># WebAPI models have no local tokenizer</span>
+        <span class="n">max_api_rpm</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">config</span><span class="p">:</span> <span class="n">BenchmarkConfig</span> <span class="o">=</span> <span class="n">BenchmarkConfig</span><span class="o">.</span><span class="n">default_config</span><span class="p">(),</span>
+        <span class="n">backend</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">model_name_or_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Benchmark</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a calibration benchmark from a given configuration.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        task : TaskMetadata | str</span>
+<span class="sd">            The task metadata object or name of the task to use.</span>
+<span class="sd">        dataset : Dataset</span>
+<span class="sd">            The dataset to use for the benchmark.</span>
+<span class="sd">        model : AutoModelForCausalLM | str</span>
+<span class="sd">            The transformers language model to use, or the model ID for a webAPI</span>
+<span class="sd">            hosted model (e.g., &quot;openai/gpt-4o-mini&quot;).</span>
+<span class="sd">        tokenizer : AutoTokenizer, optional</span>
+<span class="sd">            The tokenizer used to train the model (if using a transformers</span>
+<span class="sd">            model). Not required for webAPI models.</span>
+<span class="sd">        max_api_rpm : int, optional</span>
+<span class="sd">            The maximum number of API requests per minute for webAPI models.</span>
+<span class="sd">        config : BenchmarkConfig, optional</span>
+<span class="sd">            Extra benchmark configurations, by default will use</span>
+<span class="sd">            `BenchmarkConfig.default_config()`.</span>
+<span class="sd">        **kwargs</span>
+<span class="sd">            Additional arguments for easier configuration of the benchmark.</span>
+<span class="sd">            Will simply use these values to update the `config` object.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bench : Benchmark</span>
+<span class="sd">            The calibration benchmark object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Update config with any additional kwargs</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Handle TaskMetadata object and configure its Q&amp;A mode from the config.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">task</span> <span class="o">=</span> <span class="n">TaskMetadata</span><span class="o">.</span><span class="n">get_task</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">_configure_task_question</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">feature_subset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">feature_subset</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">task</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">create_task_with_feature_subset</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">feature_subset</span><span class="p">)</span>
+            <span class="n">dataset</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="n">task</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">TaskMetadata</span><span class="p">)</span>
+
+        <span class="c1"># Check dataset is compatible with task</span>
+        <span class="k">if</span> <span class="n">dataset</span><span class="o">.</span><span class="n">task</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">task</span> <span class="ow">and</span> <span class="n">dataset</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="n">task</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Dataset task &#39;</span><span class="si">{</span><span class="n">dataset</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; does not match the provided task &#39;</span><span class="si">{</span><span class="n">task</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">population_filter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">population_filter</span><span class="p">)</span>
+
+        <span class="bp">cls</span><span class="o">.</span><span class="n">_validate_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+
+        <span class="c1"># Build PromptConfig once from the variation dict. Uses updated question type.</span>
+        <span class="n">prompt_config</span> <span class="o">=</span> <span class="n">PromptConfig</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
+            <span class="n">pv</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">prompt_variation</span> <span class="ow">or</span> <span class="p">{},</span>
+            <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span>
+            <span class="n">question</span><span class="o">=</span><span class="n">task</span><span class="o">.</span><span class="n">question</span><span class="p">,</span>
+            <span class="n">system_prompt</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">system_prompt</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">encode_row_function</span><span class="p">,</span> <span class="n">prompt_config</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_build_encode_row_function</span><span class="p">(</span>
+            <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span>
+            <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span>
+            <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+            <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
+            <span class="n">prompt_config</span><span class="o">=</span><span class="n">prompt_config</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Parse LLMClassifier parameters</span>
+        <span class="n">llm_inference_kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;correct_order_bias&quot;</span><span class="p">:</span> <span class="n">config</span><span class="o">.</span><span class="n">correct_order_bias</span><span class="p">,</span>
+            <span class="s2">&quot;prompt_config&quot;</span><span class="p">:</span> <span class="n">prompt_config</span><span class="p">,</span>  <span class="c1"># may be patched (e.g. Gemma drops system_prompt)</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">batch_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">llm_inference_kwargs</span><span class="p">[</span><span class="s2">&quot;batch_size&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">batch_size</span>
+        <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">context_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">llm_inference_kwargs</span><span class="p">[</span><span class="s2">&quot;context_size&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">context_size</span>
+        <span class="k">if</span> <span class="n">max_api_rpm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">llm_inference_kwargs</span><span class="p">[</span><span class="s2">&quot;max_api_rpm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">max_api_rpm</span>
+
+        <span class="n">resolved_backend</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_resolve_backend</span><span class="p">(</span><span class="n">backend</span><span class="o">=</span><span class="n">backend</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">resolved_backend</span> <span class="o">==</span> <span class="s2">&quot;webapi&quot;</span><span class="p">:</span>
+            <span class="n">llm_clf</span> <span class="o">=</span> <span class="n">WebAPILLMClassifier</span><span class="p">(</span>
+                <span class="n">model_name</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span>
+                <span class="n">encode_row</span><span class="o">=</span><span class="n">encode_row_function</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">llm_inference_kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using webAPI model: </span><span class="si">{</span><span class="n">model</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">resolved_backend</span> <span class="o">==</span> <span class="s2">&quot;vllm&quot;</span><span class="p">:</span>
+            <span class="n">llm_clf</span> <span class="o">=</span> <span class="n">VLLMClassifier</span><span class="p">(</span>
+                <span class="n">llm</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+                <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span>
+                <span class="n">model_name_or_path</span><span class="o">=</span><span class="n">model_name_or_path</span><span class="p">,</span>
+                <span class="n">encode_row</span><span class="o">=</span><span class="n">encode_row_function</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">llm_inference_kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using local vLLM model: </span><span class="si">{</span><span class="n">llm_clf</span><span class="o">.</span><span class="n">model_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># transformers</span>
+            <span class="k">assert</span> <span class="n">tokenizer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s2">&quot;Tokenizer must be provided for local transformers models.&quot;</span>
+            <span class="p">)</span>
+            <span class="n">llm_clf</span> <span class="o">=</span> <span class="n">TransformersLLMClassifier</span><span class="p">(</span>
+                <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+                <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span>
+                <span class="n">encode_row</span><span class="o">=</span><span class="n">encode_row_function</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">llm_inference_kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using local transformers model: </span><span class="si">{</span><span class="n">llm_clf</span><span class="o">.</span><span class="n">model_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Exemplary row encoding&quot;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="c1"># reuse_examples=True avoids advancing the dataset&#39;s RNG at construction</span>
+            <span class="c1"># time, which would shift the random stream for all subsequent few-shot</span>
+            <span class="c1"># example draws and threshold fitting.</span>
+            <span class="n">llm_clf</span><span class="o">.</span><span class="n">encode_row</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">sample_n_train_examples</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">reuse_examples</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">llm_clf</span><span class="o">=</span><span class="n">llm_clf</span><span class="p">,</span>
+            <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span>
+            <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

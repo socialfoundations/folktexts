@@ -1,0 +1,1173 @@
+
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>folktexts.prompting &mdash; folktexts 0.6.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=fd6457a4" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=41710f8f" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=8fa8b3e9"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../../_static/custom.js?v=882eb7ae"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  <a href="../../index.html" class="icon icon-home">
+    folktexts
+  </a>
+    <div class="version">0.6.0</div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">🏠 Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../readme.html">📖 Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../configuring_prompts.html">🎛️ Configuring prompts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../updates.html">📝 Updates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../source/modules.html">⚙️ API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../notebooks.html">📓 Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">folktexts.prompting</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for folktexts.prompting</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Prompt construction utilities for risk-estimation tasks.</span>
+
+<span class="sd">This module maps risk-estimation questions to different prompting techniques</span>
+<span class="sd">and supports systematic prompt variations for benchmarking and evaluation.</span>
+
+<span class="sd">Each prompt (corresponding to a tabular data row) is represented</span>
+<span class="sd">as composition of three parts:</span>
+
+<span class="sd">    [PREFIX]  Shared task description and/or system context.</span>
+<span class="sd">              This section is constant across all rows.</span>
+<span class="sd">    [INFO]    Row-specific serialized feature-value pairs.</span>
+<span class="sd">    [SUFFIX]  Question text defining the prediction task.</span>
+
+<span class="sd">Within INFO the prompt variation pipeline is fixed by semantics:</span>
+<span class="sd">VaryValueMap → VaryOrder → VaryConnector → VaryFormat</span>
+<span class="sd">Return types enforce the order: per-item stages share list→list;</span>
+<span class="sd">VaryFormat collapses the list to str, making it impossible to apply</span>
+<span class="sd">a per-item stage after it.</span>
+
+<span class="sd">The module implements multiple prompting strategies, including:</span>
+
+<span class="sd">    - Multiple-choice Q&amp;A vs direct numeric Q&amp;A</span>
+<span class="sd">    - Zero-shot prompting</span>
+<span class="sd">    - Few-shot prompting</span>
+<span class="sd">    - Chain-of-thought (CoT) prompting</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">dataclasses</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">copy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">ClassVar</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">jinja2</span><span class="w"> </span><span class="kn">import</span> <span class="n">TemplateError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">transformers</span><span class="w"> </span><span class="kn">import</span> <span class="n">AutoTokenizer</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.acs</span><span class="w"> </span><span class="kn">import</span> <span class="n">ACS_TASK_DESCRIPTION</span><span class="p">,</span> <span class="n">ACS_TASK_DESCRIPTION_DEFAULTS</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">hash_dict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.qa_interface</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">MultipleChoiceQA</span><span class="p">,</span>
+    <span class="n">QAInterface</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.task</span><span class="w"> </span><span class="kn">import</span> <span class="n">TaskMetadata</span>
+
+<span class="n">PROMPT_DEFAULT</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+<span class="sd">&quot;&quot;&quot;Sentinel: &quot;use the question type&#39;s default system / chat prompt&quot; — as opposed to ``None``, which disables the role.&quot;&quot;&quot;</span>
+
+
+<span class="n">DEFAULT_PROMPT_STYLE</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="s2">&quot;textbullet&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;connector&quot;</span><span class="p">:</span> <span class="s2">&quot;is:&quot;</span><span class="p">,</span>  <span class="c1"># match main&#39;s &quot;&lt;feature&gt; is: &lt;value&gt;&quot;; override via --variation connector=is</span>
+    <span class="s2">&quot;granularity&quot;</span><span class="p">:</span> <span class="s2">&quot;original&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;order&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s2">&quot;custom_prompt_prefix&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s2">&quot;custom_prompt_suffix&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s2">&quot;show_question&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="sd">&quot;&quot;&quot;Default values for the seven prompt-variation keys; ``PromptConfig.from_dict`` validates overrides against them.&quot;&quot;&quot;</span>
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># Intermediate representation for prompt construction</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="FeatureItem">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.FeatureItem">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">FeatureItem</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;One feature mid-pipeline: ``text_value`` is set by :class:`VaryValueMap`, ``connected`` by :class:`VaryConnector`.&quot;&quot;&quot;</span>
+
+    <span class="n">col</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># pandas column name</span>
+    <span class="n">label</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># human-readable name from ColumnToText.short_description</span>
+    <span class="n">raw_value</span><span class="p">:</span> <span class="n">Any</span>  <span class="c1"># original value from the DataFrame</span>
+    <span class="n">text_value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>  <span class="c1"># filled by VaryValueMap</span>
+    <span class="n">connected</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>  <span class="c1"># filled by VaryConnector</span></div>
+
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># Variation stages</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="VaryPrefix">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.VaryPrefix">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">VaryPrefix</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Builds the prompt ``[PREFIX]``: the task description plus an optional custom prefix.&quot;&quot;&quot;</span>
+
+    <span class="n">task_description</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">add_task_description</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">custom_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">hash_dict</span><span class="p">(</span><span class="n">dataclasses</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)),</span> <span class="mi">16</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_task_description</span><span class="p">:</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task_description</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">custom_prefix</span><span class="p">:</span>
+            <span class="n">cp</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">custom_prefix</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">custom_prefix</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">custom_prefix</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cp</span><span class="p">)</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">prefix</span> <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">prefix</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;Information:</span><span class="se">\n</span><span class="s2">&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="VarySuffix">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.VarySuffix">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">VarySuffix</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Builds the prompt ``[SUFFIX]``: the question text and answer prefill (or just the prefill when ``show_question=False``).&quot;&quot;&quot;</span>
+
+    <span class="n">question</span><span class="p">:</span> <span class="n">QAInterface</span>
+    <span class="n">show_question</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">with_answer_prefill</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="kc">True</span>  <span class="c1"># set False for chat mode (prefill is assistant turn)</span>
+    <span class="p">)</span>
+    <span class="n">show_label</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">label</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># only used when show_label=True</span>
+    <span class="n">custom_suffix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">show_label</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;show_label=True requires label to be set.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">hash_dict</span><span class="p">(</span><span class="n">dataclasses</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)),</span> <span class="mi">16</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">question</span><span class="o">.</span><span class="n">get_question_prompt</span><span class="p">(</span>
+                <span class="n">with_answer_prefill</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">with_answer_prefill</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">show_question</span>
+            <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">question</span><span class="o">.</span><span class="n">get_answer_prefix</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="n">label_part</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">show_label</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="n">base</span><span class="si">}{</span><span class="n">label_part</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">custom_suffix</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="VaryValueMap">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.VaryValueMap">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">VaryValueMap</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Maps raw feature values to human-readable text; ``granularity`` (``&quot;original&quot;`` / ``&quot;low&quot;``) selects the value-map variant.&quot;&quot;&quot;</span>
+
+    <span class="n">cols_to_text</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="nb">hash</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">compare</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">granularity</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;original&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="c1"># Hash the column names (which identify the task) and the granularity tag (which identifies the value-map variant).</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span>
+            <span class="n">hash_dict</span><span class="p">(</span>
+                <span class="p">{</span><span class="s2">&quot;cols&quot;</span><span class="p">:</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cols_to_text</span><span class="p">),</span> <span class="s2">&quot;granularity&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">granularity</span><span class="p">}</span>
+            <span class="p">),</span>
+            <span class="mi">16</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FeatureItem</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">FeatureItem</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">dataclasses</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                <span class="n">item</span><span class="p">,</span> <span class="n">text_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cols_to_text</span><span class="p">[</span><span class="n">item</span><span class="o">.</span><span class="n">col</span><span class="p">][</span><span class="n">item</span><span class="o">.</span><span class="n">raw_value</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span>
+        <span class="p">]</span>
+
+<div class="viewcode-block" id="VaryValueMap.with_low_granularity">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.VaryValueMap.with_low_granularity">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">with_low_granularity</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">cols_to_text</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">simplified_value_maps</span><span class="p">:</span> <span class="nb">dict</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;VaryValueMap&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a VaryValueMap with simplified (low-granularity) value maps.</span>
+
+<span class="sd">        Shallow-copies each ColumnToText that has a simplified map available,</span>
+<span class="sd">        leaving the original task object untouched.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">modified</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">c2t</span> <span class="ow">in</span> <span class="n">cols_to_text</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">simplified_value_maps</span><span class="p">:</span>
+                <span class="n">c2t_copy</span> <span class="o">=</span> <span class="n">copy</span><span class="p">(</span><span class="n">c2t</span><span class="p">)</span>
+                <span class="n">c2t_copy</span><span class="o">.</span><span class="n">_value_map</span> <span class="o">=</span> <span class="n">simplified_value_maps</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>
+                <span class="n">modified</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">c2t_copy</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">modified</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">c2t</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">cols_to_text</span><span class="o">=</span><span class="n">modified</span><span class="p">,</span> <span class="n">granularity</span><span class="o">=</span><span class="s2">&quot;low&quot;</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="VaryOrder">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.VaryOrder">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">VaryOrder</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Reorders feature items by ``order`` (named columns first, the rest appended); ``None`` keeps the original order.&quot;&quot;&quot;</span>
+
+    <span class="n">order</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">|</span> <span class="nb">list</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># column names; None → keep original</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Frozen dataclasses must be hashable: PromptConfig.__hash__ reaches hash(VaryOrder),</span>
+        <span class="c1"># and a list field raises &quot;unhashable type: &#39;list&#39;&quot;. Normalize to a tuple</span>
+        <span class="c1"># (as FewShotConfig already does for `compose`).</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span>
+                <span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;order&quot;</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">))</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;order&quot;</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">hash_dict</span><span class="p">(</span><span class="n">dataclasses</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)),</span> <span class="mi">16</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FeatureItem</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">FeatureItem</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">items</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="p">{</span><span class="n">item</span><span class="o">.</span><span class="n">col</span><span class="p">:</span> <span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">}</span>
+        <span class="n">ordered_cols</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="p">)</span>
+        <span class="c1"># Put the specified columns first (in the given order), then append any</span>
+        <span class="c1"># remaining columns that weren&#39;t mentioned — dropping nothing.</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="p">[</span><span class="n">index</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">index</span><span class="p">]</span>
+            <span class="o">+</span> <span class="p">[</span><span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span> <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ordered_cols</span><span class="p">]</span>
+        <span class="p">)</span></div>
+
+
+
+<span class="n">VaryFeatureOrder</span> <span class="o">=</span> <span class="n">VaryOrder</span>  <span class="c1"># alias for backward compatibility</span>
+
+
+<div class="viewcode-block" id="VaryConnector">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.VaryConnector">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">VaryConnector</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Joins each feature label to its value with ``connector`` (default ``&quot;is:&quot;`` -&gt; ``&quot;Age is: 30&quot;``; e.g. ``&quot;is&quot;``, ``&quot;:&quot;``).&quot;&quot;&quot;</span>
+
+    <span class="n">connector</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;is:&quot;</span>  <span class="c1"># match DEFAULT_PROMPT_STYLE; &quot;is&quot; (no colon) is a valid override</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">hash_dict</span><span class="p">(</span><span class="n">dataclasses</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)),</span> <span class="mi">16</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FeatureItem</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">FeatureItem</span><span class="p">]:</span>
+        <span class="n">sep</span> <span class="o">=</span> <span class="s2">&quot;: &quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">connector</span> <span class="o">==</span> <span class="s2">&quot;:&quot;</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">connector</span><span class="si">}</span><span class="s2"> &quot;</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">dataclasses</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">connected</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">label</span><span class="si">}{</span><span class="n">sep</span><span class="si">}{</span><span class="n">item</span><span class="o">.</span><span class="n">text_value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span>
+        <span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="VaryFormat">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.VaryFormat">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">VaryFormat</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Collapses the feature list into the final layout: ``&quot;textbullet&quot;`` (default), ``&quot;bullet&quot;``, ``&quot;comma&quot;``, or ``&quot;text&quot;``.&quot;&quot;&quot;</span>
+
+    <span class="nb">format</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;textbullet&quot;</span>
+
+    <span class="n">_TEMPLATES</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;bullet&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;- </span><span class="si">{</span><span class="n">s</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;comma&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">s</span><span class="si">}</span><span class="s2">, &quot;</span><span class="p">,</span>
+        <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;The </span><span class="si">{</span><span class="n">s</span><span class="si">}</span><span class="s2">. &quot;</span><span class="p">,</span>
+        <span class="s2">&quot;textbullet&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;- The </span><span class="si">{</span><span class="n">s</span><span class="si">}</span><span class="s2">.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">format</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TEMPLATES</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Unknown format </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">format</span><span class="si">!r}</span><span class="s2">. Choose from </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_TEMPLATES</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">hash_dict</span><span class="p">(</span><span class="n">dataclasses</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)),</span> <span class="mi">16</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">FeatureItem</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TEMPLATES</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">format</span><span class="p">]</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">template</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">connected</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;, </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="VarySystemPrompt">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.VarySystemPrompt">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">VarySystemPrompt</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Holds the optional system-role string for the chat path.&quot;&quot;&quot;</span>
+
+    <span class="n">system_prompt</span><span class="p">:</span> <span class="nb">str</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">hash_dict</span><span class="p">(</span><span class="n">dataclasses</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)),</span> <span class="mi">16</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_prompt</span></div>
+
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># FewShotConfig</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="FewShotConfig">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.FewShotConfig">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">FewShotConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Configuration for few-shot prompting.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    n_shots : int</span>
+<span class="sd">        Number of example questions and answers to prepend.</span>
+<span class="sd">    example_order : tuple[int, ...] | str | None, optional</span>
+<span class="sd">        Integer permutation to reorder examples (e.g. ``(2, 0, 1)`` or ``&quot;2,0,1&quot;``). ``None`` keeps the sampled order.</span>
+<span class="sd">    compose : str | list, optional</span>
+<span class="sd">        How to select few-shot samples: ``&quot;random&quot;`` (default), ``&quot;balanced&quot;`` (equal draws per class), or a list of</span>
+<span class="sd">        per-class counts summing to ``n_shots``.</span>
+<span class="sd">    reuse_examples : bool, optional</span>
+<span class="sd">        Whether to reuse the same examples across calls, by default False.</span>
+<span class="sd">    show_question_in_examples : bool, optional</span>
+<span class="sd">        Whether each in-context example repeats the question (default, matches main) or shows</span>
+<span class="sd">        only the answer. Set False for the compact answer-only format. Default is True.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">n_shots</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">example_order</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">compose</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span> <span class="o">=</span> <span class="s2">&quot;random&quot;</span>
+    <span class="n">reuse_examples</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">show_question_in_examples</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_shots</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;n_shots must be &gt;= 1; got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_shots</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Normalize example_order to a tuple: a frozen dataclass must be hashable, and a</span>
+        <span class="c1"># list field breaks hash(FewShotConfig) (reached via BenchmarkConfig.__hash__).</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">example_order</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span>
+                <span class="bp">self</span><span class="p">,</span>
+                <span class="s2">&quot;example_order&quot;</span><span class="p">,</span>
+                <span class="nb">tuple</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">example_order</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)),</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">example_order</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;example_order&quot;</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">example_order</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">example_order</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">example_order</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_shots</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;example_order must be a permutation of [0, ..., n_shots-1]; &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">example_order</span><span class="si">}</span><span class="s2"> for n_shots=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_shots</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compose</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">&quot;,&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">compose</span><span class="p">:</span>
+            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span>
+                <span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;compose&quot;</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">compose</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">))</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compose</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;compose&quot;</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compose</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compose</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">c</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">compose</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;compose counts must be non-negative; got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">compose</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compose</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_shots</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;compose counts must sum to n_shots=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_shots</span><span class="si">}</span><span class="s2">; got sum=</span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compose</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">compose</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;random&quot;</span><span class="p">,</span> <span class="s2">&quot;balanced&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;compose must be &#39;random&#39;, &#39;balanced&#39;, or a list of counts; got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">compose</span><span class="si">!r}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="c1"># Cannot rely on the frozen-dataclass auto-hash: `compose` as a str</span>
+        <span class="c1"># would use PYTHONHASHSEED-dependent str.__hash__, breaking cross-</span>
+        <span class="c1"># process benchmark stability.  Serialise via json.dumps + shake-256.</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">hash_dict</span><span class="p">(</span><span class="n">dataclasses</span><span class="o">.</span><span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)),</span> <span class="mi">16</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># PromptConfig</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="PromptConfig">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.PromptConfig">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">PromptConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;How one row is rendered into a prompt — one instance of each variation stage.</span>
+
+<span class="sd">    A prompt is a task ``prefix``, a feature ``[INFO]`` block (the</span>
+<span class="sd">    ``value_map → order → connector → format`` pipeline), and a question</span>
+<span class="sd">    ``suffix``, plus an optional ``system_prompt`` for the chat path. Build one</span>
+<span class="sd">    with :meth:`from_dict` (or :meth:`default`) rather than instantiating the</span>
+<span class="sd">    stages directly. Frozen and hashable, so each distinct configuration gets its</span>
+<span class="sd">    own ``results.bench-{hash}.json``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">prefix</span><span class="p">:</span> <span class="n">VaryPrefix</span>
+    <span class="n">value_map</span><span class="p">:</span> <span class="n">VaryValueMap</span>
+    <span class="n">order</span><span class="p">:</span> <span class="n">VaryOrder</span>
+    <span class="n">connector</span><span class="p">:</span> <span class="n">VaryConnector</span>
+    <span class="nb">format</span><span class="p">:</span> <span class="n">VaryFormat</span>
+    <span class="n">suffix</span><span class="p">:</span> <span class="n">VarySuffix</span>
+    <span class="n">system_prompt</span><span class="p">:</span> <span class="n">VarySystemPrompt</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="c1"># Python&#39;s builtin hash() of this frozen dataclass is salted (PYTHONHASHSEED): the</span>
+        <span class="c1"># stages hold str fields, so hashing them gave a different value every process. That</span>
+        <span class="c1"># flows into the classifier hash and made `results.bench-{hash}.json` non-deterministic</span>
+        <span class="c1"># across processes. Hash the rendered prompt skeleton + value-line knobs deterministically</span>
+        <span class="c1"># instead. `value_map` is excluded (as it already is from equality, via field compare=False)</span>
+        <span class="c1"># and is captured by the task hash; the rendered prefix/suffix capture the question text.</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;prefix&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">(),</span>
+            <span class="s2">&quot;connector&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">connector</span><span class="o">.</span><span class="n">connector</span><span class="p">,</span>
+            <span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">format</span><span class="o">.</span><span class="n">format</span><span class="p">,</span>
+            <span class="s2">&quot;order&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="o">.</span><span class="n">order</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">order</span><span class="o">.</span><span class="n">order</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;suffix&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">suffix</span><span class="p">(),</span>
+            <span class="s2">&quot;system_prompt&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_prompt</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">hash_dict</span><span class="p">(</span><span class="n">parts</span><span class="p">),</span> <span class="mi">16</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PromptConfig.default">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.PromptConfig.default">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">TaskMetadata</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;PromptConfig&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_dict</span><span class="p">({},</span> <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PromptConfig.from_dict">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.PromptConfig.from_dict">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">pv</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">task</span><span class="p">:</span> <span class="n">TaskMetadata</span><span class="p">,</span>
+        <span class="n">question</span><span class="p">:</span> <span class="n">QAInterface</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">add_task_description</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">system_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">PROMPT_DEFAULT</span><span class="p">,</span>  <span class="c1"># type: ignore[assignment]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;PromptConfig&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build a PromptConfig from a prompt-variation dict and a task.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pv : dict</span>
+<span class="sd">            Prompt style overrides; see ``DEFAULT_PROMPT_STYLE`` for valid keys.</span>
+<span class="sd">        task : TaskMetadata</span>
+<span class="sd">            The task that defines features, column mappings, and the question.</span>
+<span class="sd">        question : QAInterface, optional</span>
+<span class="sd">            Override the task&#39;s default question interface.</span>
+<span class="sd">        add_task_description : bool, optional</span>
+<span class="sd">            Whether to include the task description in the prefix.</span>
+<span class="sd">        system_prompt : str | None, optional</span>
+<span class="sd">            System prompt string; wrapped in ``VarySystemPrompt`` when provided.</span>
+<span class="sd">            Defaults to ``question.default_system_prompt`` (set per QA subclass).</span>
+<span class="sd">            Pass ``None`` explicitly to disable the system role (e.g. for</span>
+<span class="sd">            Gemma-style templates).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">unknown</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">pv</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">DEFAULT_PROMPT_STYLE</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">unknown</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Unknown prompt_variation keys: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">unknown</span><span class="p">)</span><span class="si">}</span><span class="s2">. Valid keys: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">DEFAULT_PROMPT_STYLE</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">granularity</span> <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;granularity&quot;</span><span class="p">,</span> <span class="n">DEFAULT_PROMPT_STYLE</span><span class="p">[</span><span class="s2">&quot;granularity&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">granularity</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;original&quot;</span><span class="p">,</span> <span class="s2">&quot;low&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Unknown granularity </span><span class="si">{</span><span class="n">granularity</span><span class="si">!r}</span><span class="s2">. Choose &#39;original&#39; or &#39;low&#39;.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">order</span> <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;order&quot;</span><span class="p">,</span> <span class="n">DEFAULT_PROMPT_STYLE</span><span class="p">[</span><span class="s2">&quot;order&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">order</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">order</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">order</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">))</span>
+
+        <span class="n">question</span> <span class="o">=</span> <span class="n">question</span> <span class="ow">or</span> <span class="n">task</span><span class="o">.</span><span class="n">question</span>
+        <span class="k">if</span> <span class="n">system_prompt</span> <span class="ow">is</span> <span class="n">PROMPT_DEFAULT</span><span class="p">:</span>
+            <span class="n">system_prompt</span> <span class="o">=</span> <span class="n">question</span><span class="o">.</span><span class="n">default_system_prompt</span>
+        <span class="n">value_map</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">VaryValueMap</span><span class="o">.</span><span class="n">with_low_granularity</span><span class="p">(</span>
+                <span class="n">task</span><span class="o">.</span><span class="n">cols_to_text</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_simplified_value_maps</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">granularity</span> <span class="o">==</span> <span class="s2">&quot;low&quot;</span>
+            <span class="k">else</span> <span class="n">VaryValueMap</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">cols_to_text</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+            <span class="n">prefix</span><span class="o">=</span><span class="n">VaryPrefix</span><span class="p">(</span>
+                <span class="n">task_description</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_get_task_description</span><span class="p">(</span><span class="n">task</span><span class="p">),</span>
+                <span class="n">add_task_description</span><span class="o">=</span><span class="n">add_task_description</span><span class="p">,</span>
+                <span class="n">custom_prefix</span><span class="o">=</span><span class="n">pv</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                    <span class="s2">&quot;custom_prompt_prefix&quot;</span><span class="p">,</span> <span class="n">DEFAULT_PROMPT_STYLE</span><span class="p">[</span><span class="s2">&quot;custom_prompt_prefix&quot;</span><span class="p">]</span>
+                <span class="p">),</span>
+            <span class="p">),</span>
+            <span class="n">value_map</span><span class="o">=</span><span class="n">value_map</span><span class="p">,</span>
+            <span class="n">order</span><span class="o">=</span><span class="n">VaryOrder</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="n">order</span><span class="p">),</span>
+            <span class="n">connector</span><span class="o">=</span><span class="n">VaryConnector</span><span class="p">(</span>
+                <span class="n">connector</span><span class="o">=</span><span class="n">pv</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;connector&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">DEFAULT_PROMPT_STYLE</span><span class="p">[</span><span class="s2">&quot;connector&quot;</span><span class="p">]))</span>
+            <span class="p">),</span>
+            <span class="nb">format</span><span class="o">=</span><span class="n">VaryFormat</span><span class="p">(</span>
+                <span class="nb">format</span><span class="o">=</span><span class="n">pv</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;format&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">DEFAULT_PROMPT_STYLE</span><span class="p">[</span><span class="s2">&quot;format&quot;</span><span class="p">]))</span>
+            <span class="p">),</span>
+            <span class="n">suffix</span><span class="o">=</span><span class="n">VarySuffix</span><span class="p">(</span>
+                <span class="n">question</span><span class="o">=</span><span class="n">question</span><span class="p">,</span>
+                <span class="n">show_question</span><span class="o">=</span><span class="n">pv</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                    <span class="s2">&quot;show_question&quot;</span><span class="p">,</span> <span class="nb">bool</span><span class="p">(</span><span class="n">DEFAULT_PROMPT_STYLE</span><span class="p">[</span><span class="s2">&quot;show_question&quot;</span><span class="p">])</span>
+                <span class="p">),</span>
+                <span class="n">custom_suffix</span><span class="o">=</span><span class="n">pv</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                    <span class="s2">&quot;custom_prompt_suffix&quot;</span><span class="p">,</span> <span class="n">DEFAULT_PROMPT_STYLE</span><span class="p">[</span><span class="s2">&quot;custom_prompt_suffix&quot;</span><span class="p">]</span>
+                <span class="p">),</span>
+            <span class="p">),</span>
+            <span class="n">system_prompt</span><span class="o">=</span><span class="n">VarySystemPrompt</span><span class="p">(</span><span class="n">system_prompt</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">system_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_task_description</span><span class="p">(</span><span class="n">task</span><span class="p">:</span> <span class="n">TaskMetadata</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">descriptions</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;ACS&quot;</span><span class="p">:</span> <span class="n">ACS_TASK_DESCRIPTION</span><span class="o">.</span><span class="n">substitute</span><span class="p">(</span><span class="n">ACS_TASK_DESCRIPTION_DEFAULTS</span><span class="p">),</span>
+        <span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">desc</span> <span class="ow">in</span> <span class="n">descriptions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">task</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">desc</span>
+
+        <span class="c1"># Fall back to the task&#39;s own description field for non-ACS tasks.</span>
+        <span class="k">if</span> <span class="n">task</span><span class="o">.</span><span class="n">description</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">task</span><span class="o">.</span><span class="n">description</span>
+
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Cannot determine task description for task &#39;</span><span class="si">{</span><span class="n">task</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;. &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Set a &#39;description&#39; field on the TaskMetadata object.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_simplified_value_maps</span><span class="p">(</span><span class="n">task</span><span class="p">:</span> <span class="n">TaskMetadata</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">task</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;ACS&quot;</span><span class="p">):</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.acs.acs_columns_simplified</span><span class="w"> </span><span class="kn">import</span> <span class="n">simplified_value_maps</span>
+
+            <span class="k">return</span> <span class="n">simplified_value_maps</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Low-granularity value maps are not available for task &#39;</span><span class="si">{</span><span class="n">task</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_few_shot_task_description</span><span class="p">(</span><span class="n">task</span><span class="p">:</span> <span class="n">TaskMetadata</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">overrides</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;respondent&quot;</span><span class="p">:</span> <span class="s2">&quot;different survey respondents&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;question_phrase&quot;</span><span class="p">:</span> <span class="s2">&quot;each question&quot;</span><span class="p">,</span>  <span class="c1"># R4: match main&#39;s few-shot wording</span>
+            <span class="s2">&quot;suffix&quot;</span><span class="p">:</span> <span class="s2">&quot; for each person&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">task</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;ACS&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">ACS_TASK_DESCRIPTION</span><span class="o">.</span><span class="n">substitute</span><span class="p">(</span>
+                <span class="p">{</span><span class="o">**</span><span class="n">ACS_TASK_DESCRIPTION_DEFAULTS</span><span class="p">,</span> <span class="o">**</span><span class="n">overrides</span><span class="p">}</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># PromptBuilder</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="PromptBuilder">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.PromptBuilder">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PromptBuilder</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">TaskMetadata</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="n">task</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extract_items</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">FeatureItem</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">FeatureItem</span><span class="p">(</span>
+                <span class="n">col</span><span class="o">=</span><span class="n">col</span><span class="p">,</span>
+                <span class="n">label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">cols_to_text</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">short_description</span><span class="p">,</span>
+                <span class="n">raw_value</span><span class="o">=</span><span class="n">row</span><span class="p">[</span><span class="n">col</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">features</span>
+            <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">index</span>
+        <span class="p">]</span>
+
+<div class="viewcode-block" id="PromptBuilder.build">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.PromptBuilder.build">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
+        <span class="n">config</span><span class="p">:</span> <span class="n">PromptConfig</span><span class="p">,</span>
+        <span class="n">question</span><span class="p">:</span> <span class="n">QAInterface</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">question</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">config</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                <span class="n">config</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="n">dataclasses</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">suffix</span><span class="p">,</span> <span class="n">question</span><span class="o">=</span><span class="n">question</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_items</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">value_map</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">connector</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
+        <span class="n">info_block</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
+        <span class="n">info_block</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="n">config</span><span class="o">.</span><span class="n">prefix</span><span class="p">()</span> <span class="o">+</span> <span class="n">info_block</span> <span class="o">+</span> <span class="n">config</span><span class="o">.</span><span class="n">suffix</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="PromptBuilder.build_few_shot">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.PromptBuilder.build_few_shot">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_few_shot</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
+        <span class="n">config</span><span class="p">:</span> <span class="n">PromptConfig</span><span class="p">,</span>
+        <span class="n">examples</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">],</span>  <span class="c1"># list of (pd.Series, label)</span>
+        <span class="n">question</span><span class="p">:</span> <span class="n">QAInterface</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">example_order</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">show_example_question</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">example_order</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">example_order</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">examples</span><span class="p">)</span>
+            <span class="n">examples</span> <span class="o">=</span> <span class="p">[</span><span class="n">examples</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">example_order</span><span class="p">]</span>
+
+        <span class="n">few_shot_desc</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">_get_few_shot_task_description</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="p">)</span>
+
+        <span class="n">parts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">ex_row</span><span class="p">,</span> <span class="n">ex_label</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">examples</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">prefix</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">prefix</span>
+                <span class="k">if</span> <span class="n">few_shot_desc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">prefix</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">task_description</span><span class="o">=</span><span class="n">few_shot_desc</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">prefix</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span> <span class="n">add_task_description</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">ex_config</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                <span class="n">config</span><span class="p">,</span>
+                <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
+                <span class="n">suffix</span><span class="o">=</span><span class="n">dataclasses</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                    <span class="n">config</span><span class="o">.</span><span class="n">suffix</span><span class="p">,</span>
+                    <span class="c1"># R6: examples repeat the question by default (matches main); the</span>
+                    <span class="c1"># answer-only format is opt-in via FewShotConfig.show_question_in_examples.</span>
+                    <span class="n">show_question</span><span class="o">=</span><span class="n">show_example_question</span><span class="p">,</span>
+                    <span class="n">show_label</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">label</span><span class="o">=</span><span class="n">ex_label</span><span class="p">,</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">ex_row</span><span class="p">,</span> <span class="n">ex_config</span><span class="p">))</span>
+
+        <span class="n">target_config</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+            <span class="n">config</span><span class="p">,</span>
+            <span class="n">prefix</span><span class="o">=</span><span class="n">dataclasses</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span> <span class="n">add_task_description</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">target_config</span><span class="p">,</span> <span class="n">question</span><span class="o">=</span><span class="n">question</span><span class="p">))</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PromptBuilder.build_chat">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.PromptBuilder.build_chat">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_chat</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
+        <span class="n">config</span><span class="p">:</span> <span class="n">PromptConfig</span><span class="p">,</span>
+        <span class="n">tokenizer</span><span class="p">:</span> <span class="n">AutoTokenizer</span><span class="p">,</span>
+        <span class="n">question</span><span class="p">:</span> <span class="n">QAInterface</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">chat_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">PROMPT_DEFAULT</span><span class="p">,</span>  <span class="c1"># type: ignore[assignment]</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">resolved_question</span> <span class="o">=</span> <span class="n">question</span> <span class="ow">or</span> <span class="n">config</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">question</span>
+        <span class="k">if</span> <span class="n">chat_prompt</span> <span class="ow">is</span> <span class="n">PROMPT_DEFAULT</span><span class="p">:</span>
+            <span class="n">chat_prompt</span> <span class="o">=</span> <span class="n">resolved_question</span><span class="o">.</span><span class="n">default_chat_prompt</span>
+        <span class="c1"># Always strip the answer prefill from the user turn: the chat template</span>
+        <span class="c1"># supplies it as a separate assistant turn (chat_prompt).</span>
+        <span class="n">chat_config</span> <span class="o">=</span> <span class="n">dataclasses</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+            <span class="n">config</span><span class="p">,</span>
+            <span class="n">suffix</span><span class="o">=</span><span class="n">dataclasses</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">suffix</span><span class="p">,</span>
+                <span class="n">with_answer_prefill</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">question</span><span class="o">=</span><span class="n">resolved_question</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+        <span class="n">user_content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">chat_config</span><span class="p">)</span>
+        <span class="n">system_content</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">system_prompt</span><span class="p">()</span> <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">system_prompt</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">apply_chat_template</span><span class="p">(</span>
+            <span class="n">tokenizer</span><span class="p">,</span>
+            <span class="n">user_prompt</span><span class="o">=</span><span class="n">user_content</span><span class="p">,</span>
+            <span class="n">system_prompt</span><span class="o">=</span><span class="n">system_content</span><span class="p">,</span>
+            <span class="n">chat_prompt</span><span class="o">=</span><span class="n">chat_prompt</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># Module-level functions</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+
+
+<div class="viewcode-block" id="encode_row_prompt">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.encode_row_prompt">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">encode_row_prompt</span><span class="p">(</span>
+    <span class="n">row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
+    <span class="n">task</span><span class="p">:</span> <span class="n">TaskMetadata</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">question</span><span class="p">:</span> <span class="n">QAInterface</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">prompt_config</span><span class="p">:</span> <span class="n">PromptConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Encode a question regarding a given row into a natural-language prompt.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    row : pd.Series</span>
+<span class="sd">        The data row to encode.</span>
+<span class="sd">    task : TaskMetadata</span>
+<span class="sd">        The task that defines features, column mappings, and the question.</span>
+<span class="sd">    question : QAInterface, optional</span>
+<span class="sd">        Override the question interface. Defaults to ``task.question``.</span>
+<span class="sd">        When ``prompt_config`` is provided, only the suffix question is</span>
+<span class="sd">        replaced (used for order-bias correction). Otherwise a default</span>
+<span class="sd">        config is built with this question.</span>
+<span class="sd">    prompt_config : PromptConfig, optional</span>
+<span class="sd">        A pre-built config; all style parameters are taken from it.</span>
+<span class="sd">        Build once at classifier/benchmark init and pass here to avoid</span>
+<span class="sd">        rebuilding on every row.</span>
+
+<span class="sd">    `with_answer_prefill` is forwarded to `question.get_question_prompt`. The</span>
+<span class="sd">    chat-template path passes `False` so the prefill is supplied as a separate</span>
+<span class="sd">    assistant turn rather than baked into the user message.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        The fully formatted prompt string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">prompt_config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">PromptBuilder</span><span class="p">(</span><span class="n">task</span><span class="p">)</span><span class="o">.</span><span class="n">build</span><span class="p">(</span>
+            <span class="n">row</span><span class="p">[</span><span class="n">task</span><span class="o">.</span><span class="n">features</span><span class="p">],</span> <span class="n">prompt_config</span><span class="p">,</span> <span class="n">question</span><span class="o">=</span><span class="n">question</span>
+        <span class="p">)</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">PromptConfig</span><span class="o">.</span><span class="n">from_dict</span><span class="p">({},</span> <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span> <span class="n">question</span><span class="o">=</span><span class="n">question</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">PromptBuilder</span><span class="p">(</span><span class="n">task</span><span class="p">)</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="n">task</span><span class="o">.</span><span class="n">features</span><span class="p">],</span> <span class="n">config</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="encode_row_prompt_few_shot">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.encode_row_prompt_few_shot">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">encode_row_prompt_few_shot</span><span class="p">(</span>
+    <span class="n">row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
+    <span class="n">task</span><span class="p">:</span> <span class="n">TaskMetadata</span><span class="p">,</span>
+    <span class="n">dataset</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">n_shots</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">question</span><span class="p">:</span> <span class="n">QAInterface</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">reuse_examples</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">compose_few_shot_examples</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span> <span class="o">=</span> <span class="s2">&quot;random&quot;</span><span class="p">,</span>
+    <span class="n">example_order</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">prompt_config</span><span class="p">:</span> <span class="n">PromptConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">few_shot_config</span><span class="p">:</span> <span class="n">FewShotConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Encode a question regarding a given row using few-shot prompting.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    row : pd.Series</span>
+<span class="sd">        The row that the question will be about.</span>
+<span class="sd">    task : TaskMetadata</span>
+<span class="sd">        The task that the row belongs to.</span>
+<span class="sd">    dataset : Dataset</span>
+<span class="sd">        The dataset to draw few-shot examples from (sampled from the train split).</span>
+<span class="sd">    n_shots : int, optional</span>
+<span class="sd">        The number of example questions and answers to prepend. Ignored when</span>
+<span class="sd">        ``few_shot_config`` is provided.</span>
+<span class="sd">    question : QAInterface, optional</span>
+<span class="sd">        The question interface to use; defaults to ``task.question``.</span>
+<span class="sd">    reuse_examples : bool, optional</span>
+<span class="sd">        Whether to reuse the same examples for consistency. By default will</span>
+<span class="sd">        resample new examples each time (`reuse_examples=False`). Ignored</span>
+<span class="sd">        when ``few_shot_config`` is provided.</span>
+<span class="sd">    compose_few_shot_examples : str or list, optional</span>
+<span class="sd">        How to select few-shot samples: ``&quot;random&quot;`` (default), ``&quot;balanced&quot;``</span>
+<span class="sd">        (equal draws per class), or a list of per-class counts summing to</span>
+<span class="sd">        ``n_shots``. Ignored when ``few_shot_config`` is provided.</span>
+<span class="sd">    example_order : tuple[int, ...] | str | None, optional</span>
+<span class="sd">        Integer permutation to reorder examples before building the prompt</span>
+<span class="sd">        (e.g. ``[2, 0, 1]`` for 3 shots). ``None`` keeps the sampled order.</span>
+<span class="sd">        Ignored when ``few_shot_config`` is provided.</span>
+<span class="sd">    prompt_config : PromptConfig, optional</span>
+<span class="sd">        A pre-built config object. When provided, all other style parameters</span>
+<span class="sd">        are ignored.</span>
+<span class="sd">    few_shot_config : FewShotConfig, optional</span>
+<span class="sd">        Typed few-shot configuration. When provided, the individual</span>
+<span class="sd">        ``n_shots``, ``reuse_examples``, ``compose_few_shot_examples``, and</span>
+<span class="sd">        ``example_order`` params are ignored.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    prompt : str</span>
+<span class="sd">        The encoded few-shot prompt.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">few_shot_config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">n_shots</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Either `few_shot_config` or `n_shots` must be provided.&quot;</span><span class="p">)</span>
+        <span class="n">few_shot_config</span> <span class="o">=</span> <span class="n">FewShotConfig</span><span class="p">(</span>
+            <span class="n">n_shots</span><span class="o">=</span><span class="n">n_shots</span><span class="p">,</span>
+            <span class="n">example_order</span><span class="o">=</span><span class="n">example_order</span><span class="p">,</span>
+            <span class="n">compose</span><span class="o">=</span><span class="n">compose_few_shot_examples</span><span class="p">,</span>
+            <span class="n">reuse_examples</span><span class="o">=</span><span class="n">reuse_examples</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">assert</span> <span class="n">few_shot_config</span><span class="o">.</span><span class="n">example_order</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span>
+        <span class="n">few_shot_config</span><span class="o">.</span><span class="n">example_order</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span>
+    <span class="p">)</span>  <span class="c1"># mypy (example_order is normalized to a tuple in FewShotConfig)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Composition of few shot examples: </span><span class="si">{</span><span class="n">few_shot_config</span><span class="o">.</span><span class="n">compose</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Take `n_shots` random samples from the train set</span>
+    <span class="n">X_examples</span><span class="p">,</span> <span class="n">y_examples</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">sample_n_train_examples</span><span class="p">(</span>
+        <span class="n">few_shot_config</span><span class="o">.</span><span class="n">n_shots</span><span class="p">,</span>
+        <span class="n">reuse_examples</span><span class="o">=</span><span class="n">few_shot_config</span><span class="o">.</span><span class="n">reuse_examples</span><span class="p">,</span>
+        <span class="n">composition</span><span class="o">=</span><span class="n">few_shot_config</span><span class="o">.</span><span class="n">compose</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># R5: keep the sampled order (do not sort_index) so examples match main; explicit</span>
+    <span class="c1"># ordering is available via FewShotConfig.example_order.</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ys index: </span><span class="si">{</span><span class="n">y_examples</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ys: </span><span class="si">{</span><span class="n">y_examples</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Get the question to ask</span>
+    <span class="n">question</span> <span class="o">=</span> <span class="n">question</span> <span class="ow">or</span> <span class="n">task</span><span class="o">.</span><span class="n">question</span>
+
+    <span class="c1"># Collect `n_shots` example rows with respective labels</span>
+    <span class="n">examples</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">few_shot_config</span><span class="o">.</span><span class="n">n_shots</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">question</span><span class="p">,</span> <span class="n">MultipleChoiceQA</span><span class="p">):</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="n">question</span><span class="o">.</span><span class="n">get_answer_key_from_value</span><span class="p">(</span><span class="n">y_examples</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">label</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Could not find answer key for few-shot label &#39;</span><span class="si">{</span><span class="n">y_examples</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39; in question choices.&quot;</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="n">y_examples</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;shot </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">: label=</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="se">\t</span><span class="s2">index=</span><span class="si">{</span><span class="n">y_examples</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">examples</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">X_examples</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">label</span><span class="p">))</span>
+
+    <span class="c1"># prompt_config takes precedence over individual style parameters</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">prompt_config</span> <span class="ow">or</span> <span class="n">PromptConfig</span><span class="o">.</span><span class="n">from_dict</span><span class="p">({},</span> <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span> <span class="n">question</span><span class="o">=</span><span class="n">question</span><span class="p">)</span>
+    <span class="n">prompt</span> <span class="o">=</span> <span class="n">PromptBuilder</span><span class="p">(</span><span class="n">task</span><span class="p">)</span><span class="o">.</span><span class="n">build_few_shot</span><span class="p">(</span>
+        <span class="n">row</span><span class="o">=</span><span class="n">row</span><span class="p">,</span>
+        <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
+        <span class="n">examples</span><span class="o">=</span><span class="n">examples</span><span class="p">,</span>
+        <span class="n">question</span><span class="o">=</span><span class="n">question</span> <span class="k">if</span> <span class="n">prompt_config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">example_order</span><span class="o">=</span><span class="n">few_shot_config</span><span class="o">.</span><span class="n">example_order</span><span class="p">,</span>
+        <span class="n">show_example_question</span><span class="o">=</span><span class="n">few_shot_config</span><span class="o">.</span><span class="n">show_question_in_examples</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">prompt</span></div>
+
+
+
+<div class="viewcode-block" id="tokenizer_supports_system_prompt">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.tokenizer_supports_system_prompt">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">tokenizer_supports_system_prompt</span><span class="p">(</span><span class="n">tokenizer</span><span class="p">:</span> <span class="n">AutoTokenizer</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Check whether the tokenizer&#39;s chat template supports system messages.</span>
+
+<span class="sd">    Some models (e.g. Gemma) raise a TemplateError when a system role is used.</span>
+<span class="sd">    Other templates surface this with different exception types depending on</span>
+<span class="sd">    transformers / Jinja versions (e.g. `RuntimeError`, `KeyError`, or a</span>
+<span class="sd">    template-defined exception macro), so we treat any failure of the probe</span>
+<span class="sd">    as &quot;system role not supported&quot; rather than letting it propagate and</span>
+<span class="sd">    crash the benchmark.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">test_conversation</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;test&quot;</span><span class="p">},</span>
+        <span class="p">{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="s2">&quot;test&quot;</span><span class="p">},</span>
+    <span class="p">]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">tokenizer</span><span class="o">.</span><span class="n">apply_chat_template</span><span class="p">(</span><span class="n">test_conversation</span><span class="p">,</span> <span class="n">tokenize</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">except</span> <span class="p">(</span><span class="n">TemplateError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="c1"># Defensive fallback for unexpected template-rendering failures —</span>
+        <span class="c1"># safer to skip the system prompt than to hard-fail the benchmark.</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+
+<div class="viewcode-block" id="resolve_chat_defaults">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.resolve_chat_defaults">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">resolve_chat_defaults</span><span class="p">(</span>
+    <span class="n">question</span><span class="p">:</span> <span class="n">QAInterface</span><span class="p">,</span>
+    <span class="n">system_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">PROMPT_DEFAULT</span><span class="p">,</span>  <span class="c1"># type: ignore[assignment]</span>
+    <span class="n">chat_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">PROMPT_DEFAULT</span><span class="p">,</span>  <span class="c1"># type: ignore[assignment]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Resolve default system_prompt / chat_prompt for chat-template prompting.</span>
+
+<span class="sd">    Defaults are read from ``question.default_system_prompt`` and</span>
+<span class="sd">    ``question.default_chat_prompt`` (``ClassVar``s defined on each</span>
+<span class="sd">    ``QAInterface`` subclass). Pass ``PROMPT_DEFAULT`` (or omit the argument)</span>
+<span class="sd">    to use the question&#39;s ClassVar default. Pass ``None`` explicitly to disable</span>
+<span class="sd">    a role entirely (e.g. for Gemma-style tokenizers that reject the system role).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">system_prompt</span> <span class="ow">is</span> <span class="n">PROMPT_DEFAULT</span><span class="p">:</span>
+        <span class="n">system_prompt</span> <span class="o">=</span> <span class="n">question</span><span class="o">.</span><span class="n">default_system_prompt</span>
+    <span class="k">if</span> <span class="n">chat_prompt</span> <span class="ow">is</span> <span class="n">PROMPT_DEFAULT</span><span class="p">:</span>
+        <span class="n">chat_prompt</span> <span class="o">=</span> <span class="n">question</span><span class="o">.</span><span class="n">default_chat_prompt</span>
+    <span class="k">return</span> <span class="n">system_prompt</span><span class="p">,</span> <span class="n">chat_prompt</span></div>
+
+
+
+<div class="viewcode-block" id="encode_row_prompt_chat">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.encode_row_prompt_chat">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">encode_row_prompt_chat</span><span class="p">(</span>
+    <span class="n">row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
+    <span class="n">task</span><span class="p">:</span> <span class="n">TaskMetadata</span><span class="p">,</span>
+    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">AutoTokenizer</span><span class="p">,</span>
+    <span class="n">system_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">PROMPT_DEFAULT</span><span class="p">,</span>  <span class="c1"># type: ignore[assignment]</span>
+    <span class="n">chat_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">PROMPT_DEFAULT</span><span class="p">,</span>  <span class="c1"># type: ignore[assignment]</span>
+    <span class="n">question</span><span class="p">:</span> <span class="n">QAInterface</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">prompt_config</span><span class="p">:</span> <span class="n">PromptConfig</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Encode a row prompt using the tokenizer&#39;s chat template.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    row : pd.Series</span>
+<span class="sd">        The row that the question will be about.</span>
+<span class="sd">    task : TaskMetadata</span>
+<span class="sd">        The task metadata object.</span>
+<span class="sd">    tokenizer : AutoTokenizer</span>
+<span class="sd">        The tokenizer whose chat template will be applied.</span>
+<span class="sd">    system_prompt : str | None, optional</span>
+<span class="sd">        System prompt text. Only used when ``prompt_config`` is not provided;</span>
+<span class="sd">        passed straight to ``PromptConfig.from_dict`` which selects the</span>
+<span class="sd">        mode-appropriate default when omitted. Pass ``None`` explicitly to</span>
+<span class="sd">        disable the system role (e.g. for Gemma-style templates that reject</span>
+<span class="sd">        it). When ``prompt_config`` is provided, system_prompt is ignored —</span>
+<span class="sd">        patch the config directly instead.</span>
+<span class="sd">    chat_prompt : str | None, optional</span>
+<span class="sd">        Assistant prefill text. If omitted, the mode-appropriate default is</span>
+<span class="sd">        selected from the question type. Pass ``None`` explicitly to skip the</span>
+<span class="sd">        assistant prefill — note that this routes inference through</span>
+<span class="sd">        ``add_generation_prompt=True`` and breaks the last-token scoring</span>
+<span class="sd">        assumption used by ``LLMClassifier``, so it is not appropriate for the</span>
+<span class="sd">        benchmark path.</span>
+<span class="sd">    question : QAInterface, optional</span>
+<span class="sd">        The question interface to use. When ``prompt_config`` is provided this</span>
+<span class="sd">        overrides only the suffix question (used for order-bias correction).</span>
+<span class="sd">    prompt_config : PromptConfig, optional</span>
+<span class="sd">        A pre-built config object. When provided, all style parameters are</span>
+<span class="sd">        ignored. ``question`` still overrides the suffix question when given.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        The fully formatted chat-template prompt.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">prompt_config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">PromptBuilder</span><span class="p">(</span><span class="n">task</span><span class="p">)</span><span class="o">.</span><span class="n">build_chat</span><span class="p">(</span>
+            <span class="n">row</span><span class="p">[</span><span class="n">task</span><span class="o">.</span><span class="n">features</span><span class="p">],</span>
+            <span class="n">prompt_config</span><span class="p">,</span>
+            <span class="n">tokenizer</span><span class="p">,</span>
+            <span class="n">question</span><span class="o">=</span><span class="n">question</span><span class="p">,</span>
+            <span class="n">chat_prompt</span><span class="o">=</span><span class="n">chat_prompt</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">PromptConfig</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span>
+        <span class="p">{},</span> <span class="n">task</span><span class="o">=</span><span class="n">task</span><span class="p">,</span> <span class="n">question</span><span class="o">=</span><span class="n">question</span><span class="p">,</span> <span class="n">system_prompt</span><span class="o">=</span><span class="n">system_prompt</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">PromptBuilder</span><span class="p">(</span><span class="n">task</span><span class="p">)</span><span class="o">.</span><span class="n">build_chat</span><span class="p">(</span>
+        <span class="n">row</span><span class="p">[</span><span class="n">task</span><span class="o">.</span><span class="n">features</span><span class="p">],</span>
+        <span class="n">config</span><span class="p">,</span>
+        <span class="n">tokenizer</span><span class="p">,</span>
+        <span class="n">chat_prompt</span><span class="o">=</span><span class="n">chat_prompt</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="apply_chat_template">
+<a class="viewcode-back" href="../../source/folktexts.html#folktexts.prompting.apply_chat_template">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">apply_chat_template</span><span class="p">(</span>
+    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">AutoTokenizer</span><span class="p">,</span>
+    <span class="n">user_prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">system_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">chat_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply the tokenizer&#39;s chat template to assemble a single prompt string.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    `system_prompt` is treated as &quot;include&quot; iff it is not `None`. This means an</span>
+<span class="sd">    empty string `&quot;&quot;` will inject an empty system message rather than be</span>
+<span class="sd">    treated as &quot;no system role&quot; — pass `None` (or omit the argument) to skip</span>
+<span class="sd">    the system role entirely.</span>
+
+<span class="sd">    `chat_prompt` is the assistant prefill. When provided, the returned prompt</span>
+<span class="sd">    is trimmed so it ends exactly with `chat_prompt`, preserving the</span>
+<span class="sd">    last-token scoring contract relied on by `LLMClassifier`. If the chat</span>
+<span class="sd">    template mutates or strips the prefill (so it cannot be located verbatim</span>
+<span class="sd">    in the rendered output), a `ValueError` is raised rather than silently</span>
+<span class="sd">    returning a corrupted prompt.</span>
+
+<span class="sd">    When `chat_prompt is None`, `add_generation_prompt=True` is used and the</span>
+<span class="sd">    model is left to generate freely; this is **not** appropriate for the</span>
+<span class="sd">    benchmark scoring path (the last token will be a template-emitted role</span>
+<span class="sd">    header, not the prefill).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Add system prompt</span>
+    <span class="n">conversation</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">[{</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">system_prompt</span><span class="p">}]</span>
+        <span class="k">if</span> <span class="n">system_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">else</span> <span class="p">[]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Add user prompt</span>
+    <span class="n">conversation</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">user_prompt</span><span class="p">})</span>
+
+    <span class="k">if</span> <span class="n">chat_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Using the Anthropic-style chat prompt</span>
+        <span class="n">conversation</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">chat_prompt</span><span class="p">})</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;add_generation_prompt&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># No assistant prefill; let the model generate freely</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;add_generation_prompt&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Apply prompt template</span>
+    <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;tokenize&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;apply_chat_template always returns a string (tokenize=False); pass tokenize=False or omit it.&quot;</span>
+        <span class="p">)</span>
+    <span class="n">filled_prompt</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">apply_chat_template</span><span class="p">(</span>  <span class="c1"># ignore[attr-defined]</span>
+        <span class="n">conversation</span><span class="o">=</span><span class="n">conversation</span><span class="p">,</span>
+        <span class="n">tokenize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">chat_prompt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Trim any special tokens that the template appended after the prefill</span>
+        <span class="c1"># (e.g. a trailing newline or `&lt;end_of_turn&gt;`) so the last token of the</span>
+        <span class="c1"># returned prompt is the last token of `chat_prompt` itself — this is</span>
+        <span class="c1"># what `LLMClassifier` assumes when it reads answer-token probabilities.</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">filled_prompt</span><span class="o">.</span><span class="n">rfind</span><span class="p">(</span><span class="n">chat_prompt</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Assistant prefill not found verbatim in the templated output; &quot;</span>
+                <span class="s2">&quot;the tokenizer&#39;s chat template likely transforms it (e.g. &quot;</span>
+                <span class="s2">&quot;stripping or escaping). Cannot safely trim trailing tokens — &quot;</span>
+                <span class="s2">&quot;pass a `chat_prompt` that survives templating, or run without &quot;</span>
+                <span class="s2">&quot;an assistant prefill.&quot;</span>
+            <span class="p">)</span>
+        <span class="n">filled_prompt</span> <span class="o">=</span> <span class="n">filled_prompt</span><span class="p">[:</span> <span class="n">idx</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">chat_prompt</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="n">filled_prompt</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
