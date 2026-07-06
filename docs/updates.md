@@ -3,7 +3,26 @@
 Release notes summarising user-visible changes between versions. Older changes
 not yet listed here can be reconstructed from the git log.
 
-## v0.6.0 — typed, composable prompt configuration
+## v0.7.0 — consistent sampling temperature across backends
+
+Temperature is now a text-generation knob only, applied consistently across
+vLLM / transformers / web API. MC and numeric QA always read the untempered
+next-token distribution on every backend.
+
+- **`--temperature` CLI flag** / `BenchmarkConfig.temperature`, scoped to CoT.
+  Setting it on an MC/numeric run logs a warning and is ignored. Included in
+  `LLMClassifier.__hash__` so cached results stay separated.
+- **CoT defaults.** `ChainOfThoughtQA.default_temperature` returns
+  `1.0 if enable_thinking else 0.0` — greedy for plain CoT, sample for thinking
+  mode (where greedy is discouraged, e.g. Qwen3-Thinking).
+- **Web-API hardening.** Unsupported request params (e.g. `temperature` on
+  OpenAI o1/o3) are filtered out with a one-time warning; missing `logprobs`
+  still fails fast.
+- **Defaults preserve prior behavior** apart from web-API CoT with
+  `--enable-thinking`, which now samples at `1.0` instead of `0.0`. Pass
+  `--temperature 0` to keep the old greedy behavior.
+
+
 
 Replaces the scattered prompt-related keyword arguments with two frozen
 configuration objects — `PromptConfig` (how a row is rendered) and
