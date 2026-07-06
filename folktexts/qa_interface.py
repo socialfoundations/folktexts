@@ -54,6 +54,14 @@ GEMMA_CHAT_PROMPT = "The provided information suggests that the answer is"
 # space and may degrade calibration for low-probability cases).
 NUMERIC_CHAT_PROMPT = "Answer (between 0 and 1): 0."
 
+# Alternative prefill used when `DirectNumericQA(percentage=True)` is active:
+# no `0.` prefill; the model is asked to reply with an integer percentage.
+# Rationale: OpenAI gpt-5 under `reasoning_effort='none'` collapses the
+# decimal-prefill prompt to `'0'` regardless of input (AUC≈chance); reframing
+# as an integer percentage restores discrimination because both digits become
+# meaningful (probe on gpt-5.4-nano: HIGH-income row → '92', LOW → '12').
+NUMERIC_PERCENTAGE_CHAT_PROMPT = "Probability (0-100): "
+
 
 @dataclass(frozen=True)
 class QAInterface(ABC):
@@ -145,11 +153,19 @@ class DirectNumericQA(QAInterface):
 
     num_forward_passes: int = 2  # NOTE: overrides superclass default
     answer_probability: bool = True
+    percentage: bool = False
+    """Ask the model for an integer percentage (0-100) instead of a decimal
+    with a `0.` prefill; the decoded value is divided by 100. Used to work
+    around OpenAI gpt-5 models degenerating to `'0'` under the decimal-prefill
+    prompt when `reasoning_effort='none'` is required for logprobs.
+    Auto-enabled by `WebAPILLMClassifier` for gpt-5 family models."""
 
     default_system_prompt: ClassVar[str] = NUMERIC_SYSTEM_PROMPT
     default_chat_prompt: ClassVar[str] = NUMERIC_CHAT_PROMPT
 
     def get_answer_prefix(self) -> str:
+        if self.percentage:
+            return NUMERIC_PERCENTAGE_CHAT_PROMPT
         if self.answer_probability:
             return "Answer (between 0 and 1): 0."
         return "Answer: "
@@ -240,6 +256,16 @@ class DirectNumericQA(QAInterface):
                 f"{len(last_token_probs)}."
             )
 
+        # Percentage mode uses its own decoder: the model prefixes markdown
+        # around the digit, so a per-position argmax over the entire response
+        # captures noise. Return early — the classic sequential-digit decoder
+        # below assumes a `0.<digit><digit>...` layout that percentage mode
+        # violates.
+        if self.percentage:
+            return self._decode_percentage_expected_value(
+                last_token_probs, numeric_tokens_vocab
+            )
+
         answer_text = ""
         for ltp in last_token_probs:
             # Get the probability of each numeric token
@@ -267,6 +293,76 @@ class DirectNumericQA(QAInterface):
             return float(f"0.{numeric_answer_text}")
         else:
             return float(numeric_answer_text)
+
+    def _decode_percentage_expected_value(
+        self,
+        last_token_probs: np.ndarray,
+        numeric_tokens_vocab: dict[str, int],
+    ) -> float:
+        """Decode a percentage-mode response.
+
+        Real API responses often prefix the digit with markdown echo (e.g.
+        `'**Probability (0-100): 28**'`), so we scan every position for the
+        one where numeric-token mass concentrates on plausible percentage
+        values (integers in [0, 100]) and compute a mass-weighted expected
+        value at that position. Falls back to 0.0 if no such position
+        exists (model emitted no digits at all).
+        """
+        # Restrict to tokens that could be an integer percentage answer.
+        # Rejects: multi-digit tokens with a `.`, values >100, non-digit
+        # strings that slipped through _get_numeric_tokens.
+        valid_percent_tokens: dict[str, int] = {}
+        for tok, tid in numeric_tokens_vocab.items():
+            if not re.fullmatch(r"\d{1,3}", tok):
+                continue
+            value = int(tok)
+            if 0 <= value <= 100:
+                valid_percent_tokens[tok] = tid
+        if not valid_percent_tokens:
+            logging.warning(
+                "No valid percentage tokens (integers 0-100) in the model's "
+                "response; returning 0.0."
+            )
+            return 0.0
+
+        best_pos_idx = -1
+        best_pos_mass = -1.0
+        best_pos_expected = 0.0
+        for pos_idx, ltp in enumerate(last_token_probs):
+            probs_by_value: dict[int, float] = {}
+            for tok, tid in valid_percent_tokens.items():
+                p = ltp[tid]
+                if not isinstance(p, float):
+                    p = p.item()
+                if p > 0:
+                    probs_by_value[int(tok)] = probs_by_value.get(int(tok), 0.0) + p
+            total_mass = sum(probs_by_value.values())
+            if total_mass <= 0:
+                continue
+            # Skip positions where a single value dominates (>95% of mass)
+            # — those are almost always range-label positions like the `0`
+            # or `100` in `(0-100)`, not the answer. Real answer positions
+            # have a spread of plausible percentages (probe on gpt-5.4-nano:
+            # top value ≈0.3-0.5 with 4-5 alternatives sharing the rest).
+            max_single_value_prob = max(probs_by_value.values())
+            if max_single_value_prob > 0.95 * total_mass:
+                continue
+            if total_mass > best_pos_mass:
+                best_pos_mass = total_mass
+                best_pos_idx = pos_idx
+                # Mass-weighted expected value over the numeric tokens.
+                best_pos_expected = (
+                    sum(v * p for v, p in probs_by_value.items()) / total_mass
+                )
+
+        if best_pos_idx < 0 or best_pos_mass < 0.1:
+            logging.warning(
+                f"No confident percentage answer found "
+                f"(best_pos_mass={best_pos_mass:.3f}); returning 0.0."
+            )
+            return 0.0
+
+        return min(best_pos_expected / 100.0, 1.0)
 
 
 @dataclass(frozen=True, eq=True)

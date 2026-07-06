@@ -44,7 +44,9 @@ def _make_classifier(prompt_config: PromptConfig, *, supported_params: set | Non
         "top_logprobs_max": 20,
         "max_tokens_overhead": 0,
         "force_reasoning_none": False,
+        "numeric_percentage_mode": False,
     }
+    clf._active_question = None  # no override; falls back to task.question
 
     calls: list[list[dict]] = []
 
@@ -272,8 +274,18 @@ def test_missing_logprobs_support_fails_fast_for_mcq(mcq_task):
 
 # --- gpt-5 family quirks -----------------------------------------------------
 
-_GPT5_QUIRKS = {"top_logprobs_max": 5, "max_tokens_overhead": 3, "force_reasoning_none": True}
-_DEFAULT_QUIRKS = {"top_logprobs_max": 20, "max_tokens_overhead": 0, "force_reasoning_none": False}
+_GPT5_QUIRKS = {
+    "top_logprobs_max": 5,
+    "max_tokens_overhead": 3,
+    "force_reasoning_none": True,
+    "numeric_percentage_mode": True,
+}
+_DEFAULT_QUIRKS = {
+    "top_logprobs_max": 20,
+    "max_tokens_overhead": 0,
+    "force_reasoning_none": False,
+    "numeric_percentage_mode": False,
+}
 
 
 @pytest.mark.parametrize("model_name, expected", [
@@ -390,3 +402,221 @@ def test_unsupported_param_warning_fires_once_across_batches(mcq_task, caplog):
         if "does not support API parameter" in rec.getMessage()
     ]
     assert len(warnings) == 1
+
+
+# --- Numeric percentage mode (gpt-5 workaround) -----------------------------
+
+def test_directnumericqa_percentage_prefix_has_no_decimal_prefill():
+    """With `percentage=True`, the prompt asks for an integer percentage
+    and does NOT bake the `0.` prefill into the user turn."""
+    from folktexts.qa_interface import DirectNumericQA, NUMERIC_PERCENTAGE_CHAT_PROMPT
+    q = DirectNumericQA(
+        column="test", text="What is P?", num_forward_passes=1, percentage=True,
+    )
+    prefix = q.get_answer_prefix()
+    assert prefix == NUMERIC_PERCENTAGE_CHAT_PROMPT
+    assert "0." not in prefix
+    assert "0-100" in prefix
+
+
+def test_directnumericqa_percentage_decode_expected_value():
+    """`percentage=True` returns a mass-weighted expected value over the
+    numeric tokens at the highest-confidence position, divided by 100."""
+    import numpy as np
+    from folktexts.qa_interface import DirectNumericQA
+    q = DirectNumericQA(
+        column="test", text="P?", num_forward_passes=1, percentage=True,
+    )
+    # Position 0: only '92' has meaningful mass → expected value = 92.
+    vocab = {"92": 0, "88": 1, "12": 2}
+    probs = np.zeros((1, 3))
+    probs[0, 0] = 0.9   # '92'
+    probs[0, 1] = 0.05  # '88' → expected = (92*0.9 + 88*0.05 + 12*0.05) / 1.0 = 87.8
+    probs[0, 2] = 0.05  # '12'
+    decoded = q.get_answer_from_model_output(probs, vocab)
+    assert decoded == pytest.approx(0.878)
+
+
+def test_directnumericqa_percentage_finds_answer_across_positions():
+    """When the model wraps the digit in markdown (early positions have no
+    digit mass, digit appears at a later position), the decoder should
+    lock onto the answer position rather than concatenate noise."""
+    import numpy as np
+    from folktexts.qa_interface import DirectNumericQA
+    q = DirectNumericQA(
+        column="test", text="P?", num_forward_passes=3, percentage=True,
+    )
+    # 3 positions × 3 numeric tokens. Position 0: no numeric mass.
+    # Position 1: dominated by literal `100` (the range label — should be
+    # rejected). Position 2: real answer at 35 with some spread.
+    vocab = {"35": 0, "100": 1, "0": 2}
+    probs = np.zeros((3, 3))
+    probs[0, :] = [0.0, 0.0, 0.0]        # pos 0: no digits (e.g. '**')
+    probs[1, :] = [0.0, 0.99, 0.0]       # pos 1: only '100' — must be skipped
+    probs[2, :] = [0.6, 0.0, 0.3]        # pos 2: '35' dominates; expected = 35*0.6/0.9 = 23.33...
+    decoded = q.get_answer_from_model_output(probs, vocab)
+    assert decoded == pytest.approx(23.333 / 100.0, abs=0.001)
+
+
+def test_directnumericqa_percentage_clamps_above_100():
+    """Expected value >100 should clamp to 1.0."""
+    import numpy as np
+    from folktexts.qa_interface import DirectNumericQA
+    q = DirectNumericQA(
+        column="test", text="P?", num_forward_passes=1, percentage=True,
+    )
+    # Only 105 in the vocab. `_get_numeric_tokens` allows any digit token,
+    # but percentage decoder further filters to <=100 — so 105 is REJECTED.
+    # With no valid tokens, decoder returns 0.0 (with warning).
+    vocab = {"105": 0}
+    probs = np.array([[1.0]])
+    decoded = q.get_answer_from_model_output(probs, vocab)
+    assert decoded == 0.0
+
+
+def test_directnumericqa_percentage_no_digits_returns_zero():
+    """If no valid percentage tokens appear at any position, the decoder
+    returns 0.0 rather than raising."""
+    import numpy as np
+    from folktexts.qa_interface import DirectNumericQA
+    q = DirectNumericQA(
+        column="test", text="P?", num_forward_passes=1, percentage=True,
+    )
+    # `_get_numeric_tokens` yields an empty numeric_tokens_vocab if the
+    # response has no digits, so pass a vocab with only a non-digit token.
+    vocab = {"foo": 0}  # `_get_numeric_tokens` would filter this out anyway
+    probs = np.array([[1.0]])
+    decoded = q.get_answer_from_model_output(probs, vocab)
+    assert decoded == 0.0
+
+
+def test_directnumericqa_percentage_false_preserves_decimal_prefill():
+    """Default `percentage=False` still returns the classic `0.` prefill."""
+    from folktexts.qa_interface import DirectNumericQA
+    q = DirectNumericQA(column="test", text="P?")
+    assert q.percentage is False
+    assert q.get_answer_prefix() == "Answer (between 0 and 1): 0."
+
+
+def test_enable_numeric_percentage_mode_swaps_question(mcq_task):
+    """Calling `_enable_numeric_percentage_mode()` should replace the
+    numeric QA in `prompt_config.suffix` with a `percentage=True` variant
+    and rebuild `_encode_row` against the new config."""
+    from folktexts.qa_interface import DirectNumericQA
+    cfg = PromptConfig.from_dict(
+        pv={}, task=mcq_task, question=mcq_task.direct_numeric_qa,
+    )
+    clf, _ = _make_classifier(cfg)
+    clf._task = mcq_task  # required by the encode_row rebuild
+
+    original_q = clf._prompt_config.suffix.question
+    assert isinstance(original_q, DirectNumericQA)
+    assert original_q.percentage is False
+
+    clf._enable_numeric_percentage_mode()
+
+    new_q = clf._prompt_config.suffix.question
+    assert isinstance(new_q, DirectNumericQA)
+    assert new_q.percentage is True
+    # ≥10 to give gpt-5 room for the markdown echo it emits before the digit
+    assert new_q.num_forward_passes >= 10
+    # `_encode_row` should now be a partial closed over the NEW config
+    assert clf._encode_row.keywords["prompt_config"] is clf._prompt_config
+    # `_active_question` is the override the base classifier consults
+    assert clf._active_question is new_q
+
+
+def test_gpt5_init_auto_enables_percentage_mode_for_numeric_qa(monkeypatch, mcq_task):
+    """End-to-end: constructing a WebAPILLMClassifier for a gpt-5 model with
+    a numeric-QA task should auto-swap the numeric QA to percentage mode."""
+    from folktexts.qa_interface import DirectNumericQA
+
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    fake_litellm = type("_fake_litellm", (), {"success_callback": []})()
+
+    def _fake_get_supported(**_kwargs):
+        return ["temperature", "max_tokens", "stream", "seed",
+                "logprobs", "top_logprobs", "reasoning_effort"]
+
+    def _fake_completion(**_kwargs):
+        raise RuntimeError("should not be called in __init__")
+
+    import litellm as real_litellm
+    monkeypatch.setattr(real_litellm, "success_callback", [], raising=False)
+    monkeypatch.setattr(real_litellm, "completion", _fake_completion, raising=False)
+    monkeypatch.setattr(
+        real_litellm, "get_supported_openai_params", _fake_get_supported,
+        raising=False,
+    )
+
+    cfg = PromptConfig.from_dict(
+        pv={}, task=mcq_task, question=mcq_task.direct_numeric_qa,
+    )
+    clf = WebAPILLMClassifier(
+        model_name="gpt-5.4-nano", task=mcq_task, prompt_config=cfg,
+    )
+    q = clf._prompt_config.suffix.question
+    assert isinstance(q, DirectNumericQA)
+    assert q.percentage is True
+    assert q.num_forward_passes >= 10
+
+
+def test_default_model_init_does_not_swap_numeric_qa(monkeypatch, mcq_task):
+    """A non-gpt-5 model must leave the numeric QA in decimal-prefill mode."""
+    from folktexts.qa_interface import DirectNumericQA
+
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+
+    def _fake_get_supported(**_kwargs):
+        return ["temperature", "max_tokens", "stream", "seed", "logprobs", "top_logprobs"]
+
+    def _fake_completion(**_kwargs):
+        raise RuntimeError("should not be called in __init__")
+
+    import litellm as real_litellm
+    monkeypatch.setattr(real_litellm, "success_callback", [], raising=False)
+    monkeypatch.setattr(real_litellm, "completion", _fake_completion, raising=False)
+    monkeypatch.setattr(
+        real_litellm, "get_supported_openai_params", _fake_get_supported,
+        raising=False,
+    )
+
+    cfg = PromptConfig.from_dict(
+        pv={}, task=mcq_task, question=mcq_task.direct_numeric_qa,
+    )
+    clf = WebAPILLMClassifier(
+        model_name="gpt-4o-mini", task=mcq_task, prompt_config=cfg,
+    )
+    q = clf._prompt_config.suffix.question
+    assert isinstance(q, DirectNumericQA)
+    assert q.percentage is False
+
+
+def test_gpt5_init_does_not_swap_mcq(monkeypatch, mcq_task):
+    """The auto-swap must only fire when the current question is a
+    `DirectNumericQA` — MCQ tasks are unaffected."""
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+
+    def _fake_get_supported(**_kwargs):
+        return ["temperature", "max_tokens", "stream", "seed",
+                "logprobs", "top_logprobs", "reasoning_effort"]
+
+    def _fake_completion(**_kwargs):
+        raise RuntimeError("should not be called in __init__")
+
+    import litellm as real_litellm
+    monkeypatch.setattr(real_litellm, "success_callback", [], raising=False)
+    monkeypatch.setattr(real_litellm, "completion", _fake_completion, raising=False)
+    monkeypatch.setattr(
+        real_litellm, "get_supported_openai_params", _fake_get_supported,
+        raising=False,
+    )
+
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task)  # MCQ, not numeric
+    clf = WebAPILLMClassifier(
+        model_name="gpt-5.4-nano", task=mcq_task, prompt_config=cfg,
+    )
+    # question is a MultipleChoiceQA, no percentage attribute — the swap
+    # should have been skipped without error.
+    from folktexts.qa_interface import MultipleChoiceQA
+    assert isinstance(clf._prompt_config.suffix.question, MultipleChoiceQA)

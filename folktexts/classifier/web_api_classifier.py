@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 import os
 import re
 import time
+from functools import partial
 from typing import Callable
 
 import numpy as np
 import pandas as pd
 
 from folktexts.llm_utils import decode_topk_logprobs_to_risk_estimate
+from folktexts.prompting import encode_row_prompt as default_encode_row_prompt
 from folktexts.qa_interface import ChainOfThoughtQA, DirectNumericQA, MultipleChoiceQA
 from folktexts.task import TaskMetadata
 
@@ -32,12 +35,19 @@ _OPENAI_MODEL_FAMILY_QUIRKS: dict[str, dict] = {
         "top_logprobs_max": 5,
         "max_tokens_overhead": 3,
         "force_reasoning_none": True,
+        # Under `reasoning_effort='none'`, gpt-5 collapses the standard
+        # `Answer (between 0 and 1): 0.` prefill to `'0.0'` regardless of
+        # input (AUC ~chance on ACSIncome). Reframing as an integer
+        # percentage (0-100, no prefill) unblocks the full digit range and
+        # restores discrimination (probe → HIGH-income '92', LOW '12').
+        "numeric_percentage_mode": True,
     },
 }
 _DEFAULT_FAMILY_QUIRKS: dict = {
     "top_logprobs_max": 20,
     "max_tokens_overhead": 0,
     "force_reasoning_none": False,
+    "numeric_percentage_mode": False,
 }
 
 
@@ -138,8 +148,58 @@ class WebAPILLMClassifier(LLMClassifier):
         self._warned_unsupported_params: set[str] = set()
         self._family_quirks = _resolve_family_quirks(self.model_name)
 
+        # Some model families need the numeric QA prompt reframed as an
+        # integer percentage rather than the default `Answer: 0.<digits>`
+        # prefill (see `_OPENAI_MODEL_FAMILY_QUIRKS`). Swap the current
+        # prompt config's question if it is a `DirectNumericQA` and the
+        # user did not already set `percentage=True`.
+        if (
+            self._family_quirks.get("numeric_percentage_mode")
+            and isinstance(self._prompt_config.suffix.question, DirectNumericQA)
+            and not self._prompt_config.suffix.question.percentage
+        ):
+            self._enable_numeric_percentage_mode()
+
         # Set litellm logger level to WARNING
         logging.getLogger("LiteLLM").setLevel(logging.WARNING)
+
+    def _enable_numeric_percentage_mode(self) -> None:
+        """Swap the current numeric QA for a `percentage=True` variant.
+
+        Use `num_forward_passes=15`: gpt-5 under `reasoning_effort='none'`
+        wraps the answer in markdown (`'**Probability (0-100): 28**'`), so
+        the digit lands ~8-10 tokens in. Fewer passes truncate the response
+        before the digit. The percentage decoder then locates the highest-
+        confidence answer position from the returned top-K logprobs.
+
+        The swapped question is stored on `_active_question` — that's what
+        the base classifier consults at prediction time (see
+        `LLMClassifier.compute_risk_estimates_for_dataframe`). We also
+        propagate it into `_prompt_config` so any code path that inspects
+        the classifier's config sees a consistent view.
+        """
+        original_q = self._prompt_config.suffix.question
+        new_q = dataclasses.replace(
+            original_q, percentage=True, num_forward_passes=15
+        )
+        self._active_question = new_q
+        new_suffix = dataclasses.replace(self._prompt_config.suffix, question=new_q)
+        self._prompt_config = dataclasses.replace(
+            self._prompt_config, suffix=new_suffix
+        )
+        # `_encode_row` was built via `partial(...)` capturing the OLD
+        # prompt_config; rebuild it against the swapped one.
+        self._encode_row = partial(
+            default_encode_row_prompt,
+            task=self.task,
+            prompt_config=self._prompt_config,
+        )
+        logging.info(
+            f"Enabled numeric-percentage mode for model '{self.model_name}': "
+            f"prompt now asks for an integer percentage (0-100) instead of "
+            f"the decimal `0.<digits>` prefill (workaround for "
+            f"reasoning_effort='none' degeneration)."
+        )
 
     @staticmethod
     def check_webAPI_deps() -> bool:
@@ -360,8 +420,16 @@ class WebAPILLMClassifier(LLMClassifier):
             question=question,
         )
 
-        # Sanity check numeric answers based on global model response:
-        if isinstance(question, DirectNumericQA):
+        # Sanity check numeric answers based on global model response.
+        # Skip for percentage mode: the model wraps the digit in markdown
+        # (e.g. `'**Probability (0-100): 28**'`), so the naive `re.match`
+        # here yields no match and the anchored parse below returns a
+        # non-answer literal like `100` from the `(0-100)` range label.
+        # The percentage decoder already recovers the correct answer.
+        if (
+            isinstance(question, DirectNumericQA)
+            and not getattr(question, "percentage", False)
+        ):
             try:
                 numeric_response = re.match(
                     r"[-+]?\d*\.\d+|\d+", response_message
