@@ -105,6 +105,7 @@ class WebAPILLMClassifier(LLMClassifier):
                 f"Failed to get supported parameters for model '{self.model_name}'."
             )
         self.supported_params = set(supported_params)
+        self._warned_unsupported_params: set[str] = set()
 
         # Set litellm logger level to WARNING
         logging.getLogger("LiteLLM").setLevel(logging.WARNING)
@@ -131,7 +132,8 @@ class WebAPILLMClassifier(LLMClassifier):
         instead of raising, while the warning keeps the drop visible.
         """
         unsupported = [k for k in params if k not in self.supported_params]
-        if unsupported:
+        if set(unsupported) - self._warned_unsupported_params:  # warn once per param
+            self._warned_unsupported_params.update(unsupported)
             logging.warning(
                 f"Model '{self.model_name}' does not support API "
                 f"parameter(s) {sorted(unsupported)}; dropping them from the "
@@ -210,6 +212,16 @@ class WebAPILLMClassifier(LLMClassifier):
             )
 
         api_call_params = self._filter_supported_params(api_call_params)
+
+        # `logprobs` are load-bearing for token-probability decoding: dropping
+        # them would only fail later, deep inside response decoding. Fail fast
+        # instead (e.g. OpenAI o1/o3 don't support logprobs).
+        if not isinstance(question, ChainOfThoughtQA) and "logprobs" not in api_call_params:
+            raise RuntimeError(
+                f"Model '{self.model_name}' does not support `logprobs`, which "
+                f"are required to decode multiple-choice/numeric risk estimates. "
+                f"Use chain-of-thought prompting (--cot-prompting) instead."
+            )
 
         # Get system prompt depending on Q&A type (if not already set for ChainOfThoughtQA)
         if not isinstance(question, ChainOfThoughtQA):

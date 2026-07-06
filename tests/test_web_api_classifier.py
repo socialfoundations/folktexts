@@ -38,6 +38,7 @@ def _make_classifier(prompt_config: PromptConfig, *, supported_params: set | Non
     clf.supported_params = supported_params if supported_params is not None else {
         "temperature", "max_tokens", "stream", "seed", "logprobs", "top_logprobs",
     }
+    clf._warned_unsupported_params = set()
 
     calls: list[list[dict]] = []
 
@@ -236,3 +237,35 @@ def test_all_supported_params_pass_through_unchanged(mcq_task, caplog):
         "does not support API parameter" in rec.getMessage()
         for rec in caplog.records
     )
+
+
+def test_missing_logprobs_support_fails_fast_for_mcq(mcq_task):
+    """`logprobs` is required to decode MCQ/numeric; dropping it must raise,
+    not send a doomed request that only fails deep in response decoding."""
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task)
+    clf, calls = _make_classifier(
+        cfg, supported_params={"temperature", "max_tokens", "stream", "seed"},
+    )
+
+    with pytest.raises(RuntimeError, match="logprobs"):
+        clf._query_webapi_batch(["p"], question=mcq_task.multiple_choice_qa)
+    assert calls == []  # no API call was made
+
+
+def test_unsupported_param_warning_fires_once_across_batches(mcq_task, caplog):
+    """The drop-warning must not spam the logs once per batch."""
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task)
+    clf, _ = _make_classifier(
+        cfg,
+        supported_params={"max_tokens", "stream", "seed", "logprobs", "top_logprobs"},
+    )
+
+    with caplog.at_level("WARNING"):
+        clf._query_webapi_batch(["p1"], question=mcq_task.multiple_choice_qa)
+        clf._query_webapi_batch(["p2"], question=mcq_task.multiple_choice_qa)
+
+    warnings = [
+        rec for rec in caplog.records
+        if "does not support API parameter" in rec.getMessage()
+    ]
+    assert len(warnings) == 1
