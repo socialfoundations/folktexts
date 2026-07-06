@@ -105,6 +105,7 @@ class WebAPILLMClassifier(LLMClassifier):
                 f"Failed to get supported parameters for model '{self.model_name}'."
             )
         self.supported_params = set(supported_params)
+        self._warned_unsupported_params: set[str] = set()
 
         # Set litellm logger level to WARNING
         logging.getLogger("LiteLLM").setLevel(logging.WARNING)
@@ -122,6 +123,24 @@ class WebAPILLMClassifier(LLMClassifier):
             )
             return False
         return True
+
+    def _filter_supported_params(self, params: dict) -> dict:
+        """Drop params the model's API doesn't support, warning about each drop.
+
+        Web APIs (notably OpenAI reasoning models such as o1/o3) reject
+        parameters like `temperature`; filtering keeps the request valid
+        instead of raising, while the warning keeps the drop visible.
+        """
+        unsupported = [k for k in params if k not in self.supported_params]
+        if set(unsupported) - self._warned_unsupported_params:  # warn once per param
+            self._warned_unsupported_params.update(unsupported)
+            logging.warning(
+                f"Model '{self.model_name}' does not support API "
+                f"parameter(s) {sorted(unsupported)}; dropping them from the "
+                f"request (this may reduce determinism/reproducibility). "
+                f"Supported params: {sorted(self.supported_params)}."
+            )
+        return {k: v for k, v in params.items() if k in self.supported_params}
 
     def _query_webapi_batch(
         self,
@@ -151,7 +170,7 @@ class WebAPILLMClassifier(LLMClassifier):
         # Handle ChainOfThoughtQA with longer text generation
         if isinstance(question, ChainOfThoughtQA):
             api_call_params = dict(
-                temperature=0,  # Deterministic for reproducibility
+                temperature=self._resolve_temperature(question),
                 max_tokens=question.max_new_tokens,
                 stream=False,
                 seed=self.seed,
@@ -166,12 +185,15 @@ class WebAPILLMClassifier(LLMClassifier):
                     "and provide your final probability estimate. Your response MUST end "
                     "with 'Probability: X%' where X is a number between 0 and 100."
                 )
-        # Adapt number of forward passes for token-probability based methods
+        # Adapt number of forward passes for token-probability based methods.
+        # Temperature is always 0 here: MC/numeric decode from the returned
+        # top_logprobs (which OpenAI-style APIs report untempered), so sampling
+        # would only add noise to the multi-pass token trajectory.
         elif question.num_forward_passes == 1:
             # Single token answers should require only one forward pass
             num_forward_passes = 1
             api_call_params = dict(
-                temperature=1,
+                temperature=0,
                 max_tokens=num_forward_passes,
                 stream=False,
                 seed=self.seed,
@@ -184,7 +206,7 @@ class WebAPILLMClassifier(LLMClassifier):
             # Add extra tokens for textual prefix, e.g., "The probability is: ..."
             num_forward_passes = question.num_forward_passes + 2
             api_call_params = dict(
-                temperature=1,
+                temperature=0,
                 max_tokens=num_forward_passes,
                 stream=False,
                 seed=self.seed,
@@ -192,13 +214,17 @@ class WebAPILLMClassifier(LLMClassifier):
                 top_logprobs=20,
             )
 
-        # Check for unsupported parameters (only for non-ChainOfThoughtQA)
-        if not isinstance(question, ChainOfThoughtQA):
-            if set(api_call_params.keys()) - self.supported_params:
-                raise RuntimeError(
-                    f"Unsupported API parameters for model '{self.model_name}': "
-                    f"{set(api_call_params.keys()) - self.supported_params}"
-                )
+        api_call_params = self._filter_supported_params(api_call_params)
+
+        # `logprobs` are load-bearing for token-probability decoding: dropping
+        # them would only fail later, deep inside response decoding. Fail fast
+        # instead (e.g. OpenAI o1/o3 don't support logprobs).
+        if not isinstance(question, ChainOfThoughtQA) and "logprobs" not in api_call_params:
+            raise RuntimeError(
+                f"Model '{self.model_name}' does not support `logprobs`, which "
+                f"are required to decode multiple-choice/numeric risk estimates. "
+                f"Use chain-of-thought prompting (--cot-prompting) instead."
+            )
 
         # Get system prompt depending on Q&A type (if not already set for ChainOfThoughtQA)
         if not isinstance(question, ChainOfThoughtQA):

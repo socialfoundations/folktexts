@@ -104,6 +104,20 @@ def setup_arg_parser() -> ArgumentParser:
             default=(arg[4] if len(arg) > 4 else None),  # default value if provided
         )
 
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        help=(
+            "[float] Sampling temperature override for text-generation "
+            "(--cot-prompting). If unset, chain-of-thought uses greedy "
+            "decoding (0.0), or 1.0 with --enable-thinking. Ignored for "
+            "multiple-choice/numeric prompting, which reads untempered "
+            "token probabilities."
+        ),
+        required=False,
+        default=None,
+    )
+
     # Add special arguments (e.g., boolean flags or multiple-choice args)
     parser.add_argument(
         "--use-web-api-model",
@@ -419,6 +433,7 @@ def main():
         feature_subset=args.use_feature_subset or None,
         population_filter=population_filter_dict,
         seed=args.seed,
+        temperature=args.temperature,
     )
 
     # Create ACS Benchmark object

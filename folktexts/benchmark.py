@@ -94,6 +94,11 @@ class BenchmarkConfig:
         `{"column_name": "value"}`.
     seed : int, optional
         Random seed -- to set for reproducibility.
+    temperature : float | None, optional
+        Sampling-temperature override for text-generation (chain-of-thought)
+        prompting. When None (default), CoT uses greedy decoding (0.0), or
+        1.0 in thinking mode. Ignored (with a warning) for multiple-choice /
+        numeric prompting, which reads untempered token probabilities.
     prompt_variation : dict | None, optional
         Dictionary of prompt style overrides (e.g. ``{"format": "bullet",
         "connector": "is"}``). ``None`` means no variation is applied.
@@ -112,6 +117,7 @@ class BenchmarkConfig:
     feature_subset: list[str] | None = None
     population_filter: dict | None = None
     seed: int = DEFAULT_SEED
+    temperature: float | None = None
     prompt_variation: dict | None = None
 
     @classmethod
@@ -904,9 +910,19 @@ class Benchmark:
         )
 
         # Parse LLMClassifier parameters
+        if config.temperature is not None and not isinstance(
+            task.question, ChainOfThoughtQA
+        ):
+            logging.warning(
+                "`temperature` only affects text-generation (chain-of-thought) "
+                "prompting; multiple-choice/numeric prompting reads untempered "
+                "token probabilities, so this setting will be ignored."
+            )
+
         llm_inference_kwargs: dict[str, Any] = {
             "correct_order_bias": config.correct_order_bias,
             "prompt_config": prompt_config,  # may be patched (e.g. Gemma drops system_prompt)
+            "temperature": config.temperature,
         }
         if config.batch_size is not None:
             llm_inference_kwargs["batch_size"] = config.batch_size

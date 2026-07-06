@@ -289,7 +289,7 @@ class VLLMClassifier(LLMClassifier):
         )
 
         sampling_params = SamplingParams(
-            temperature=0.0,
+            temperature=self._resolve_temperature(question),
             max_tokens=question.max_new_tokens,
             seed=self.seed,
         )
@@ -364,6 +364,11 @@ class VLLMClassifier(LLMClassifier):
                 "DirectNumericQA on this model."
             )
 
+        # Always 0.0 — numeric QA reads the next-token distribution, it doesn't
+        # sample. With `logprobs_mode="processed_logprobs"` any temperature > 0
+        # would rescale the returned logprobs (vLLM divides logits by the
+        # temperature before computing them) and silently change risk scores
+        # relative to the other backends, which read untempered probabilities.
         sampling_params = SamplingParams(
             temperature=0.0,
             max_tokens=question.num_forward_passes,
@@ -402,6 +407,7 @@ class VLLMClassifier(LLMClassifier):
         # the same way it handles low-mass tokens on the transformers path.
         from vllm import SamplingParams
 
+        # Always 0.0 — see the equivalent comment in `_risk_estimates_numeric`.
         sampling_params = SamplingParams(
             temperature=0.0,
             max_tokens=1,

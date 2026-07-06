@@ -186,6 +186,8 @@ class TransformersLLMClassifier(LLMClassifier):
                     if self.prompt_config.system_prompt is not None
                     else None
                 ),
+                temperature=self._resolve_temperature(question),
+                seed=self.seed,
             )
 
             # Extract probability from generated text and log each sample

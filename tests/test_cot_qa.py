@@ -259,3 +259,24 @@ class TestConfigureTaskQuestionStateReset:
         assert isinstance(fresh_task.question, DirectNumericQA)
         assert fresh_task._use_cot_qa is False
         assert fresh_task._use_numeric_qa is True
+
+
+class TestDefaultTemperature:
+    """Greedy for plain CoT; 1.0 in thinking mode (greedy is discouraged for
+    thinking models). MC/numeric keep the temperature-free ClassVar default."""
+
+    def test_plain_cot_is_greedy(self, cot_qa):
+        assert cot_qa.enable_thinking is False
+        assert cot_qa.default_temperature == 0.0
+
+    def test_thinking_mode_samples(self):
+        q = ChainOfThoughtQA(column="PINCP", text="dummy", enable_thinking=True)
+        assert q.default_temperature == 1.0
+
+    def test_token_probability_modes_stay_greedy(self):
+        assert DirectNumericQA(column="PINCP", text="dummy").default_temperature == 0.0
+        mcq = MultipleChoiceQA(
+            column="PINCP", text="dummy",
+            choices=(Choice("Yes", 1), Choice("No", 0)),
+        )
+        assert mcq.default_temperature == 0.0

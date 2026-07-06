@@ -68,6 +68,15 @@ class QAInterface(ABC):
     default_system_prompt: ClassVar[str | None] = SYSTEM_PROMPT
     default_chat_prompt: ClassVar[str | None] = ANTHROPIC_CHAT_PROMPT
 
+    # Default sampling temperature for *text-generation* prompting, read via
+    # `LLMClassifier._resolve_temperature`. Only meaningful for
+    # `ChainOfThoughtQA` (which overrides it): token-probability methods
+    # (multiple-choice, direct-numeric) read the untempered next-token
+    # distribution on every backend and never sample, so temperature does not
+    # apply to them. A `ClassVar` (not a dataclass field) so it does not
+    # affect the frozen dataclass hash / result-cache identity.
+    default_temperature: ClassVar[float] = 0.0
+
     def get_answer_prefix(self) -> str:
         """Returns the answer label that follows the question (e.g. 'Answer:')."""
         raise NotImplementedError
@@ -596,6 +605,20 @@ class ChainOfThoughtQA(QAInterface):
     # close `</think>` and emit the final answer; 5000 leaves ~13% of rows unfinished.
     max_new_tokens: int = 8000
     enable_thinking: bool = False
+
+    @property
+    def default_temperature(self) -> float:
+        """Greedy (0.0) for plain CoT; 1.0 in thinking mode.
+
+        Sampling at temperature 1.0 makes small/instruct models lose the
+        'Probability: X%' output format far more often (42% vs 13% regex
+        fallbacks on Llama-3.2-1B, collapsing AUC to ~0.5), so plain CoT stays
+        greedy — matching the pre-existing behavior. Thinking-mode models are
+        the exception: greedy decoding is explicitly discouraged for them
+        (e.g. Qwen3-Thinking). Overridable via `LLMClassifier(temperature=...)`
+        / `--temperature`.
+        """
+        return 1.0 if self.enable_thinking else 0.0
 
     def get_question_prompt(self, with_answer_prefill: bool = True) -> str:
         """Returns the CoT question prompt.

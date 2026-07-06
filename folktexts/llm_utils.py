@@ -386,14 +386,16 @@ def generate_text_batch(
     context_size: int = None,
     enable_thinking: bool = None,
     system_prompt: str | None = None,
+    temperature: float = 0.0,
+    seed: int | None = None,
 ) -> list[str]:
     """Generate text completions for a batch of prompts.
 
     Uses the model's generate() method for autoregressive text generation,
     suitable for chain-of-thought Q&A where the model needs to produce
     free-form text before outputting a probability estimate. Generation is
-    greedy (do_sample=False) so runs are reproducible — matches the web-API
-    path's temperature=0 contract.
+    greedy when temperature <= 0 (the default); otherwise it samples at the
+    given temperature and can be seeded via ``seed`` for reproducibility.
 
     Parameters
     ----------
@@ -417,6 +419,12 @@ def generate_text_batch(
     system_prompt : str | None, optional
         System prompt to inject as a system role message when applying the
         chat template. Ignored when ``enable_thinking`` is None.
+    temperature : float, optional
+        Sampling temperature. Values <= 0 use greedy decoding; values > 0
+        enable sampling at the given temperature. Defaults to 0.0.
+    seed : int | None, optional
+        Random seed to set immediately before generation when sampling is
+        enabled. Ignored for greedy generation.
 
     Returns
     -------
@@ -451,15 +459,22 @@ def generate_text_batch(
         attention_mask = tokenized.attention_mask.to(model_device)
         input_seq_length = tensor_inputs.shape[1]
 
+        do_sample = temperature is not None and temperature > 0.0
+        generate_kwargs = dict(
+            input_ids=tensor_inputs,
+            attention_mask=attention_mask,
+            max_new_tokens=max_new_tokens,
+            pad_token_id=tokenizer.pad_token_id,
+            eos_token_id=tokenizer.eos_token_id,
+            do_sample=do_sample,
+        )
+        if do_sample:
+            generate_kwargs["temperature"] = temperature
+
         with torch.no_grad():
-            outputs = model.generate(
-                input_ids=tensor_inputs,
-                attention_mask=attention_mask,
-                max_new_tokens=max_new_tokens,
-                pad_token_id=tokenizer.pad_token_id,
-                eos_token_id=tokenizer.eos_token_id,
-                do_sample=False,
-            )
+            if do_sample and seed is not None:
+                torch.manual_seed(seed)
+            outputs = model.generate(**generate_kwargs)
 
         generated_texts: list[str] = []
         for i, output in enumerate(outputs):
@@ -595,7 +610,8 @@ def load_vllm_model(
         Forwarded to vLLM (mirrors `load_model_tokenizer`).
     seed : int, optional
         Random seed for vLLM. Doesn't affect greedy (`temperature=0`) decoding
-        but pinned for safety.
+        — used by multiple-choice / numeric QA — but governs reproducibility of
+        sampled paths such as chain-of-thought (`temperature=1` by default).
     max_logprobs : int, optional
         Engine-level cap on top-K logprobs SamplingParams may request.
         Default 50 — must be ≥ ``VLLMClassifier._TOPK_LOGPROBS`` or the engine
