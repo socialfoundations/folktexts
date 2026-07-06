@@ -94,6 +94,10 @@ class BenchmarkConfig:
         `{"column_name": "value"}`.
     seed : int, optional
         Random seed -- to set for reproducibility.
+    temperature : float | None, optional
+        Sampling temperature override passed to the classifier. When None
+        (default), each Q&A mode uses its own default (0.0 for
+        multiple-choice/numeric, 1.0 for chain-of-thought).
     prompt_variation : dict | None, optional
         Dictionary of prompt style overrides (e.g. ``{"format": "bullet",
         "connector": "is"}``). ``None`` means no variation is applied.
@@ -112,6 +116,7 @@ class BenchmarkConfig:
     feature_subset: list[str] | None = None
     population_filter: dict | None = None
     seed: int = DEFAULT_SEED
+    temperature: float | None = None
     prompt_variation: dict | None = None
 
     @classmethod
@@ -907,6 +912,7 @@ class Benchmark:
         llm_inference_kwargs: dict[str, Any] = {
             "correct_order_bias": config.correct_order_bias,
             "prompt_config": prompt_config,  # may be patched (e.g. Gemma drops system_prompt)
+            "temperature": config.temperature,
         }
         if config.batch_size is not None:
             llm_inference_kwargs["batch_size"] = config.batch_size

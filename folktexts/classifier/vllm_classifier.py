@@ -289,7 +289,7 @@ class VLLMClassifier(LLMClassifier):
         )
 
         sampling_params = SamplingParams(
-            temperature=0.0,
+            temperature=self._resolve_temperature(question),
             max_tokens=question.max_new_tokens,
             seed=self.seed,
         )
@@ -365,7 +365,7 @@ class VLLMClassifier(LLMClassifier):
             )
 
         sampling_params = SamplingParams(
-            temperature=0.0,
+            temperature=self._resolve_temperature(question),
             max_tokens=question.num_forward_passes,
             logprobs=_TOPK_LOGPROBS,
             allowed_token_ids=digit_token_ids,
@@ -403,7 +403,7 @@ class VLLMClassifier(LLMClassifier):
         from vllm import SamplingParams
 
         sampling_params = SamplingParams(
-            temperature=0.0,
+            temperature=self._resolve_temperature(question),
             max_tokens=1,
             logprobs=_TOPK_LOGPROBS,
             seed=self.seed,

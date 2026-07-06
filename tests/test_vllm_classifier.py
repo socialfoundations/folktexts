@@ -125,7 +125,8 @@ def _binary_mc_question() -> MultipleChoiceQA:
     )
 
 
-def _make_classifier(llm: _StubLLM, tokenizer: _StubTokenizer, *, vocab_dim: int):
+def _make_classifier(llm: _StubLLM, tokenizer: _StubTokenizer, *, vocab_dim: int,
+                     temperature: float | None = None):
     """Build a VLLMClassifier wired against stubs.
 
     We pass `model_name_or_path=None` to skip the AutoConfig.from_pretrained
@@ -138,6 +139,7 @@ def _make_classifier(llm: _StubLLM, tokenizer: _StubTokenizer, *, vocab_dim: int
         tokenizer=tokenizer,
         task="ACSIncome",
         model_name_or_path=None,
+        temperature=temperature,
     )
     clf._vocab_dim = vocab_dim
     return clf
@@ -304,6 +306,46 @@ class TestCoTPath:
         )
         assert risks[0] == pytest.approx(0.85, abs=1e-6)
         assert clf._cot_failed == 0
+
+
+# --------------------------------------------------------------------------
+# Temperature contract
+# --------------------------------------------------------------------------
+
+class TestTemperatureResolution:
+    def _run(self, question, *, temperature=None):
+        vocab = {" A": 1, " B": 2, **{str(d): d + 2 for d in range(10)}}
+        tokenizer = _StubTokenizer(vocab, vocab_size=20)
+        request_output = _StubRequestOutput(outputs=[
+            _StubCompletionOutput(
+                text="Probability: 50%",
+                logprobs=[
+                    {1: _StubLogprob(math.log(0.5)), 2: _StubLogprob(math.log(0.5))},
+                    {2: _StubLogprob(math.log(0.5)), 3: _StubLogprob(math.log(0.5))},
+                ],
+            ),
+        ])
+        llm = _StubLLM(script=[[request_output]])
+        clf = _make_classifier(llm, tokenizer, vocab_dim=20, temperature=temperature)
+        clf._query_prompt_risk_estimates_batch(prompts_batch=["p"], question=question)
+        return llm.last_sampling_params.temperature
+
+    def test_mcq_defaults_to_zero(self):
+        assert self._run(_binary_mc_question()) == 0.0
+
+    def test_numeric_defaults_to_zero(self):
+        assert self._run(DirectNumericQA(column="PINCP", text="dummy")) == 0.0
+
+    def test_cot_defaults_to_one(self):
+        q = ChainOfThoughtQA(column="PINCP", text="dummy", enable_thinking=False)
+        assert self._run(q) == 1.0
+
+    def test_explicit_override_wins_for_mcq(self):
+        assert self._run(_binary_mc_question(), temperature=0.3) == 0.3
+
+    def test_explicit_override_wins_for_cot(self):
+        q = ChainOfThoughtQA(column="PINCP", text="dummy", enable_thinking=False)
+        assert self._run(q, temperature=0.0) == 0.0
 
 
 # --------------------------------------------------------------------------

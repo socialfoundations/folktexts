@@ -123,6 +123,23 @@ class WebAPILLMClassifier(LLMClassifier):
             return False
         return True
 
+    def _filter_supported_params(self, params: dict) -> dict:
+        """Drop params the model's API doesn't support, warning about each drop.
+
+        Web APIs (notably OpenAI reasoning models such as o1/o3) reject
+        parameters like `temperature`; filtering keeps the request valid
+        instead of raising, while the warning keeps the drop visible.
+        """
+        unsupported = [k for k in params if k not in self.supported_params]
+        if unsupported:
+            logging.warning(
+                f"Model '{self.model_name}' does not support API "
+                f"parameter(s) {sorted(unsupported)}; dropping them from the "
+                f"request (this may reduce determinism/reproducibility). "
+                f"Supported params: {sorted(self.supported_params)}."
+            )
+        return {k: v for k, v in params.items() if k in self.supported_params}
+
     def _query_webapi_batch(
         self,
         prompts_batch: list[str],
@@ -151,7 +168,7 @@ class WebAPILLMClassifier(LLMClassifier):
         # Handle ChainOfThoughtQA with longer text generation
         if isinstance(question, ChainOfThoughtQA):
             api_call_params = dict(
-                temperature=0,  # Deterministic for reproducibility
+                temperature=self._resolve_temperature(question),
                 max_tokens=question.max_new_tokens,
                 stream=False,
                 seed=self.seed,
@@ -171,7 +188,7 @@ class WebAPILLMClassifier(LLMClassifier):
             # Single token answers should require only one forward pass
             num_forward_passes = 1
             api_call_params = dict(
-                temperature=1,
+                temperature=self._resolve_temperature(question),
                 max_tokens=num_forward_passes,
                 stream=False,
                 seed=self.seed,
@@ -184,7 +201,7 @@ class WebAPILLMClassifier(LLMClassifier):
             # Add extra tokens for textual prefix, e.g., "The probability is: ..."
             num_forward_passes = question.num_forward_passes + 2
             api_call_params = dict(
-                temperature=1,
+                temperature=self._resolve_temperature(question),
                 max_tokens=num_forward_passes,
                 stream=False,
                 seed=self.seed,
@@ -192,13 +209,7 @@ class WebAPILLMClassifier(LLMClassifier):
                 top_logprobs=20,
             )
 
-        # Check for unsupported parameters (only for non-ChainOfThoughtQA)
-        if not isinstance(question, ChainOfThoughtQA):
-            if set(api_call_params.keys()) - self.supported_params:
-                raise RuntimeError(
-                    f"Unsupported API parameters for model '{self.model_name}': "
-                    f"{set(api_call_params.keys()) - self.supported_params}"
-                )
+        api_call_params = self._filter_supported_params(api_call_params)
 
         # Get system prompt depending on Q&A type (if not already set for ChainOfThoughtQA)
         if not isinstance(question, ChainOfThoughtQA):

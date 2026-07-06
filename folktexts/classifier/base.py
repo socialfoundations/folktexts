@@ -47,6 +47,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         correct_order_bias: bool = True,
         seed: int = 42,
         prompt_config: PromptConfig | None = None,
+        temperature: float | None = None,
         **inference_kwargs,
     ):
         """Creates an LLMClassifier object.
@@ -69,6 +70,13 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
             by default True.
         seed : int, optional
             The random seed - used for reproducibility.
+        temperature : float | None, optional
+            The sampling temperature to use at inference time. When ``None``
+            (the default) each question type's own default is used
+            (``0.0`` for multiple-choice / direct-numeric, ``1.0`` for
+            chain-of-thought); see ``QAInterface.default_temperature``. Setting
+            an explicit value overrides the per-question default across every
+            backend. Resolved consistently via :meth:`_resolve_temperature`.
         **inference_kwargs
             Additional keyword arguments to be used at inference time. Options
             include `context_size` and `batch_size`.
@@ -93,6 +101,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         self._threshold_fitted_on = 0
         self._correct_order_bias = correct_order_bias
         self._seed = seed
+        self._temperature = temperature
 
         # Default inference kwargs. Reject unknown kwargs instead of silently swallowing
         # them: prompt-shaping args removed in the refactor (e.g. `custom_prompt_prefix`)
@@ -122,6 +131,7 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
             prompt_config_hash=hash(self.prompt_config),
             correct_order_bias=self.correct_order_bias,
             threshold=self.threshold,
+            temperature=self._temperature,
             encode_row_hash=hash_function(self.encode_row),
         )
 
@@ -169,6 +179,27 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
     @property
     def seed(self) -> int:
         return self._seed
+
+    @property
+    def temperature(self) -> float | None:
+        """The explicit sampling-temperature override, or ``None`` to defer to
+        each question type's :attr:`~folktexts.qa_interface.QAInterface.default_temperature`."""
+        return self._temperature
+
+    def _resolve_temperature(
+        self,
+        question: MultipleChoiceQA | DirectNumericQA | ChainOfThoughtQA,
+    ) -> float:
+        """Return the sampling temperature to use for ``question``.
+
+        Uses the classifier-level override when one was provided; otherwise
+        falls back to the question type's ``default_temperature`` (``0.0`` for
+        multiple-choice / direct-numeric, ``1.0`` for chain-of-thought). This
+        keeps the temperature contract identical across every backend.
+        """
+        if self._temperature is not None:
+            return self._temperature
+        return question.default_temperature
 
     @property
     def inference_kwargs(self) -> dict:

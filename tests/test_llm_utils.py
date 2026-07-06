@@ -80,3 +80,67 @@ def test_vocab_mismatch_does_not_crash(label, vocab_size, n_extra, logits_dim, d
     )
     assert out.shape == (2, 2, logits_dim)
     assert np.isfinite(out).all()
+
+
+# ---------------------------------------------------------------------------
+# generate_text_batch temperature / sampling contract
+# ---------------------------------------------------------------------------
+
+
+class _RecordingModel(nn.Module):
+    """Captures the kwargs passed to `.generate` and echoes back canned tokens."""
+
+    def __init__(self):
+        super().__init__()
+        self._param = nn.Parameter(torch.zeros(1))
+        self.generate_kwargs: dict | None = None
+
+    def generate(self, **kwargs):
+        self.generate_kwargs = kwargs
+        input_ids = kwargs["input_ids"]
+        batch, _ = input_ids.shape
+        generated = torch.full((batch, 2), 7, dtype=torch.long)
+        return torch.cat([input_ids, generated], dim=1)
+
+
+class _GenTokenizer:
+    """Minimal tokenizer for `generate_text_batch` (no chat template → raw prompts)."""
+
+    def __init__(self):
+        self.padding_side = "right"
+        self.pad_token_id = 0
+        self.eos_token_id = 1
+        self.chat_template = None
+
+    def __call__(self, texts, return_tensors=None, padding=None,
+                 truncation=None, max_length=None):
+        n = len(texts)
+        input_ids = torch.ones((n, 3), dtype=torch.long)
+        attention_mask = torch.ones((n, 3), dtype=torch.long)
+        return type("Enc", (), {"input_ids": input_ids, "attention_mask": attention_mask})()
+
+    def decode(self, tokens, skip_special_tokens=False):
+        return "Probability: 50%"
+
+
+def test_generate_text_batch_is_greedy_by_default():
+    from folktexts.llm_utils import generate_text_batch
+
+    model = _RecordingModel()
+    generate_text_batch(["hi"], model=model, tokenizer=_GenTokenizer(), max_new_tokens=2)
+
+    assert model.generate_kwargs["do_sample"] is False
+    assert "temperature" not in model.generate_kwargs
+
+
+def test_generate_text_batch_samples_when_temperature_positive():
+    from folktexts.llm_utils import generate_text_batch
+
+    model = _RecordingModel()
+    generate_text_batch(
+        ["hi"], model=model, tokenizer=_GenTokenizer(),
+        max_new_tokens=2, temperature=1.0, seed=42,
+    )
+
+    assert model.generate_kwargs["do_sample"] is True
+    assert model.generate_kwargs["temperature"] == 1.0

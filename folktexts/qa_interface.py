@@ -68,6 +68,15 @@ class QAInterface(ABC):
     default_system_prompt: ClassVar[str | None] = SYSTEM_PROMPT
     default_chat_prompt: ClassVar[str | None] = ANTHROPIC_CHAT_PROMPT
 
+    # Mode-appropriate default sampling temperature, read by every backend via
+    # `LLMClassifier._resolve_temperature`. Token-probability methods
+    # (multiple-choice, direct-numeric) read a deterministic next-token
+    # distribution, so they default to 0.0 (greedy). `ChainOfThoughtQA`
+    # overrides this to 1.0 because free-form reasoning benefits from sampling.
+    # A `ClassVar` (not a dataclass field) so it does not affect the frozen
+    # dataclass hash / result-cache identity.
+    default_temperature: ClassVar[float] = 0.0
+
     def get_answer_prefix(self) -> str:
         """Returns the answer label that follows the question (e.g. 'Answer:')."""
         raise NotImplementedError
@@ -590,6 +599,10 @@ class ChainOfThoughtQA(QAInterface):
     # No chat prefill either — CoT generates free-form text, not a fixed-prefix token.
     default_system_prompt: ClassVar[str | None] = None
     default_chat_prompt: ClassVar[str | None] = None
+
+    # Free-form reasoning benefits from sampling; default to temperature 1.0
+    # (overridable via `LLMClassifier(temperature=...)` / `--temperature`).
+    default_temperature: ClassVar[float] = 1.0
 
     num_forward_passes: int = -1  # -1 signals text generation mode
     # Thinking-mode models (e.g., Qwen3-Thinking) need >= 8000 tokens to reliably
