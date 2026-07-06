@@ -336,16 +336,27 @@ class TestTemperatureResolution:
     def test_numeric_defaults_to_zero(self):
         assert self._run(DirectNumericQA(column="PINCP", text="dummy")) == 0.0
 
-    def test_cot_defaults_to_one(self):
+    def test_cot_defaults_to_greedy_without_thinking(self):
         q = ChainOfThoughtQA(column="PINCP", text="dummy", enable_thinking=False)
-        assert self._run(q) == 1.0
+        assert self._run(q) == 0.0
 
-    def test_explicit_override_wins_for_mcq(self):
-        assert self._run(_binary_mc_question(), temperature=0.3) == 0.3
+    def test_cot_defaults_to_one_with_thinking(self):
+        q = ChainOfThoughtQA(column="PINCP", text="dummy", enable_thinking=True)
+        assert self._run(q) == 1.0
 
     def test_explicit_override_wins_for_cot(self):
         q = ChainOfThoughtQA(column="PINCP", text="dummy", enable_thinking=False)
-        assert self._run(q, temperature=0.0) == 0.0
+        assert self._run(q, temperature=0.7) == 0.7
+
+    def test_explicit_override_does_not_affect_mcq(self):
+        # MC/numeric read the untempered next-token distribution: with vLLM's
+        # `processed_logprobs` a temperature > 0 would rescale the returned
+        # logprobs and silently change risk scores vs the other backends.
+        assert self._run(_binary_mc_question(), temperature=2.0) == 0.0
+
+    def test_explicit_override_does_not_affect_numeric(self):
+        q = DirectNumericQA(column="PINCP", text="dummy")
+        assert self._run(q, temperature=2.0) == 0.0
 
 
 # --------------------------------------------------------------------------

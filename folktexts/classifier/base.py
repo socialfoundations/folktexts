@@ -71,12 +71,13 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         seed : int, optional
             The random seed - used for reproducibility.
         temperature : float | None, optional
-            The sampling temperature to use at inference time. When ``None``
-            (the default) each question type's own default is used
-            (``0.0`` for multiple-choice / direct-numeric, ``1.0`` for
-            chain-of-thought); see ``QAInterface.default_temperature``. Setting
-            an explicit value overrides the per-question default across every
-            backend. Resolved consistently via :meth:`_resolve_temperature`.
+            Sampling temperature for text-generation prompting
+            (chain-of-thought). When ``None`` (the default) the question's
+            own default is used: greedy (``0.0``) for plain CoT, ``1.0`` in
+            thinking mode; see ``QAInterface.default_temperature``. Has no
+            effect on multiple-choice / direct-numeric prompting, which read
+            the untempered next-token distribution on every backend and never
+            sample. Resolved via :meth:`_resolve_temperature`.
         **inference_kwargs
             Additional keyword arguments to be used at inference time. Options
             include `context_size` and `batch_size`.
@@ -190,12 +191,13 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         self,
         question: MultipleChoiceQA | DirectNumericQA | ChainOfThoughtQA,
     ) -> float:
-        """Return the sampling temperature to use for ``question``.
+        """Return the sampling temperature to use when generating text for ``question``.
 
         Uses the classifier-level override when one was provided; otherwise
-        falls back to the question type's ``default_temperature`` (``0.0`` for
-        multiple-choice / direct-numeric, ``1.0`` for chain-of-thought). This
-        keeps the temperature contract identical across every backend.
+        falls back to the question's ``default_temperature`` (greedy for plain
+        CoT, ``1.0`` in thinking mode). Only the text-generation (CoT) paths
+        call this — multiple-choice / direct-numeric read untempered token
+        probabilities on every backend, so temperature never applies to them.
         """
         if self._temperature is not None:
             return self._temperature

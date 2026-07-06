@@ -596,9 +596,13 @@ class TestBenchmarkRun:
 
 class TestTemperatureWiring:
     """The transformers CoT path must thread the resolved temperature + seed
-    into `generate_text_batch` (default 1.0 for CoT; explicit override wins)."""
+    into `generate_text_batch` (greedy for plain CoT, 1.0 in thinking mode;
+    explicit override wins)."""
 
-    def _run_cot(self, tiny_model_and_tokenizer, acs_income_task, **clf_kwargs):
+    def _run_cot(
+        self, tiny_model_and_tokenizer, acs_income_task,
+        enable_thinking=False, **clf_kwargs,
+    ):
         from folktexts.qa_interface import ChainOfThoughtQA
 
         model, tokenizer = tiny_model_and_tokenizer
@@ -616,30 +620,38 @@ class TestTemperatureWiring:
                 model=model, tokenizer=tokenizer, task=acs_income_task, **clf_kwargs
             )
             question = ChainOfThoughtQA(
-                column="PINCP", text="dummy", enable_thinking=False
+                column="PINCP", text="dummy", enable_thinking=enable_thinking
             )
             scores = clf._query_prompt_risk_estimates_batch(
                 prompts_batch=["p"], question=question
             )
         return captured, scores
 
-    def test_cot_defaults_to_temperature_one_and_threads_seed(
+    def test_cot_defaults_to_greedy_and_threads_seed(
         self, tiny_model_and_tokenizer, acs_income_task
     ):
         captured, scores = self._run_cot(
             tiny_model_and_tokenizer, acs_income_task, seed=7
         )
-        assert captured["temperature"] == 1.0
+        assert captured["temperature"] == 0.0
         assert captured["seed"] == 7
         assert scores[0] == pytest.approx(0.4)
+
+    def test_cot_thinking_mode_defaults_to_temperature_one(
+        self, tiny_model_and_tokenizer, acs_income_task
+    ):
+        captured, _ = self._run_cot(
+            tiny_model_and_tokenizer, acs_income_task, enable_thinking=True
+        )
+        assert captured["temperature"] == 1.0
 
     def test_explicit_temperature_override_reaches_generation(
         self, tiny_model_and_tokenizer, acs_income_task
     ):
         captured, _ = self._run_cot(
-            tiny_model_and_tokenizer, acs_income_task, temperature=0.0
+            tiny_model_and_tokenizer, acs_income_task, temperature=0.7
         )
-        assert captured["temperature"] == 0.0
+        assert captured["temperature"] == 0.7
 
     def test_temperature_changes_classifier_hash(
         self, tiny_model_and_tokenizer, acs_income_task

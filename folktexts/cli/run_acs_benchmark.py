@@ -108,9 +108,11 @@ def setup_arg_parser() -> ArgumentParser:
         "--temperature",
         type=float,
         help=(
-            "[float] Sampling temperature override. If unset, each Q&A mode "
-            "uses its default (0.0 for multiple-choice/numeric, 1.0 for "
-            "chain-of-thought / reasoning)."
+            "[float] Sampling temperature override for text-generation "
+            "(--cot-prompting). If unset, chain-of-thought uses greedy "
+            "decoding (0.0), or 1.0 with --enable-thinking. Ignored for "
+            "multiple-choice/numeric prompting, which reads untempered "
+            "token probabilities."
         ),
         required=False,
         default=None,

@@ -185,12 +185,15 @@ class WebAPILLMClassifier(LLMClassifier):
                     "and provide your final probability estimate. Your response MUST end "
                     "with 'Probability: X%' where X is a number between 0 and 100."
                 )
-        # Adapt number of forward passes for token-probability based methods
+        # Adapt number of forward passes for token-probability based methods.
+        # Temperature is always 0 here: MC/numeric decode from the returned
+        # top_logprobs (which OpenAI-style APIs report untempered), so sampling
+        # would only add noise to the multi-pass token trajectory.
         elif question.num_forward_passes == 1:
             # Single token answers should require only one forward pass
             num_forward_passes = 1
             api_call_params = dict(
-                temperature=self._resolve_temperature(question),
+                temperature=0,
                 max_tokens=num_forward_passes,
                 stream=False,
                 seed=self.seed,
@@ -203,7 +206,7 @@ class WebAPILLMClassifier(LLMClassifier):
             # Add extra tokens for textual prefix, e.g., "The probability is: ..."
             num_forward_passes = question.num_forward_passes + 2
             api_call_params = dict(
-                temperature=self._resolve_temperature(question),
+                temperature=0,
                 max_tokens=num_forward_passes,
                 stream=False,
                 seed=self.seed,

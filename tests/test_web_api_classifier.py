@@ -160,27 +160,39 @@ def test_numeric_uses_temperature_zero(mcq_task):
     assert clf.last_call_params["temperature"] == 0.0
 
 
-def test_cot_uses_temperature_one(mcq_task):
-    """CoT / reasoning defaults to temperature 1 (was hardcoded 0 before)."""
+def test_cot_without_thinking_defaults_to_greedy(mcq_task):
+    """Plain CoT defaults to greedy — sampling collapses small models' output
+    format (regex fallbacks) and previous CoT results were produced greedy."""
     cfg = PromptConfig.from_dict(
         pv={}, task=mcq_task, question=_cot_question(mcq_task),
     )
     clf, _ = _make_classifier(cfg)
     clf._query_webapi_batch(["p"], question=_cot_question(mcq_task))
+    assert clf.last_call_params["temperature"] == 0.0
+
+
+def test_cot_with_thinking_defaults_to_one(mcq_task):
+    """Thinking-mode CoT defaults to sampling (greedy is discouraged there)."""
+    base = mcq_task.direct_numeric_qa
+    q = ChainOfThoughtQA(column=base.column, text=base.text, enable_thinking=True)
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task, question=q)
+    clf, _ = _make_classifier(cfg)
+    clf._query_webapi_batch(["p"], question=q)
     assert clf.last_call_params["temperature"] == 1.0
 
 
-def test_explicit_temperature_override_applies_to_all_qa_types(mcq_task):
-    """An explicit classifier-level temperature overrides every per-QA default."""
+def test_explicit_temperature_override_applies_to_cot_only(mcq_task):
+    """An explicit temperature overrides the CoT default; MC/numeric always
+    read untempered token probabilities and stay at 0."""
     cfg = PromptConfig.from_dict(pv={}, task=mcq_task)
     clf, _ = _make_classifier(cfg)
     clf._temperature = 0.25  # explicit override
 
-    clf._query_webapi_batch(["p"], question=mcq_task.multiple_choice_qa)
-    assert clf.last_call_params["temperature"] == 0.25
-
     clf._query_webapi_batch(["p"], question=_cot_question(mcq_task))
     assert clf.last_call_params["temperature"] == 0.25
+
+    clf._query_webapi_batch(["p"], question=mcq_task.multiple_choice_qa)
+    assert clf.last_call_params["temperature"] == 0
 
 
 # --- Unsupported-parameter filtering -----------------------------------------

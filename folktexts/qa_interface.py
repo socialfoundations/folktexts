@@ -68,13 +68,13 @@ class QAInterface(ABC):
     default_system_prompt: ClassVar[str | None] = SYSTEM_PROMPT
     default_chat_prompt: ClassVar[str | None] = ANTHROPIC_CHAT_PROMPT
 
-    # Mode-appropriate default sampling temperature, read by every backend via
-    # `LLMClassifier._resolve_temperature`. Token-probability methods
-    # (multiple-choice, direct-numeric) read a deterministic next-token
-    # distribution, so they default to 0.0 (greedy). `ChainOfThoughtQA`
-    # overrides this to 1.0 because free-form reasoning benefits from sampling.
-    # A `ClassVar` (not a dataclass field) so it does not affect the frozen
-    # dataclass hash / result-cache identity.
+    # Default sampling temperature for *text-generation* prompting, read via
+    # `LLMClassifier._resolve_temperature`. Only meaningful for
+    # `ChainOfThoughtQA` (which overrides it): token-probability methods
+    # (multiple-choice, direct-numeric) read the untempered next-token
+    # distribution on every backend and never sample, so temperature does not
+    # apply to them. A `ClassVar` (not a dataclass field) so it does not
+    # affect the frozen dataclass hash / result-cache identity.
     default_temperature: ClassVar[float] = 0.0
 
     def get_answer_prefix(self) -> str:
@@ -600,15 +600,25 @@ class ChainOfThoughtQA(QAInterface):
     default_system_prompt: ClassVar[str | None] = None
     default_chat_prompt: ClassVar[str | None] = None
 
-    # Free-form reasoning benefits from sampling; default to temperature 1.0
-    # (overridable via `LLMClassifier(temperature=...)` / `--temperature`).
-    default_temperature: ClassVar[float] = 1.0
-
     num_forward_passes: int = -1  # -1 signals text generation mode
     # Thinking-mode models (e.g., Qwen3-Thinking) need >= 8000 tokens to reliably
     # close `</think>` and emit the final answer; 5000 leaves ~13% of rows unfinished.
     max_new_tokens: int = 8000
     enable_thinking: bool = False
+
+    @property
+    def default_temperature(self) -> float:
+        """Greedy (0.0) for plain CoT; 1.0 in thinking mode.
+
+        Sampling at temperature 1.0 makes small/instruct models lose the
+        'Probability: X%' output format far more often (42% vs 13% regex
+        fallbacks on Llama-3.2-1B, collapsing AUC to ~0.5), so plain CoT stays
+        greedy — matching the pre-existing behavior. Thinking-mode models are
+        the exception: greedy decoding is explicitly discouraged for them
+        (e.g. Qwen3-Thinking). Overridable via `LLMClassifier(temperature=...)`
+        / `--temperature`.
+        """
+        return 1.0 if self.enable_thinking else 0.0
 
     def get_question_prompt(self, with_answer_prefill: bool = True) -> str:
         """Returns the CoT question prompt.
