@@ -22,7 +22,7 @@ next-token distribution on every backend.
   `--enable-thinking`, which now samples at `1.0` instead of `0.0`. Pass
   `--temperature 0` to keep the old greedy behavior.
 
-
+## v0.6.0 — typed, composable prompt configuration
 
 Replaces the scattered prompt-related keyword arguments with two frozen
 configuration objects — `PromptConfig` (how a row is rendered) and
