@@ -22,18 +22,21 @@ from .base import LLMClassifier
 # combination-level), not key-level. Verified live against gpt-5.4-{mini,nano}:
 #   - `top_logprobs > 5` → BadRequestError.
 #   - Any logprobs request without `reasoning_effort='none'` → UnsupportedParams.
-#   - Single-token completions with `max_tokens < 4` → "could not finish".
+#   - A ~3-token hidden preamble consumes from `max_completion_tokens` even
+#     when `reasoning_effort='none'` (`reasoning_tokens=0`) — a 1-token MCQ
+#     request needs `max_tokens=4`, a 5-token numeric one needs `max_tokens=8`,
+#     or the completion is truncated before any visible content is emitted.
 # Extend as further families exhibit similar caps.
 _OPENAI_MODEL_FAMILY_QUIRKS: dict[str, dict] = {
     "gpt-5": {
         "top_logprobs_max": 5,
-        "min_max_tokens": 4,
+        "max_tokens_overhead": 3,
         "force_reasoning_none": True,
     },
 }
 _DEFAULT_FAMILY_QUIRKS: dict = {
     "top_logprobs_max": 20,
-    "min_max_tokens": 1,
+    "max_tokens_overhead": 0,
     "force_reasoning_none": False,
 }
 
@@ -222,7 +225,7 @@ class WebAPILLMClassifier(LLMClassifier):
             num_forward_passes = 1
             api_call_params = dict(
                 temperature=0,
-                max_tokens=max(num_forward_passes, self._family_quirks["min_max_tokens"]),
+                max_tokens=num_forward_passes + self._family_quirks["max_tokens_overhead"],
                 stream=False,
                 seed=self.seed,
                 logprobs=True,
@@ -235,7 +238,7 @@ class WebAPILLMClassifier(LLMClassifier):
             num_forward_passes = question.num_forward_passes + 2
             api_call_params = dict(
                 temperature=0,
-                max_tokens=max(num_forward_passes, self._family_quirks["min_max_tokens"]),
+                max_tokens=num_forward_passes + self._family_quirks["max_tokens_overhead"],
                 stream=False,
                 seed=self.seed,
                 logprobs=True,
