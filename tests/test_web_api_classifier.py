@@ -37,8 +37,14 @@ def _make_classifier(prompt_config: PromptConfig, *, supported_params: set | Non
     clf.max_api_rpm = 10**9  # make the inter-call sleep negligible
     clf.supported_params = supported_params if supported_params is not None else {
         "temperature", "max_tokens", "stream", "seed", "logprobs", "top_logprobs",
+        "reasoning_effort",
     }
     clf._warned_unsupported_params = set()
+    clf._family_quirks = {  # default quirks (matches _DEFAULT_FAMILY_QUIRKS)
+        "top_logprobs_max": 20,
+        "min_max_tokens": 1,
+        "force_reasoning_none": False,
+    }
 
     calls: list[list[dict]] = []
 
@@ -262,6 +268,90 @@ def test_missing_logprobs_support_fails_fast_for_mcq(mcq_task):
     with pytest.raises(RuntimeError, match="logprobs"):
         clf._query_webapi_batch(["p"], question=mcq_task.multiple_choice_qa)
     assert calls == []  # no API call was made
+
+
+# --- gpt-5 family quirks -----------------------------------------------------
+
+@pytest.mark.parametrize("model_name, expected", [
+    ("gpt-5.4-mini", {"top_logprobs_max": 5, "min_max_tokens": 4, "force_reasoning_none": True}),
+    ("gpt-5.4-nano", {"top_logprobs_max": 5, "min_max_tokens": 4, "force_reasoning_none": True}),
+    ("openai/gpt-5-turbo", {"top_logprobs_max": 5, "min_max_tokens": 4, "force_reasoning_none": True}),
+    ("gpt-4o-mini", {"top_logprobs_max": 20, "min_max_tokens": 1, "force_reasoning_none": False}),
+    ("claude-sonnet-5", {"top_logprobs_max": 20, "min_max_tokens": 1, "force_reasoning_none": False}),
+    ("some-future-model", {"top_logprobs_max": 20, "min_max_tokens": 1, "force_reasoning_none": False}),
+])
+def test_resolve_family_quirks(model_name, expected):
+    from folktexts.classifier.web_api_classifier import _resolve_family_quirks
+    assert _resolve_family_quirks(model_name) == expected
+
+
+def test_mcq_sends_family_specific_top_logprobs_cap(mcq_task):
+    """gpt-5 models must receive top_logprobs=5 (any higher → OpenAI 400)."""
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task)
+    clf, _ = _make_classifier(cfg)
+    clf._family_quirks = {"top_logprobs_max": 5, "min_max_tokens": 4, "force_reasoning_none": True}
+
+    clf._query_webapi_batch(["p"], question=mcq_task.multiple_choice_qa)
+    assert clf.last_call_params["top_logprobs"] == 5
+
+
+def test_mcq_bumps_max_tokens_for_gpt5_family(mcq_task):
+    """gpt-5 refuses max_tokens<4 for the single-token MCQ path; bump it."""
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task)
+    clf, _ = _make_classifier(cfg)
+    clf._family_quirks = {"top_logprobs_max": 5, "min_max_tokens": 4, "force_reasoning_none": True}
+
+    clf._query_webapi_batch(["p"], question=mcq_task.multiple_choice_qa)
+    assert clf.last_call_params["max_tokens"] == 4
+
+
+def test_mcq_default_max_tokens_unchanged_for_non_gpt5(mcq_task):
+    """Non-gpt-5 models keep max_tokens=1 for single-token MCQ (no bump)."""
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task)
+    clf, _ = _make_classifier(cfg)  # default quirks
+    clf._query_webapi_batch(["p"], question=mcq_task.multiple_choice_qa)
+    assert clf.last_call_params["max_tokens"] == 1
+
+
+def test_mcq_injects_reasoning_effort_none_for_gpt5(mcq_task):
+    """gpt-5 needs reasoning_effort='none' or logprobs requests are refused."""
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task)
+    clf, _ = _make_classifier(cfg)
+    clf._family_quirks = {"top_logprobs_max": 5, "min_max_tokens": 4, "force_reasoning_none": True}
+
+    clf._query_webapi_batch(["p"], question=mcq_task.multiple_choice_qa)
+    assert clf.last_call_params.get("reasoning_effort") == "none"
+
+
+def test_numeric_injects_reasoning_effort_none_for_gpt5(mcq_task):
+    cfg = PromptConfig.from_dict(
+        pv={}, task=mcq_task, question=mcq_task.direct_numeric_qa,
+    )
+    clf, _ = _make_classifier(cfg)
+    clf._family_quirks = {"top_logprobs_max": 5, "min_max_tokens": 4, "force_reasoning_none": True}
+
+    clf._query_webapi_batch(["p"], question=mcq_task.direct_numeric_qa)
+    assert clf.last_call_params.get("reasoning_effort") == "none"
+
+
+def test_cot_does_not_inject_reasoning_effort_even_for_gpt5(mcq_task):
+    """CoT reads free-form text — reasoning budget should stay at the model default."""
+    cfg = PromptConfig.from_dict(
+        pv={}, task=mcq_task, question=_cot_question(mcq_task),
+    )
+    clf, _ = _make_classifier(cfg)
+    clf._family_quirks = {"top_logprobs_max": 5, "min_max_tokens": 4, "force_reasoning_none": True}
+
+    clf._query_webapi_batch(["p"], question=_cot_question(mcq_task))
+    assert "reasoning_effort" not in clf.last_call_params
+
+
+def test_mcq_omits_reasoning_effort_for_non_gpt5(mcq_task):
+    """Non-gpt-5 models must not receive reasoning_effort (gpt-4o-mini rejects it)."""
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task)
+    clf, _ = _make_classifier(cfg)  # default quirks
+    clf._query_webapi_batch(["p"], question=mcq_task.multiple_choice_qa)
+    assert "reasoning_effort" not in clf.last_call_params
 
 
 def test_unsupported_param_warning_fires_once_across_batches(mcq_task, caplog):

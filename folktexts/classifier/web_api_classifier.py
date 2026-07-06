@@ -17,6 +17,33 @@ from folktexts.task import TaskMetadata
 
 from .base import LLMClassifier
 
+# OpenAI reasoning-model families impose per-family quirks that litellm's
+# `get_supported_openai_params` can't surface — they are value-level (or
+# combination-level), not key-level. Verified live against gpt-5.4-{mini,nano}:
+#   - `top_logprobs > 5` → BadRequestError.
+#   - Any logprobs request without `reasoning_effort='none'` → UnsupportedParams.
+#   - Single-token completions with `max_tokens < 4` → "could not finish".
+# Extend as further families exhibit similar caps.
+_OPENAI_MODEL_FAMILY_QUIRKS: dict[str, dict] = {
+    "gpt-5": {
+        "top_logprobs_max": 5,
+        "min_max_tokens": 4,
+        "force_reasoning_none": True,
+    },
+}
+_DEFAULT_FAMILY_QUIRKS: dict = {
+    "top_logprobs_max": 20,
+    "min_max_tokens": 1,
+    "force_reasoning_none": False,
+}
+
+
+def _resolve_family_quirks(model_name: str) -> dict:
+    for family, quirks in _OPENAI_MODEL_FAMILY_QUIRKS.items():
+        if family in model_name:
+            return quirks
+    return _DEFAULT_FAMILY_QUIRKS
+
 
 class WebAPILLMClassifier(LLMClassifier):
     """Use an LLM through a web API to produce risk scores."""
@@ -106,6 +133,7 @@ class WebAPILLMClassifier(LLMClassifier):
             )
         self.supported_params = set(supported_params)
         self._warned_unsupported_params: set[str] = set()
+        self._family_quirks = _resolve_family_quirks(self.model_name)
 
         # Set litellm logger level to WARNING
         logging.getLogger("LiteLLM").setLevel(logging.WARNING)
@@ -194,11 +222,11 @@ class WebAPILLMClassifier(LLMClassifier):
             num_forward_passes = 1
             api_call_params = dict(
                 temperature=0,
-                max_tokens=num_forward_passes,
+                max_tokens=max(num_forward_passes, self._family_quirks["min_max_tokens"]),
                 stream=False,
                 seed=self.seed,
                 logprobs=True,
-                top_logprobs=20,
+                top_logprobs=self._family_quirks["top_logprobs_max"],
             )
         else:
             # NOTE: Models often generate "0." instead of directly outputting the fractional part
@@ -207,12 +235,21 @@ class WebAPILLMClassifier(LLMClassifier):
             num_forward_passes = question.num_forward_passes + 2
             api_call_params = dict(
                 temperature=0,
-                max_tokens=num_forward_passes,
+                max_tokens=max(num_forward_passes, self._family_quirks["min_max_tokens"]),
                 stream=False,
                 seed=self.seed,
                 logprobs=True,
-                top_logprobs=20,
+                top_logprobs=self._family_quirks["top_logprobs_max"],
             )
+
+        # gpt-5.x refuses `logprobs` requests unless reasoning_effort='none'
+        # is set — pass it only for MCQ/numeric (CoT reads free-form text and
+        # benefits from the model's default reasoning budget).
+        if (
+            not isinstance(question, ChainOfThoughtQA)
+            and self._family_quirks["force_reasoning_none"]
+        ):
+            api_call_params["reasoning_effort"] = "none"
 
         api_call_params = self._filter_supported_params(api_call_params)
 
