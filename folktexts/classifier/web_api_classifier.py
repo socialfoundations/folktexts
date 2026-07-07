@@ -14,11 +14,27 @@ import numpy as np
 import pandas as pd
 
 from folktexts.llm_utils import decode_topk_logprobs_to_risk_estimate
+from folktexts.prompting import VarySystemPrompt
 from folktexts.prompting import encode_row_prompt as default_encode_row_prompt
 from folktexts.qa_interface import ChainOfThoughtQA, DirectNumericQA, MultipleChoiceQA
 from folktexts.task import TaskMetadata
 
 from .base import LLMClassifier
+
+# System prompt used when `numeric_percentage_mode` is auto-enabled. Reasoning
+# models under `reasoning_effort='none'` (gpt-5.x) do not reliably continue the
+# user-turn prefill `'Probability (0-100): '` — they preamble or wrap in
+# markdown, and the fixed `max_tokens` budget then truncates the response
+# before any digit is emitted. Instructing the model to reply with ONLY the
+# format line (no preamble, no reasoning) short-circuits the preamble and
+# gives the anchor-based decoder a predictable `probability<...>:` span.
+NUMERIC_PERCENTAGE_SYSTEM_PROMPT = (
+    "You are a helpful assistant. You provide numeric probability estimates "
+    "based on the information provided. Reply with ONLY the single line "
+    "'Probability (0-100): X%' where X is an integer between 0 and 100. "
+    "Do NOT include any preamble, reasoning, restatement of the question, "
+    "or any other text — just that single line."
+)
 
 # OpenAI reasoning-model families impose per-family quirks that litellm's
 # `get_supported_openai_params` can't surface — they are value-level (or
@@ -164,7 +180,8 @@ class WebAPILLMClassifier(LLMClassifier):
         logging.getLogger("LiteLLM").setLevel(logging.WARNING)
 
     def _enable_numeric_percentage_mode(self) -> None:
-        """Swap the current numeric QA for a `percentage=True` variant.
+        """Swap the current numeric QA for a `percentage=True` variant and
+        install an explicit answer-format instruction on the system prompt.
 
         Use `num_forward_passes=15`: gpt-5 under `reasoning_effort='none'`
         wraps the answer in markdown (`'**Probability (0-100): 28**'`), so
@@ -177,6 +194,16 @@ class WebAPILLMClassifier(LLMClassifier):
         `LLMClassifier.compute_risk_estimates_for_dataframe`). We also
         propagate it into `_prompt_config` so any code path that inspects
         the classifier's config sees a consistent view.
+
+        The default numeric system prompt is also replaced with one that
+        explicitly names the required answer format (mirroring what CoT
+        already does). Reasoning models don't reliably continue the
+        user-turn prefill `'Probability (0-100): '` — they preamble or wrap
+        in markdown — so an explicit instruction reduces zero-fallback
+        rows. Any user-supplied `system_prompt` (via `PromptConfig` /
+        `--system-prompt`) is preserved: the swap only fires when the
+        current system prompt is the numeric QA's own default, so callers
+        who deliberately override it are never silently clobbered.
         """
         original_q = self._prompt_config.suffix.question
         new_q = dataclasses.replace(
@@ -184,9 +211,27 @@ class WebAPILLMClassifier(LLMClassifier):
         )
         self._active_question = new_q
         new_suffix = dataclasses.replace(self._prompt_config.suffix, question=new_q)
-        self._prompt_config = dataclasses.replace(
-            self._prompt_config, suffix=new_suffix
+
+        # Replace the numeric system prompt ONLY if the current one is the
+        # QA subclass default (i.e. the caller didn't set --system-prompt).
+        current_sys = self._prompt_config.system_prompt
+        is_default_sys = (
+            current_sys is not None
+            and current_sys.system_prompt == type(original_q).default_system_prompt
         )
+        if is_default_sys:
+            new_system_prompt = VarySystemPrompt(
+                system_prompt=NUMERIC_PERCENTAGE_SYSTEM_PROMPT
+            )
+            self._prompt_config = dataclasses.replace(
+                self._prompt_config,
+                suffix=new_suffix,
+                system_prompt=new_system_prompt,
+            )
+        else:
+            self._prompt_config = dataclasses.replace(
+                self._prompt_config, suffix=new_suffix
+            )
         # `_encode_row` was built via `partial(...)` capturing the OLD
         # prompt_config; rebuild it against the swapped one.
         self._encode_row = partial(
@@ -198,7 +243,9 @@ class WebAPILLMClassifier(LLMClassifier):
             f"Enabled numeric-percentage mode for model '{self.model_name}': "
             f"prompt now asks for an integer percentage (0-100) instead of "
             f"the decimal `0.<digits>` prefill (workaround for "
-            f"reasoning_effort='none' degeneration)."
+            f"reasoning_effort='none' degeneration); "
+            f"system prompt {'updated to' if is_default_sys else 'left as user override — '}"
+            f"instruct answer format."
         )
 
     @staticmethod

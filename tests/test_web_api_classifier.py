@@ -589,6 +589,73 @@ def test_enable_numeric_percentage_mode_swaps_question(mcq_task):
     assert clf._active_question is new_q
 
 
+def test_enable_numeric_percentage_mode_installs_format_system_prompt(mcq_task):
+    """The swap should replace the default numeric system prompt with one
+    that explicitly names the required answer format (mirrors the CoT
+    pattern) — reasoning models don't reliably continue the user-turn
+    prefill, so the instruction reduces zero-fallback rows."""
+    from folktexts.classifier.web_api_classifier import (
+        NUMERIC_PERCENTAGE_SYSTEM_PROMPT,
+    )
+    cfg = PromptConfig.from_dict(
+        pv={}, task=mcq_task, question=mcq_task.direct_numeric_qa,
+    )
+    clf, _ = _make_classifier(cfg)
+    clf._task = mcq_task
+
+    # Precondition: numeric-QA default system prompt is active
+    assert clf._prompt_config.system_prompt is not None
+    assert "MUST end" not in clf._prompt_config.system_prompt()
+
+    clf._enable_numeric_percentage_mode()
+
+    new_sys = clf._prompt_config.system_prompt()
+    assert new_sys == NUMERIC_PERCENTAGE_SYSTEM_PROMPT
+    assert "Probability (0-100): X%" in new_sys
+    # Instruction shape: forbid preamble/reasoning so the model emits the
+    # answer inside the (limited) `max_tokens` budget.
+    assert "Reply with ONLY" in new_sys
+    assert "no preamble".lower() in new_sys.lower() or \
+        "no preamble, reasoning".lower() in new_sys.lower() or \
+        "preamble" in new_sys
+
+
+def test_enable_numeric_percentage_mode_preserves_user_system_prompt(mcq_task):
+    """A user-supplied `--system-prompt` must NOT be silently clobbered by
+    the auto-swap (only the QA subclass default gets replaced)."""
+    cfg = PromptConfig.from_dict(
+        pv={}, task=mcq_task, question=mcq_task.direct_numeric_qa,
+        system_prompt="CUSTOM USER SYS",
+    )
+    clf, _ = _make_classifier(cfg)
+    clf._task = mcq_task
+
+    assert clf._prompt_config.system_prompt() == "CUSTOM USER SYS"
+
+    clf._enable_numeric_percentage_mode()
+
+    # QA is still swapped …
+    assert clf._prompt_config.suffix.question.percentage is True
+    # … but the user's system prompt is preserved
+    assert clf._prompt_config.system_prompt() == "CUSTOM USER SYS"
+
+
+def test_enable_numeric_percentage_mode_preserves_disabled_system_prompt(mcq_task):
+    """`system_prompt=None` (role disabled) must stay disabled after swap."""
+    cfg = PromptConfig.from_dict(
+        pv={}, task=mcq_task, question=mcq_task.direct_numeric_qa,
+        system_prompt=None,
+    )
+    clf, _ = _make_classifier(cfg)
+    clf._task = mcq_task
+    assert clf._prompt_config.system_prompt is None
+
+    clf._enable_numeric_percentage_mode()
+
+    assert clf._prompt_config.suffix.question.percentage is True
+    assert clf._prompt_config.system_prompt is None
+
+
 def test_gpt5_init_auto_enables_percentage_mode_for_numeric_qa(monkeypatch, mcq_task):
     """End-to-end: constructing a WebAPILLMClassifier for a gpt-5 model with
     a numeric-QA task should auto-swap the numeric QA to percentage mode."""
@@ -622,6 +689,8 @@ def test_gpt5_init_auto_enables_percentage_mode_for_numeric_qa(monkeypatch, mcq_
     assert isinstance(q, DirectNumericQA)
     assert q.percentage is True
     assert q.num_forward_passes >= 10
+    # And the format-instruction system prompt is installed
+    assert "Probability (0-100): X%" in clf._prompt_config.system_prompt()
 
 
 def test_default_model_init_does_not_swap_numeric_qa(monkeypatch, mcq_task):
@@ -653,6 +722,10 @@ def test_default_model_init_does_not_swap_numeric_qa(monkeypatch, mcq_task):
     q = clf._prompt_config.suffix.question
     assert isinstance(q, DirectNumericQA)
     assert q.percentage is False
+    # Non-gpt-5 path keeps the plain numeric system prompt (no format
+    # instruction — regular models honour the user-turn prefill continuation).
+    assert "Reply with ONLY" not in clf._prompt_config.system_prompt()
+    assert "Probability (0-100)" not in clf._prompt_config.system_prompt()
 
 
 def test_gpt5_init_does_not_swap_mcq(monkeypatch, mcq_task):
