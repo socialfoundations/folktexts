@@ -199,19 +199,34 @@ def query_model_batch(
     """
     model_device = next(model.parameters()).device
 
-    # Tokenize
-    token_inputs = [tokenizer.encode(text, return_tensors="pt").flatten()[-context_size:] for text in text_inputs]
-    idx_last_token = [tok_seq.shape[0] - 1 for tok_seq in token_inputs]
+    # Batched tokenization. `truncation_side="left"` reproduces the previous
+    # per-row `[-context_size:]` semantics (keep the tail, drop the head);
+    # `padding_side="right"` matches the previous `pad_sequence` layout so the
+    # last-real-token index still comes from the pre-pad length. Restore both
+    # attributes even if the tokenizer call raises.
+    old_pad_side = tokenizer.padding_side
+    old_trunc_side = tokenizer.truncation_side
+    tokenizer.padding_side = "right"
+    tokenizer.truncation_side = "left"
+    try:
+        tokenized = tokenizer(
+            text_inputs,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=context_size,
+            add_special_tokens=True,
+        )
+    finally:
+        tokenizer.padding_side = old_pad_side
+        tokenizer.truncation_side = old_trunc_side
 
-    # Pad
-    tensor_inputs = torch.nn.utils.rnn.pad_sequence(
-        token_inputs,
-        batch_first=True,
-        padding_value=tokenizer.pad_token_id,
-    ).to(model_device)
-
-    # Mask padded context
-    attention_mask = tensor_inputs.ne(tokenizer.pad_token_id)
+    # Compute the last-real-token index on CPU before moving tensors to the
+    # model device, so the downstream `logits[torch.arange(...), idx]` gather
+    # uses plain Python ints and doesn't mix CPU/CUDA index tensors.
+    idx_last_token = (tokenized.attention_mask.sum(dim=1) - 1).tolist()
+    tensor_inputs = tokenized.input_ids.to(model_device)
+    attention_mask = tokenized.attention_mask.to(model_device)
 
     # Query: run one forward pass, i.e., generate the next token
     with torch.no_grad():

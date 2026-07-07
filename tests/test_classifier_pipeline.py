@@ -194,6 +194,46 @@ class TestClassifierOrderBias:
 
         assert len(captured) == len(X_test)
 
+    def test_batch_path_prompts_match_series_path(self, clf, acs_income_dataset):
+        """The batch loop materializes rows once per batch instead of re-iterating
+        `batch_data.iterrows()` inside the per-question loop. This test guards the
+        byte-equality of the emitted prompts against a Series-per-row reference."""
+        X_test, _ = acs_income_dataset.get_test()
+
+        captured: list[tuple] = []  # (question, prompt)
+        original_encode_row = clf.encode_row
+
+        def capturing_encode_row(row, **kwargs):
+            prompt = original_encode_row(row, **kwargs)
+            captured.append((kwargs.get("question"), prompt))
+            return prompt
+
+        clf._encode_row = capturing_encode_row
+        try:
+            clf.predict_proba(X_test)
+        finally:
+            clf._encode_row = original_encode_row
+
+        # Two permutations under order-bias correction.
+        n_rows = len(X_test)
+        assert len(captured) == n_rows * 2
+
+        # Reference: encode each row directly with the classifier's encode_row,
+        # feeding pd.Series produced by df.iloc[i]. This mimics the pre-refactor
+        # path (Series per row) and must byte-match the batch path.
+        for perm_idx in range(2):
+            slice_start = perm_idx * n_rows
+            perm_captures = captured[slice_start:slice_start + n_rows]
+            # All prompts in this slice share the same question object.
+            question = perm_captures[0][0]
+            for i in range(n_rows):
+                q_captured, prompt_captured = perm_captures[i]
+                assert q_captured is question
+                prompt_ref = original_encode_row(X_test.iloc[i], question=question)
+                assert prompt_captured == prompt_ref, (
+                    f"Prompt mismatch at row {i}, permutation {perm_idx}"
+                )
+
 
 class TestClassifierConstruction:
     def test_rejects_removed_kwargs(self, tiny_model_and_tokenizer, acs_income_task):
