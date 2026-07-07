@@ -341,13 +341,11 @@ class DirectNumericQA(QAInterface):
         # Restrict to tokens that could be an integer percentage answer.
         # Rejects: multi-digit tokens with a `.`, values >100, non-digit
         # strings that slipped through _get_numeric_tokens.
-        valid_percent_tokens: dict[str, int] = {}
-        for tok, tid in numeric_tokens_vocab.items():
-            if not re.fullmatch(r"\d{1,3}", tok):
-                continue
-            value = int(tok)
-            if 0 <= value <= 100:
-                valid_percent_tokens[tok] = tid
+        valid_percent_tokens: dict[str, int] = {
+            tok: tid
+            for tok, tid in numeric_tokens_vocab.items()
+            if re.fullmatch(r"\d{1,3}", tok) and 0 <= int(tok) <= 100
+        }
         if not valid_percent_tokens:
             logging.warning(
                 "No valid percentage tokens (integers 0-100) in the model's "
@@ -379,9 +377,7 @@ class DirectNumericQA(QAInterface):
 
             probs_by_value: dict[int, float] = {}
             for tok, tid in valid_percent_tokens.items():
-                p = ltp[tid]
-                if not isinstance(p, float):
-                    p = p.item()
+                p = float(ltp[tid])
                 if p > 0:
                     probs_by_value[int(tok)] = probs_by_value.get(int(tok), 0.0) + p
             total_mass = sum(probs_by_value.values())
@@ -394,9 +390,8 @@ class DirectNumericQA(QAInterface):
             return min(expected / 100.0, 1.0)
 
         logging.warning(
-            "No post-anchor digit position found in percentage-mode "
-            "response (accumulated_text=%r); returning 0.0.",
-            accumulated_text,
+            f"No post-anchor digit position found in percentage-mode "
+            f"response (accumulated_text={accumulated_text!r}); returning 0.0."
         )
         return 0.0
 

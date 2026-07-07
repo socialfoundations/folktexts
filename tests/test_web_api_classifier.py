@@ -16,7 +16,10 @@ from __future__ import annotations
 import pytest
 
 from folktexts.classifier import WebAPILLMClassifier
-from folktexts.classifier.web_api_classifier import _DEFAULT_FAMILY_QUIRKS
+from folktexts.classifier.web_api_classifier import (
+    _DEFAULT_FAMILY_QUIRKS,
+    _WebAPIQuirks,
+)
 from folktexts.prompting import PromptConfig
 from folktexts.qa_interface import ChainOfThoughtQA
 
@@ -272,18 +275,13 @@ def test_missing_logprobs_support_fails_fast_for_mcq(mcq_task):
 
 # --- gpt-5 family quirks -----------------------------------------------------
 
-_GPT5_QUIRKS = {
-    "top_logprobs_max": 5,
-    "max_tokens_overhead": 3,
-    "force_reasoning_none": True,
-    "numeric_percentage_mode": True,
-}
-_DEFAULT_QUIRKS = {
-    "top_logprobs_max": 20,
-    "max_tokens_overhead": 0,
-    "force_reasoning_none": False,
-    "numeric_percentage_mode": False,
-}
+_GPT5_QUIRKS = _WebAPIQuirks(
+    top_logprobs_max=5,
+    max_tokens_overhead=3,
+    force_reasoning_none=True,
+    numeric_percentage_mode=True,
+)
+_DEFAULT_QUIRKS = _WebAPIQuirks()
 
 
 @pytest.mark.parametrize("model_name, expected", [
@@ -769,7 +767,7 @@ def test_gpt5_init_auto_enables_percentage_mode_for_numeric_qa(monkeypatch, mcq_
     def _fake_completion(**_kwargs):
         raise RuntimeError("should not be called in __init__")
 
-    import litellm as real_litellm
+    real_litellm = pytest.importorskip("litellm")
     monkeypatch.setattr(real_litellm, "success_callback", [], raising=False)
     monkeypatch.setattr(real_litellm, "completion", _fake_completion, raising=False)
     monkeypatch.setattr(
@@ -803,7 +801,7 @@ def test_default_model_init_does_not_swap_numeric_qa(monkeypatch, mcq_task):
     def _fake_completion(**_kwargs):
         raise RuntimeError("should not be called in __init__")
 
-    import litellm as real_litellm
+    real_litellm = pytest.importorskip("litellm")
     monkeypatch.setattr(real_litellm, "success_callback", [], raising=False)
     monkeypatch.setattr(real_litellm, "completion", _fake_completion, raising=False)
     monkeypatch.setattr(
@@ -838,7 +836,7 @@ def test_gpt5_init_does_not_swap_mcq(monkeypatch, mcq_task):
     def _fake_completion(**_kwargs):
         raise RuntimeError("should not be called in __init__")
 
-    import litellm as real_litellm
+    real_litellm = pytest.importorskip("litellm")
     monkeypatch.setattr(real_litellm, "success_callback", [], raising=False)
     monkeypatch.setattr(real_litellm, "completion", _fake_completion, raising=False)
     monkeypatch.setattr(
