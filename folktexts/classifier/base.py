@@ -410,11 +410,16 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
             end_idx = min((batch_idx + 1) * batch_size, len(df))
             batch_data = df.iloc[start_idx:end_idx]
 
+            # Materialize row-Series once per batch; `iterrows()` rebuilds a
+            # Series (with dtype coercion) per row, and under order-bias
+            # correction the inner question loop iterates N_permutations times.
+            batch_rows = [row for _, row in batch_data.iterrows()]
+
             batch_risk_scores = np.empty((len(batch_data), len(questions)))
             for q_idx, q in enumerate(questions):
                 # Encode batch data into natural text prompts
                 data_texts_batch = [
-                    self.encode_row(row, question=q) for _, row in batch_data.iterrows()
+                    self.encode_row(row, question=q) for row in batch_rows
                 ]
 
                 # Query the model with the batch of data

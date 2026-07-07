@@ -3,6 +3,14 @@
 Release notes summarising user-visible changes between versions. Older changes
 not yet listed here can be reconstructed from the git log.
 
+## v0.7.1 — batch prompt building and tokenization
+
+CPU-side speedups on the risk-score path; no observable output change (bit-identical predictions).
+
+- **Row materialization once per batch** in `LLMClassifier.compute_risk_estimates_for_dataframe`, avoiding `iterrows()` rebuilding row-Series on every question-permutation pass.
+- **Batched tokenizer call** in `query_model_batch` replaces the per-string `tokenizer.encode(...)` list-comp, letting fast (Rust) tokenizers thread-parallelize. Scales with batch size (~2.5× at `bs=128`).
+- Attention mask now sourced from the tokenizer rather than `tensor.ne(pad_token_id)` — correct even when `pad_token == eos_token` and a prompt legitimately contains EOS.
+
 ## v0.7.0 — consistent sampling temperature across backends
 
 Temperature is now a text-generation knob only, applied consistently across

@@ -33,10 +33,19 @@ class _Tokenizer:
         for k in range(n_extra):
             self.vocab[f"<extra{k}>"] = vocab_size + k
         self.pad_token_id = 0
+        self.padding_side = "right"
+        self.truncation_side = "right"
 
     def encode(self, text, return_tensors=None):
         ids = torch.tensor([[1, 2, 3]], dtype=torch.long)
         return ids if return_tensors == "pt" else ids.tolist()
+
+    def __call__(self, texts, return_tensors=None, padding=None,
+                 truncation=None, max_length=None, add_special_tokens=None):
+        n = len(texts)
+        input_ids = torch.tensor([[1, 2, 3]] * n, dtype=torch.long)
+        attention_mask = torch.ones_like(input_ids)
+        return type("Enc", (), {"input_ids": input_ids, "attention_mask": attention_mask})()
 
     def decode(self, ids):
         return str(int(ids[0]))
