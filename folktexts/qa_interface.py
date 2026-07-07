@@ -263,7 +263,7 @@ class DirectNumericQA(QAInterface):
         # violates.
         if self.percentage:
             return self._decode_percentage_expected_value(
-                last_token_probs, numeric_tokens_vocab
+                last_token_probs, numeric_tokens_vocab, tokenizer_vocab
             )
 
         answer_text = ""
@@ -294,19 +294,49 @@ class DirectNumericQA(QAInterface):
         else:
             return float(numeric_answer_text)
 
+    # Preamble anchor for percentage-mode decoding. Matches the `probability`
+    # keyword (case-insensitive) followed by a colon at any distance, which
+    # is where all gpt-5-style responses (and the underlying prompt
+    # `NUMERIC_PERCENTAGE_CHAT_PROMPT`) place their answer delimiter:
+    #   - `**Probability (0-100): 28%**`      -> `Probability (0-100):`
+    #   - `**Estimated probability: 18%**`    -> `probability:`
+    #   - `**Probability (above $50,000): ~62%**` -> `Probability (above $50,000):`
+    # `[^:]*` deliberately stops at the FIRST colon after `probability`,
+    # so any digit tokens the model emits as prompt echo (the `0` and `100`
+    # in `(0-100)`) precede the anchor and are correctly skipped.
+    _ANSWER_ANCHOR: ClassVar[re.Pattern] = re.compile(
+        r"probability[^:]*:", re.IGNORECASE
+    )
+
     def _decode_percentage_expected_value(
         self,
         last_token_probs: np.ndarray,
         numeric_tokens_vocab: dict[str, int],
+        tokenizer_vocab: dict[str, int],
     ) -> float:
-        """Decode a percentage-mode response.
+        """Decode a percentage-mode response deterministically.
 
-        Real API responses often prefix the digit with markdown echo (e.g.
-        `'**Probability (0-100): 28**'`), so we scan every position for the
-        one where numeric-token mass concentrates on plausible percentage
-        values (integers in [0, 100]) and compute a mass-weighted expected
-        value at that position. Falls back to 0.0 if no such position
-        exists (model emitted no digits at all).
+        Real gpt-5 responses either echo the prompt's `(0-100)` range
+        label (`'**Probability (0-100): 28%**'`) or paraphrase it
+        (`'**Estimated probability: 18%**'`) before the answer digit.
+        Argmax-per-position over the whole response is noisy: the `0`
+        and `100` from the range label carry high probability and can
+        hijack the "best answer position" selection.
+
+        Algorithm:
+          1. Reconstruct the chosen-token stream via argmax per
+             position (temperature=0 guarantees chosen == argmax).
+          2. Walk positions accumulating text; once the accumulated
+             text matches `_ANSWER_ANCHOR` (`probability<...>:`), mark
+             the anchor as consumed.
+          3. Return the mass-weighted expected value of integer-percent
+             tokens at the first *post-anchor* position that carries
+             meaningful numeric mass.
+
+        Falls back to 0.0 when either no anchor appears (the model
+        never framed the answer as a probability — usually a preamble
+        that never reached the digit) or no post-anchor position
+        carries digit mass.
         """
         # Restrict to tokens that could be an integer percentage answer.
         # Rejects: multi-digit tokens with a `.`, values >100, non-digit
@@ -325,10 +355,28 @@ class DirectNumericQA(QAInterface):
             )
             return 0.0
 
-        best_pos_idx = -1
-        best_pos_mass = -1.0
-        best_pos_expected = 0.0
+        # Reconstruct chosen tokens per position to walk the response text
+        # deterministically. `tokenizer_vocab` on the WebAPI backend is a
+        # synthetic map (token string → sequential id) built from the top-K
+        # entries actually returned for this row, so the inverse is total
+        # on the ids that appear as argmax.
+        inverse_vocab = {tid: tok for tok, tid in tokenizer_vocab.items()}
+
+        passed_anchor = False
+        accumulated_text = ""
         for pos_idx, ltp in enumerate(last_token_probs):
+            chosen_id = int(np.argmax(ltp))
+            chosen_tok = inverse_vocab.get(chosen_id, "")
+            accumulated_text += chosen_tok
+
+            if not passed_anchor:
+                if self._ANSWER_ANCHOR.search(accumulated_text):
+                    passed_anchor = True
+                # Everything before/at the anchor is prompt echo (label
+                # digits like `0`/`100`, punctuation, preamble words) —
+                # never the answer, even when it's a valid percentage.
+                continue
+
             probs_by_value: dict[int, float] = {}
             for tok, tid in valid_percent_tokens.items():
                 p = ltp[tid]
@@ -337,32 +385,20 @@ class DirectNumericQA(QAInterface):
                 if p > 0:
                     probs_by_value[int(tok)] = probs_by_value.get(int(tok), 0.0) + p
             total_mass = sum(probs_by_value.values())
-            if total_mass <= 0:
+            # Positions between the label and the answer (whitespace,
+            # `):`, `%`, etc.) carry no numeric mass; skip them.
+            if total_mass < 0.1:
                 continue
-            # Skip positions where a single value dominates (>95% of mass)
-            # — those are almost always range-label positions like the `0`
-            # or `100` in `(0-100)`, not the answer. Real answer positions
-            # have a spread of plausible percentages (probe on gpt-5.4-nano:
-            # top value ≈0.3-0.5 with 4-5 alternatives sharing the rest).
-            max_single_value_prob = max(probs_by_value.values())
-            if max_single_value_prob > 0.95 * total_mass:
-                continue
-            if total_mass > best_pos_mass:
-                best_pos_mass = total_mass
-                best_pos_idx = pos_idx
-                # Mass-weighted expected value over the numeric tokens.
-                best_pos_expected = (
-                    sum(v * p for v, p in probs_by_value.items()) / total_mass
-                )
 
-        if best_pos_idx < 0 or best_pos_mass < 0.1:
-            logging.warning(
-                f"No confident percentage answer found "
-                f"(best_pos_mass={best_pos_mass:.3f}); returning 0.0."
-            )
-            return 0.0
+            expected = sum(v * p for v, p in probs_by_value.items()) / total_mass
+            return min(expected / 100.0, 1.0)
 
-        return min(best_pos_expected / 100.0, 1.0)
+        logging.warning(
+            "No post-anchor digit position found in percentage-mode "
+            "response (accumulated_text=%r); returning 0.0.",
+            accumulated_text,
+        )
+        return 0.0
 
 
 @dataclass(frozen=True, eq=True)

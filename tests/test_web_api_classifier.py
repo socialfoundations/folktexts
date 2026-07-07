@@ -421,41 +421,104 @@ def test_directnumericqa_percentage_prefix_has_no_decimal_prefill():
 
 def test_directnumericqa_percentage_decode_expected_value():
     """`percentage=True` returns a mass-weighted expected value over the
-    numeric tokens at the highest-confidence position, divided by 100."""
+    numeric tokens at the first post-`probability<...>:` position with
+    meaningful numeric mass, divided by 100."""
     import numpy as np
     from folktexts.qa_interface import DirectNumericQA
     q = DirectNumericQA(
-        column="test", text="P?", num_forward_passes=1, percentage=True,
+        column="test", text="P?", num_forward_passes=4, percentage=True,
     )
-    # Position 0: only '92' has meaningful mass → expected value = 92.
-    vocab = {"92": 0, "88": 1, "12": 2}
-    probs = np.zeros((1, 3))
-    probs[0, 0] = 0.9   # '92'
-    probs[0, 1] = 0.05  # '88' → expected = (92*0.9 + 88*0.05 + 12*0.05) / 1.0 = 87.8
-    probs[0, 2] = 0.05  # '12'
+    # Simulate `'**Probability (0-100): 92%**'`-style response: the
+    # accumulated text hits `probability(0-100):` by pos 2, then the
+    # answer arrives at pos 3.
+    vocab = {
+        "92": 0, "88": 1, "12": 2,           # answer tokens
+        "**Probability ": 3, "(0-100):": 4, " ": 5,
+    }
+    probs = np.zeros((4, 6))
+    probs[0, 3] = 1.0   # '**Probability '
+    probs[1, 4] = 1.0   # '(0-100):'    (anchor `Probability (0-100):` fires)
+    probs[2, 5] = 1.0   # ' '           (whitespace, no numeric mass → skip)
+    probs[3, 0] = 0.9   # '92'   → expected = (92*0.9 + 88*0.05 + 12*0.05) / 1.0 = 87.8
+    probs[3, 1] = 0.05  # '88'
+    probs[3, 2] = 0.05  # '12'
     decoded = q.get_answer_from_model_output(probs, vocab)
     assert decoded == pytest.approx(0.878)
 
 
-def test_directnumericqa_percentage_finds_answer_across_positions():
-    """When the model wraps the digit in markdown (early positions have no
-    digit mass, digit appears at a later position), the decoder should
-    lock onto the answer position rather than concatenate noise."""
+def test_directnumericqa_percentage_skips_range_label_digits():
+    """The `0` and `100` from an echoed `(0-100)` range label are valid
+    percentages, but appear BEFORE the anchor colon and must be skipped.
+    The decoder should walk to the first post-anchor position that
+    carries digit mass."""
+    import numpy as np
+    from folktexts.qa_interface import DirectNumericQA
+    q = DirectNumericQA(
+        column="test", text="P?", num_forward_passes=6, percentage=True,
+    )
+    # Response shape: '**Probability 0 - 100 ): 35'
+    # Prefix tokens produce accumulated `**Probability 0-100):` by
+    # position 5, so the anchor `probability[^:]*:` matches. Answer at
+    # position 5 must NOT be the `100` (still pre-anchor) — verify by
+    # placing the real answer at position 6.
+    vocab = {
+        "35": 0, "100": 1, "0": 2, "-": 3, "):": 4,
+        "**Probability ": 5,
+    }
+    probs = np.zeros((7, 6))
+    probs[0, 5] = 1.0    # '**Probability '  (no anchor yet — no colon)
+    probs[1, 2] = 1.0    # '0'               (range label starts)
+    probs[2, 3] = 1.0    # '-'
+    probs[3, 1] = 1.0    # '100'             (still pre-anchor — no colon yet)
+    probs[4, 4] = 1.0    # '):'              (accumulated hits `Probability 0-100):`)
+    probs[5, 0] = 0.0    # (empty — skipped, no mass)
+    probs[6, 0] = 0.6    # '35'              (post-anchor answer)
+    probs[6, 2] = 0.3    # '0'               (contributes 0)
+    decoded = q.get_answer_from_model_output(probs, vocab)
+    # Expected = (35*0.6 + 0*0.3 + 100*0) / 0.9 = 21 / 0.9 = 23.333...
+    # `100` doesn't appear at pos 6 → not counted.
+    assert decoded == pytest.approx(23.333 / 100.0, abs=0.001)
+
+
+def test_directnumericqa_percentage_returns_zero_without_anchor():
+    """When the model preambles for the entire token budget without
+    ever emitting `probability<...>:`, the decoder should return 0.0 —
+    those responses (~4% on gpt-5.4-nano) contain no answer to decode,
+    and inventing one would harm calibration."""
     import numpy as np
     from folktexts.qa_interface import DirectNumericQA
     q = DirectNumericQA(
         column="test", text="P?", num_forward_passes=3, percentage=True,
     )
-    # 3 positions × 3 numeric tokens. Position 0: no numeric mass.
-    # Position 1: dominated by literal `100` (the range label — should be
-    # rejected). Position 2: real answer at 35 with some spread.
-    vocab = {"35": 0, "100": 1, "0": 2}
+    # Preamble that never reaches the anchor `probability:`, but
+    # includes a numeric-looking token (`42` from `**42-year-old`).
+    vocab = {"42": 0, "Doctorate": 1, "**": 2}
     probs = np.zeros((3, 3))
-    probs[0, :] = [0.0, 0.0, 0.0]        # pos 0: no digits (e.g. '**')
-    probs[1, :] = [0.0, 0.99, 0.0]       # pos 1: only '100' — must be skipped
-    probs[2, :] = [0.6, 0.0, 0.3]        # pos 2: '35' dominates; expected = 35*0.6/0.9 = 23.33...
+    probs[0, 2] = 1.0   # '**'
+    probs[1, 0] = 1.0   # '42' — a numeric token but before any anchor
+    probs[2, 1] = 1.0   # 'Doctorate'
     decoded = q.get_answer_from_model_output(probs, vocab)
-    assert decoded == pytest.approx(23.333 / 100.0, abs=0.001)
+    assert decoded == 0.0
+
+
+def test_directnumericqa_percentage_accepts_paraphrased_anchor():
+    """Real gpt-5 responses often drop the `(0-100)` range label and
+    paraphrase (e.g. `'**Estimated probability: 18%**'`). The anchor
+    matches `probability<anything>:` so paraphrases still decode."""
+    import numpy as np
+    from folktexts.qa_interface import DirectNumericQA
+    q = DirectNumericQA(
+        column="test", text="P?", num_forward_passes=4, percentage=True,
+    )
+    # Response: '**Estimated probability: 18%**'
+    vocab = {"18": 0, "**Estimated probability": 1, ":": 2, " ": 3}
+    probs = np.zeros((4, 4))
+    probs[0, 1] = 1.0   # '**Estimated probability'  (no anchor yet)
+    probs[1, 2] = 1.0   # ':'                        (anchor fires here)
+    probs[2, 3] = 1.0   # ' '                        (whitespace — skip)
+    probs[3, 0] = 1.0   # '18'                       (answer)
+    decoded = q.get_answer_from_model_output(probs, vocab)
+    assert decoded == pytest.approx(0.18)
 
 
 def test_directnumericqa_percentage_clamps_above_100():
