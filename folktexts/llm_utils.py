@@ -201,8 +201,10 @@ def query_model_batch(
 
     # Batched tokenization. `truncation_side="left"` reproduces the previous
     # per-row `[-context_size:]` semantics (keep the tail, drop the head);
-    # `padding_side="right"` matches the previous `pad_sequence` layout so the
-    # last-real-token index still comes from the pre-pad length. Restore both
+    # `padding_side="right"` is required by the last-token read below —
+    # `idx = attention_mask.sum(-1) - 1` points at the last real token only
+    # when pads sit AFTER the prompt (single forward pass, not `.generate()`,
+    # which uses left-padding in `generate_text_batch`). Restore both
     # attributes even if the tokenizer call raises.
     old_pad_side = tokenizer.padding_side
     old_trunc_side = tokenizer.truncation_side
