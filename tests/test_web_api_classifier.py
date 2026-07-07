@@ -16,6 +16,10 @@ from __future__ import annotations
 import pytest
 
 from folktexts.classifier import WebAPILLMClassifier
+from folktexts.classifier.web_api_classifier import (
+    _DEFAULT_FAMILY_QUIRKS,
+    _WebAPIQuirks,
+)
 from folktexts.prompting import PromptConfig
 from folktexts.qa_interface import ChainOfThoughtQA
 
@@ -37,8 +41,13 @@ def _make_classifier(prompt_config: PromptConfig, *, supported_params: set | Non
     clf.max_api_rpm = 10**9  # make the inter-call sleep negligible
     clf.supported_params = supported_params if supported_params is not None else {
         "temperature", "max_tokens", "stream", "seed", "logprobs", "top_logprobs",
+        "reasoning_effort",
     }
     clf._warned_unsupported_params = set()
+    clf._warned_unvalidated_reasoning = False
+    # Bind the module-level default so identity checks in prod code
+    # (`self._family_quirks is _DEFAULT_FAMILY_QUIRKS`) work under tests.
+    clf._family_quirks = _DEFAULT_FAMILY_QUIRKS
 
     calls: list[list[dict]] = []
 
@@ -264,6 +273,114 @@ def test_missing_logprobs_support_fails_fast_for_mcq(mcq_task):
     assert calls == []  # no API call was made
 
 
+# --- gpt-5 family quirks -----------------------------------------------------
+
+_GPT5_QUIRKS = _WebAPIQuirks(
+    top_logprobs_max=5,
+    max_tokens_overhead=3,
+    force_reasoning_none=True,
+    numeric_percentage_mode=True,
+)
+_DEFAULT_QUIRKS = _WebAPIQuirks()
+
+
+@pytest.mark.parametrize("model_name, expected", [
+    ("gpt-5.4-mini", _GPT5_QUIRKS),
+    ("gpt-5.4-nano", _GPT5_QUIRKS),
+    ("openai/gpt-5-turbo", _GPT5_QUIRKS),
+    ("gpt-4o-mini", _DEFAULT_QUIRKS),
+    ("claude-sonnet-5", _DEFAULT_QUIRKS),
+    ("some-future-model", _DEFAULT_QUIRKS),
+])
+def test_resolve_family_quirks(model_name, expected):
+    from folktexts.classifier.web_api_classifier import _resolve_family_quirks
+    assert _resolve_family_quirks(model_name) == expected
+
+
+def test_mcq_sends_family_specific_top_logprobs_cap(mcq_task):
+    """gpt-5 models must receive top_logprobs=5 (any higher → OpenAI 400)."""
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task)
+    clf, _ = _make_classifier(cfg)
+    clf._family_quirks = _GPT5_QUIRKS
+
+    clf._query_webapi_batch(["p"], question=mcq_task.multiple_choice_qa)
+    assert clf.last_call_params["top_logprobs"] == 5
+
+
+def test_mcq_max_tokens_absorbs_overhead_for_gpt5(mcq_task):
+    """gpt-5 has a ~3-token hidden preamble that consumes max_completion_tokens;
+    a single-token MCQ needs `max_tokens = 1 + overhead = 4`."""
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task)
+    clf, _ = _make_classifier(cfg)
+    clf._family_quirks = _GPT5_QUIRKS
+
+    clf._query_webapi_batch(["p"], question=mcq_task.multiple_choice_qa)
+    assert clf.last_call_params["max_tokens"] == 4
+
+
+def test_numeric_max_tokens_absorbs_overhead_for_gpt5(mcq_task):
+    """Numeric needs `num_forward_passes + 2 + overhead` visible tokens for gpt-5;
+    without the overhead the model outputs only '0.' and decodes to 0.0."""
+    cfg = PromptConfig.from_dict(
+        pv={}, task=mcq_task, question=mcq_task.direct_numeric_qa,
+    )
+    clf, _ = _make_classifier(cfg)
+    clf._family_quirks = _GPT5_QUIRKS
+    expected = mcq_task.direct_numeric_qa.num_forward_passes + 2 + 3
+
+    clf._query_webapi_batch(["p"], question=mcq_task.direct_numeric_qa)
+    assert clf.last_call_params["max_tokens"] == expected
+
+
+def test_mcq_default_max_tokens_unchanged_for_non_gpt5(mcq_task):
+    """Non-gpt-5 models keep max_tokens=1 for single-token MCQ (no overhead)."""
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task)
+    clf, _ = _make_classifier(cfg)  # default quirks
+    clf._query_webapi_batch(["p"], question=mcq_task.multiple_choice_qa)
+    assert clf.last_call_params["max_tokens"] == 1
+
+
+def test_mcq_injects_reasoning_effort_none_for_gpt5(mcq_task):
+    """gpt-5 needs reasoning_effort='none' or logprobs requests are refused."""
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task)
+    clf, _ = _make_classifier(cfg)
+    clf._family_quirks = _GPT5_QUIRKS
+
+    clf._query_webapi_batch(["p"], question=mcq_task.multiple_choice_qa)
+    assert clf.last_call_params.get("reasoning_effort") == "none"
+
+
+def test_numeric_injects_reasoning_effort_none_for_gpt5(mcq_task):
+    cfg = PromptConfig.from_dict(
+        pv={}, task=mcq_task, question=mcq_task.direct_numeric_qa,
+    )
+    clf, _ = _make_classifier(cfg)
+    clf._family_quirks = _GPT5_QUIRKS
+
+    clf._query_webapi_batch(["p"], question=mcq_task.direct_numeric_qa)
+    assert clf.last_call_params.get("reasoning_effort") == "none"
+
+
+def test_cot_does_not_inject_reasoning_effort_even_for_gpt5(mcq_task):
+    """CoT reads free-form text — reasoning budget should stay at the model default."""
+    cfg = PromptConfig.from_dict(
+        pv={}, task=mcq_task, question=_cot_question(mcq_task),
+    )
+    clf, _ = _make_classifier(cfg)
+    clf._family_quirks = _GPT5_QUIRKS
+
+    clf._query_webapi_batch(["p"], question=_cot_question(mcq_task))
+    assert "reasoning_effort" not in clf.last_call_params
+
+
+def test_mcq_omits_reasoning_effort_for_non_gpt5(mcq_task):
+    """Non-gpt-5 models must not receive reasoning_effort (gpt-4o-mini rejects it)."""
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task)
+    clf, _ = _make_classifier(cfg)  # default quirks
+    clf._query_webapi_batch(["p"], question=mcq_task.multiple_choice_qa)
+    assert "reasoning_effort" not in clf.last_call_params
+
+
 def test_unsupported_param_warning_fires_once_across_batches(mcq_task, caplog):
     """The drop-warning must not spam the logs once per batch."""
     cfg = PromptConfig.from_dict(pv={}, task=mcq_task)
@@ -281,3 +398,457 @@ def test_unsupported_param_warning_fires_once_across_batches(mcq_task, caplog):
         if "does not support API parameter" in rec.getMessage()
     ]
     assert len(warnings) == 1
+
+
+# --- Unvalidated-reasoning-model warning ------------------------------------
+
+def test_unvalidated_reasoning_warning_fires_for_mcq(mcq_task, caplog):
+    """MCQ on a model that advertises `reasoning_effort` but is NOT in the
+    quirks table must emit a one-time warning — MCQ/Numeric can silently
+    collapse to chance on reasoning models we haven't tuned for."""
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task)
+    clf, _ = _make_classifier(cfg)  # default quirks, reasoning_effort in supported
+    clf._model_name = "future-reasoning-model-vX"
+
+    with caplog.at_level("WARNING"):
+        clf._query_webapi_batch(["p"], question=mcq_task.multiple_choice_qa)
+
+    matches = [
+        rec for rec in caplog.records
+        if "reasoning_effort" in rec.getMessage()
+        and "no validated entry" in rec.getMessage()
+    ]
+    assert len(matches) == 1
+    assert clf._model_name in matches[0].getMessage()
+
+
+def test_unvalidated_reasoning_warning_fires_once_across_batches(mcq_task, caplog):
+    """The warning must be capped at one emission per classifier lifetime."""
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task)
+    clf, _ = _make_classifier(cfg)
+    clf._model_name = "future-reasoning-model-vX"
+
+    with caplog.at_level("WARNING"):
+        clf._query_webapi_batch(["p1"], question=mcq_task.multiple_choice_qa)
+        clf._query_webapi_batch(["p2"], question=mcq_task.multiple_choice_qa)
+        clf._query_webapi_batch(["p3"], question=mcq_task.multiple_choice_qa)
+
+    matches = [
+        rec for rec in caplog.records
+        if "no validated entry" in rec.getMessage()
+    ]
+    assert len(matches) == 1
+
+
+def test_unvalidated_reasoning_warning_silent_for_non_reasoning_model(mcq_task, caplog):
+    """Models that don't advertise `reasoning_effort` must NOT trigger it."""
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task)
+    clf, _ = _make_classifier(
+        cfg,
+        supported_params={"temperature", "max_tokens", "stream", "seed",
+                          "logprobs", "top_logprobs"},  # no reasoning_effort
+    )
+    clf._model_name = "gpt-4o-mini"
+
+    with caplog.at_level("WARNING"):
+        clf._query_webapi_batch(["p"], question=mcq_task.multiple_choice_qa)
+
+    matches = [
+        rec for rec in caplog.records
+        if "no validated entry" in rec.getMessage()
+    ]
+    assert matches == []
+
+
+def test_unvalidated_reasoning_warning_silent_for_validated_family(monkeypatch, mcq_task, caplog):
+    """gpt-5 (an explicitly-entered family) must NOT trigger the warning —
+    it's already validated and its quirks are applied automatically."""
+    from folktexts.classifier.web_api_classifier import (
+        _OPENAI_MODEL_FAMILY_QUIRKS,
+    )
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task)
+    clf, _ = _make_classifier(cfg)
+    clf._model_name = "gpt-5.4-nano"
+    # Simulate init having resolved the gpt-5 quirks (identity to module dict)
+    clf._family_quirks = _OPENAI_MODEL_FAMILY_QUIRKS["gpt-5"]
+
+    with caplog.at_level("WARNING"):
+        clf._query_webapi_batch(["p"], question=mcq_task.multiple_choice_qa)
+
+    matches = [
+        rec for rec in caplog.records
+        if "no validated entry" in rec.getMessage()
+    ]
+    assert matches == []
+
+
+def test_unvalidated_reasoning_warning_silent_for_cot(mcq_task, caplog):
+    """CoT reads free-form text and is robust to preambles — no warning."""
+    cfg = PromptConfig.from_dict(
+        pv={}, task=mcq_task, question=_cot_question(mcq_task),
+    )
+    clf, _ = _make_classifier(cfg)  # reasoning_effort in supported, default quirks
+    clf._model_name = "future-reasoning-model-vX"
+
+    with caplog.at_level("WARNING"):
+        clf._query_webapi_batch(["p"], question=_cot_question(mcq_task))
+
+    matches = [
+        rec for rec in caplog.records
+        if "no validated entry" in rec.getMessage()
+    ]
+    assert matches == []
+
+
+# --- Numeric percentage mode (gpt-5 workaround) -----------------------------
+
+def test_directnumericqa_percentage_prefix_has_no_decimal_prefill():
+    """With `percentage=True`, the prompt asks for an integer percentage
+    and does NOT bake the `0.` prefill into the user turn."""
+    from folktexts.qa_interface import DirectNumericQA, NUMERIC_PERCENTAGE_CHAT_PROMPT
+    q = DirectNumericQA(
+        column="test", text="What is P?", num_forward_passes=1, percentage=True,
+    )
+    prefix = q.get_answer_prefix()
+    assert prefix == NUMERIC_PERCENTAGE_CHAT_PROMPT
+    assert "0." not in prefix
+    assert "0-100" in prefix
+
+
+def test_directnumericqa_percentage_decode_expected_value():
+    """`percentage=True` returns a mass-weighted expected value over the
+    numeric tokens at the first post-`probability<...>:` position with
+    meaningful numeric mass, divided by 100."""
+    import numpy as np
+    from folktexts.qa_interface import DirectNumericQA
+    q = DirectNumericQA(
+        column="test", text="P?", num_forward_passes=4, percentage=True,
+    )
+    # Simulate `'**Probability (0-100): 92%**'`-style response: the
+    # accumulated text hits `probability(0-100):` by pos 2, then the
+    # answer arrives at pos 3.
+    vocab = {
+        "92": 0, "88": 1, "12": 2,           # answer tokens
+        "**Probability ": 3, "(0-100):": 4, " ": 5,
+    }
+    probs = np.zeros((4, 6))
+    probs[0, 3] = 1.0   # '**Probability '
+    probs[1, 4] = 1.0   # '(0-100):'    (anchor `Probability (0-100):` fires)
+    probs[2, 5] = 1.0   # ' '           (whitespace, no numeric mass → skip)
+    probs[3, 0] = 0.9   # '92'   → expected = (92*0.9 + 88*0.05 + 12*0.05) / 1.0 = 87.8
+    probs[3, 1] = 0.05  # '88'
+    probs[3, 2] = 0.05  # '12'
+    decoded = q.get_answer_from_model_output(probs, vocab)
+    assert decoded == pytest.approx(0.878)
+
+
+def test_directnumericqa_percentage_skips_range_label_digits():
+    """The `0` and `100` from an echoed `(0-100)` range label are valid
+    percentages, but appear BEFORE the anchor colon and must be skipped.
+    The decoder should walk to the first post-anchor position that
+    carries digit mass."""
+    import numpy as np
+    from folktexts.qa_interface import DirectNumericQA
+    q = DirectNumericQA(
+        column="test", text="P?", num_forward_passes=6, percentage=True,
+    )
+    # Response shape: '**Probability 0 - 100 ): 35'
+    # Prefix tokens produce accumulated `**Probability 0-100):` by
+    # position 5, so the anchor `probability[^:]*:` matches. Answer at
+    # position 5 must NOT be the `100` (still pre-anchor) — verify by
+    # placing the real answer at position 6.
+    vocab = {
+        "35": 0, "100": 1, "0": 2, "-": 3, "):": 4,
+        "**Probability ": 5,
+    }
+    probs = np.zeros((7, 6))
+    probs[0, 5] = 1.0    # '**Probability '  (no anchor yet — no colon)
+    probs[1, 2] = 1.0    # '0'               (range label starts)
+    probs[2, 3] = 1.0    # '-'
+    probs[3, 1] = 1.0    # '100'             (still pre-anchor — no colon yet)
+    probs[4, 4] = 1.0    # '):'              (accumulated hits `Probability 0-100):`)
+    probs[5, 0] = 0.0    # (empty — skipped, no mass)
+    probs[6, 0] = 0.6    # '35'              (post-anchor answer)
+    probs[6, 2] = 0.3    # '0'               (contributes 0)
+    decoded = q.get_answer_from_model_output(probs, vocab)
+    # Expected = (35*0.6 + 0*0.3 + 100*0) / 0.9 = 21 / 0.9 = 23.333...
+    # `100` doesn't appear at pos 6 → not counted.
+    assert decoded == pytest.approx(23.333 / 100.0, abs=0.001)
+
+
+def test_directnumericqa_percentage_returns_zero_without_anchor():
+    """When the model preambles for the entire token budget without
+    ever emitting `probability<...>:`, the decoder should return 0.0 —
+    those responses (~4% on gpt-5.4-nano) contain no answer to decode,
+    and inventing one would harm calibration."""
+    import numpy as np
+    from folktexts.qa_interface import DirectNumericQA
+    q = DirectNumericQA(
+        column="test", text="P?", num_forward_passes=3, percentage=True,
+    )
+    # Preamble that never reaches the anchor `probability:`, but
+    # includes a numeric-looking token (`42` from `**42-year-old`).
+    vocab = {"42": 0, "Doctorate": 1, "**": 2}
+    probs = np.zeros((3, 3))
+    probs[0, 2] = 1.0   # '**'
+    probs[1, 0] = 1.0   # '42' — a numeric token but before any anchor
+    probs[2, 1] = 1.0   # 'Doctorate'
+    decoded = q.get_answer_from_model_output(probs, vocab)
+    assert decoded == 0.0
+
+
+def test_directnumericqa_percentage_accepts_paraphrased_anchor():
+    """Real gpt-5 responses often drop the `(0-100)` range label and
+    paraphrase (e.g. `'**Estimated probability: 18%**'`). The anchor
+    matches `probability<anything>:` so paraphrases still decode."""
+    import numpy as np
+    from folktexts.qa_interface import DirectNumericQA
+    q = DirectNumericQA(
+        column="test", text="P?", num_forward_passes=4, percentage=True,
+    )
+    # Response: '**Estimated probability: 18%**'
+    vocab = {"18": 0, "**Estimated probability": 1, ":": 2, " ": 3}
+    probs = np.zeros((4, 4))
+    probs[0, 1] = 1.0   # '**Estimated probability'  (no anchor yet)
+    probs[1, 2] = 1.0   # ':'                        (anchor fires here)
+    probs[2, 3] = 1.0   # ' '                        (whitespace — skip)
+    probs[3, 0] = 1.0   # '18'                       (answer)
+    decoded = q.get_answer_from_model_output(probs, vocab)
+    assert decoded == pytest.approx(0.18)
+
+
+def test_directnumericqa_percentage_clamps_above_100():
+    """Expected value >100 should clamp to 1.0."""
+    import numpy as np
+    from folktexts.qa_interface import DirectNumericQA
+    q = DirectNumericQA(
+        column="test", text="P?", num_forward_passes=1, percentage=True,
+    )
+    # Only 105 in the vocab. `_get_numeric_tokens` allows any digit token,
+    # but percentage decoder further filters to <=100 — so 105 is REJECTED.
+    # With no valid tokens, decoder returns 0.0 (with warning).
+    vocab = {"105": 0}
+    probs = np.array([[1.0]])
+    decoded = q.get_answer_from_model_output(probs, vocab)
+    assert decoded == 0.0
+
+
+def test_directnumericqa_percentage_no_digits_returns_zero():
+    """If no valid percentage tokens appear at any position, the decoder
+    returns 0.0 rather than raising."""
+    import numpy as np
+    from folktexts.qa_interface import DirectNumericQA
+    q = DirectNumericQA(
+        column="test", text="P?", num_forward_passes=1, percentage=True,
+    )
+    # `_get_numeric_tokens` yields an empty numeric_tokens_vocab if the
+    # response has no digits, so pass a vocab with only a non-digit token.
+    vocab = {"foo": 0}  # `_get_numeric_tokens` would filter this out anyway
+    probs = np.array([[1.0]])
+    decoded = q.get_answer_from_model_output(probs, vocab)
+    assert decoded == 0.0
+
+
+def test_directnumericqa_percentage_false_preserves_decimal_prefill():
+    """Default `percentage=False` still returns the classic `0.` prefill."""
+    from folktexts.qa_interface import DirectNumericQA
+    q = DirectNumericQA(column="test", text="P?")
+    assert q.percentage is False
+    assert q.get_answer_prefix() == "Answer (between 0 and 1): 0."
+
+
+def test_enable_numeric_percentage_mode_swaps_question(mcq_task):
+    """Calling `_enable_numeric_percentage_mode()` should replace the
+    numeric QA in `prompt_config.suffix` with a `percentage=True` variant
+    and rebuild `_encode_row` against the new config."""
+    from folktexts.qa_interface import DirectNumericQA
+    cfg = PromptConfig.from_dict(
+        pv={}, task=mcq_task, question=mcq_task.direct_numeric_qa,
+    )
+    clf, _ = _make_classifier(cfg)
+    clf._task = mcq_task  # required by the encode_row rebuild
+
+    original_q = clf._prompt_config.suffix.question
+    assert isinstance(original_q, DirectNumericQA)
+    assert original_q.percentage is False
+
+    clf._enable_numeric_percentage_mode()
+
+    new_q = clf._prompt_config.suffix.question
+    assert isinstance(new_q, DirectNumericQA)
+    assert new_q.percentage is True
+    # ≥10 to give gpt-5 room for the markdown echo it emits before the digit
+    assert new_q.num_forward_passes >= 10
+    # `_encode_row` should now be a partial closed over the NEW config
+    assert clf._encode_row.keywords["prompt_config"] is clf._prompt_config
+    # The base classifier reads the swapped question from prompt_config.suffix
+    assert clf._prompt_config.suffix.question is new_q
+
+
+def test_enable_numeric_percentage_mode_installs_format_system_prompt(mcq_task):
+    """The swap should replace the default numeric system prompt with one
+    that explicitly names the required answer format (mirrors the CoT
+    pattern) — reasoning models don't reliably continue the user-turn
+    prefill, so the instruction reduces zero-fallback rows."""
+    from folktexts.classifier.web_api_classifier import (
+        NUMERIC_PERCENTAGE_SYSTEM_PROMPT,
+    )
+    cfg = PromptConfig.from_dict(
+        pv={}, task=mcq_task, question=mcq_task.direct_numeric_qa,
+    )
+    clf, _ = _make_classifier(cfg)
+    clf._task = mcq_task
+
+    # Precondition: numeric-QA default system prompt is active
+    assert clf._prompt_config.system_prompt is not None
+    assert "MUST end" not in clf._prompt_config.system_prompt()
+
+    clf._enable_numeric_percentage_mode()
+
+    new_sys = clf._prompt_config.system_prompt()
+    assert new_sys == NUMERIC_PERCENTAGE_SYSTEM_PROMPT
+    assert "Probability (0-100): X%" in new_sys
+    # Instruction shape: forbid preamble/reasoning so the model emits the
+    # answer inside the (limited) `max_tokens` budget.
+    assert "Reply with ONLY" in new_sys
+    assert "no preamble".lower() in new_sys.lower() or \
+        "no preamble, reasoning".lower() in new_sys.lower() or \
+        "preamble" in new_sys
+
+
+def test_enable_numeric_percentage_mode_preserves_user_system_prompt(mcq_task):
+    """A user-supplied `--system-prompt` must NOT be silently clobbered by
+    the auto-swap (only the QA subclass default gets replaced)."""
+    cfg = PromptConfig.from_dict(
+        pv={}, task=mcq_task, question=mcq_task.direct_numeric_qa,
+        system_prompt="CUSTOM USER SYS",
+    )
+    clf, _ = _make_classifier(cfg)
+    clf._task = mcq_task
+
+    assert clf._prompt_config.system_prompt() == "CUSTOM USER SYS"
+
+    clf._enable_numeric_percentage_mode()
+
+    # QA is still swapped …
+    assert clf._prompt_config.suffix.question.percentage is True
+    # … but the user's system prompt is preserved
+    assert clf._prompt_config.system_prompt() == "CUSTOM USER SYS"
+
+
+def test_enable_numeric_percentage_mode_preserves_disabled_system_prompt(mcq_task):
+    """`system_prompt=None` (role disabled) must stay disabled after swap."""
+    cfg = PromptConfig.from_dict(
+        pv={}, task=mcq_task, question=mcq_task.direct_numeric_qa,
+        system_prompt=None,
+    )
+    clf, _ = _make_classifier(cfg)
+    clf._task = mcq_task
+    assert clf._prompt_config.system_prompt is None
+
+    clf._enable_numeric_percentage_mode()
+
+    assert clf._prompt_config.suffix.question.percentage is True
+    assert clf._prompt_config.system_prompt is None
+
+
+def test_gpt5_init_auto_enables_percentage_mode_for_numeric_qa(monkeypatch, mcq_task):
+    """End-to-end: constructing a WebAPILLMClassifier for a gpt-5 model with
+    a numeric-QA task should auto-swap the numeric QA to percentage mode."""
+    from folktexts.qa_interface import DirectNumericQA
+
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    fake_litellm = type("_fake_litellm", (), {"success_callback": []})()
+
+    def _fake_get_supported(**_kwargs):
+        return ["temperature", "max_tokens", "stream", "seed",
+                "logprobs", "top_logprobs", "reasoning_effort"]
+
+    def _fake_completion(**_kwargs):
+        raise RuntimeError("should not be called in __init__")
+
+    real_litellm = pytest.importorskip("litellm")
+    monkeypatch.setattr(real_litellm, "success_callback", [], raising=False)
+    monkeypatch.setattr(real_litellm, "completion", _fake_completion, raising=False)
+    monkeypatch.setattr(
+        real_litellm, "get_supported_openai_params", _fake_get_supported,
+        raising=False,
+    )
+
+    cfg = PromptConfig.from_dict(
+        pv={}, task=mcq_task, question=mcq_task.direct_numeric_qa,
+    )
+    clf = WebAPILLMClassifier(
+        model_name="gpt-5.4-nano", task=mcq_task, prompt_config=cfg,
+    )
+    q = clf._prompt_config.suffix.question
+    assert isinstance(q, DirectNumericQA)
+    assert q.percentage is True
+    assert q.num_forward_passes >= 10
+    # And the format-instruction system prompt is installed
+    assert "Probability (0-100): X%" in clf._prompt_config.system_prompt()
+
+
+def test_default_model_init_does_not_swap_numeric_qa(monkeypatch, mcq_task):
+    """A non-gpt-5 model must leave the numeric QA in decimal-prefill mode."""
+    from folktexts.qa_interface import DirectNumericQA
+
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+
+    def _fake_get_supported(**_kwargs):
+        return ["temperature", "max_tokens", "stream", "seed", "logprobs", "top_logprobs"]
+
+    def _fake_completion(**_kwargs):
+        raise RuntimeError("should not be called in __init__")
+
+    real_litellm = pytest.importorskip("litellm")
+    monkeypatch.setattr(real_litellm, "success_callback", [], raising=False)
+    monkeypatch.setattr(real_litellm, "completion", _fake_completion, raising=False)
+    monkeypatch.setattr(
+        real_litellm, "get_supported_openai_params", _fake_get_supported,
+        raising=False,
+    )
+
+    cfg = PromptConfig.from_dict(
+        pv={}, task=mcq_task, question=mcq_task.direct_numeric_qa,
+    )
+    clf = WebAPILLMClassifier(
+        model_name="gpt-4o-mini", task=mcq_task, prompt_config=cfg,
+    )
+    q = clf._prompt_config.suffix.question
+    assert isinstance(q, DirectNumericQA)
+    assert q.percentage is False
+    # Non-gpt-5 path keeps the plain numeric system prompt (no format
+    # instruction — regular models honour the user-turn prefill continuation).
+    assert "Reply with ONLY" not in clf._prompt_config.system_prompt()
+    assert "Probability (0-100)" not in clf._prompt_config.system_prompt()
+
+
+def test_gpt5_init_does_not_swap_mcq(monkeypatch, mcq_task):
+    """The auto-swap must only fire when the current question is a
+    `DirectNumericQA` — MCQ tasks are unaffected."""
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+
+    def _fake_get_supported(**_kwargs):
+        return ["temperature", "max_tokens", "stream", "seed",
+                "logprobs", "top_logprobs", "reasoning_effort"]
+
+    def _fake_completion(**_kwargs):
+        raise RuntimeError("should not be called in __init__")
+
+    real_litellm = pytest.importorskip("litellm")
+    monkeypatch.setattr(real_litellm, "success_callback", [], raising=False)
+    monkeypatch.setattr(real_litellm, "completion", _fake_completion, raising=False)
+    monkeypatch.setattr(
+        real_litellm, "get_supported_openai_params", _fake_get_supported,
+        raising=False,
+    )
+
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task)  # MCQ, not numeric
+    clf = WebAPILLMClassifier(
+        model_name="gpt-5.4-nano", task=mcq_task, prompt_config=cfg,
+    )
+    # question is a MultipleChoiceQA, no percentage attribute — the swap
+    # should have been skipped without error.
+    from folktexts.qa_interface import MultipleChoiceQA
+    assert isinstance(clf._prompt_config.suffix.question, MultipleChoiceQA)

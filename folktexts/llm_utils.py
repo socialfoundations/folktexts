@@ -366,7 +366,7 @@ def decode_topk_logprobs_to_risk_estimate(
 
     Notes
     -----
-    Both the WebAPI backend (top_logprobs=20 from OpenAI-style responses) and
+    Both the WebAPI backend (top_logprobs clamped per model family, up to 20) and
     the vLLM backend (top-K logprobs from `SamplingParams(logprobs=K)`) call
     this helper. The transformers backend reads the full softmax directly and
     bypasses this path; see `query_model_batch_multiple_passes`.

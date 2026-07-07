@@ -54,6 +54,14 @@ GEMMA_CHAT_PROMPT = "The provided information suggests that the answer is"
 # space and may degrade calibration for low-probability cases).
 NUMERIC_CHAT_PROMPT = "Answer (between 0 and 1): 0."
 
+# Alternative prefill used when `DirectNumericQA(percentage=True)` is active:
+# no `0.` prefill; the model is asked to reply with an integer percentage.
+# Rationale: OpenAI gpt-5 under `reasoning_effort='none'` collapses the
+# decimal-prefill prompt to `'0'` regardless of input (AUC≈chance); reframing
+# as an integer percentage restores discrimination because both digits become
+# meaningful (probe on gpt-5.4-nano: HIGH-income row → '92', LOW → '12').
+NUMERIC_PERCENTAGE_CHAT_PROMPT = "Probability (0-100): "
+
 
 @dataclass(frozen=True)
 class QAInterface(ABC):
@@ -145,11 +153,19 @@ class DirectNumericQA(QAInterface):
 
     num_forward_passes: int = 2  # NOTE: overrides superclass default
     answer_probability: bool = True
+    percentage: bool = False
+    """Ask the model for an integer percentage (0-100) instead of a decimal
+    with a `0.` prefill; the decoded value is divided by 100. Used to work
+    around OpenAI gpt-5 models degenerating to `'0'` under the decimal-prefill
+    prompt when `reasoning_effort='none'` is required for logprobs.
+    Auto-enabled by `WebAPILLMClassifier` for gpt-5 family models."""
 
     default_system_prompt: ClassVar[str] = NUMERIC_SYSTEM_PROMPT
     default_chat_prompt: ClassVar[str] = NUMERIC_CHAT_PROMPT
 
     def get_answer_prefix(self) -> str:
+        if self.percentage:
+            return NUMERIC_PERCENTAGE_CHAT_PROMPT
         if self.answer_probability:
             return "Answer (between 0 and 1): 0."
         return "Answer: "
@@ -240,6 +256,16 @@ class DirectNumericQA(QAInterface):
                 f"{len(last_token_probs)}."
             )
 
+        # Percentage mode uses its own decoder: the model prefixes markdown
+        # around the digit, so a per-position argmax over the entire response
+        # captures noise. Return early — the classic sequential-digit decoder
+        # below assumes a `0.<digit><digit>...` layout that percentage mode
+        # violates.
+        if self.percentage:
+            return self._decode_percentage_expected_value(
+                last_token_probs, numeric_tokens_vocab, tokenizer_vocab
+            )
+
         answer_text = ""
         for ltp in last_token_probs:
             # Get the probability of each numeric token
@@ -267,6 +293,107 @@ class DirectNumericQA(QAInterface):
             return float(f"0.{numeric_answer_text}")
         else:
             return float(numeric_answer_text)
+
+    # Preamble anchor for percentage-mode decoding. Matches the `probability`
+    # keyword (case-insensitive) followed by a colon at any distance, which
+    # is where all gpt-5-style responses (and the underlying prompt
+    # `NUMERIC_PERCENTAGE_CHAT_PROMPT`) place their answer delimiter:
+    #   - `**Probability (0-100): 28%**`      -> `Probability (0-100):`
+    #   - `**Estimated probability: 18%**`    -> `probability:`
+    #   - `**Probability (above $50,000): ~62%**` -> `Probability (above $50,000):`
+    # `[^:]*` deliberately stops at the FIRST colon after `probability`,
+    # so any digit tokens the model emits as prompt echo (the `0` and `100`
+    # in `(0-100)`) precede the anchor and are correctly skipped.
+    _ANSWER_ANCHOR: ClassVar[re.Pattern] = re.compile(
+        r"probability[^:]*:", re.IGNORECASE
+    )
+
+    def _decode_percentage_expected_value(
+        self,
+        last_token_probs: np.ndarray,
+        numeric_tokens_vocab: dict[str, int],
+        tokenizer_vocab: dict[str, int],
+    ) -> float:
+        """Decode a percentage-mode response deterministically.
+
+        Real gpt-5 responses either echo the prompt's `(0-100)` range
+        label (`'**Probability (0-100): 28%**'`) or paraphrase it
+        (`'**Estimated probability: 18%**'`) before the answer digit.
+        Argmax-per-position over the whole response is noisy: the `0`
+        and `100` from the range label carry high probability and can
+        hijack the "best answer position" selection.
+
+        Algorithm:
+          1. Reconstruct the chosen-token stream via argmax per
+             position (temperature=0 guarantees chosen == argmax).
+          2. Walk positions accumulating text; once the accumulated
+             text matches `_ANSWER_ANCHOR` (`probability<...>:`), mark
+             the anchor as consumed.
+          3. Return the mass-weighted expected value of integer-percent
+             tokens at the first *post-anchor* position that carries
+             meaningful numeric mass.
+
+        Falls back to 0.0 when either no anchor appears (the model
+        never framed the answer as a probability — usually a preamble
+        that never reached the digit) or no post-anchor position
+        carries digit mass.
+        """
+        # Restrict to tokens that could be an integer percentage answer.
+        # Rejects: multi-digit tokens with a `.`, values >100, non-digit
+        # strings that slipped through _get_numeric_tokens.
+        valid_percent_tokens: dict[str, int] = {
+            tok: tid
+            for tok, tid in numeric_tokens_vocab.items()
+            if re.fullmatch(r"\d{1,3}", tok) and 0 <= int(tok) <= 100
+        }
+        if not valid_percent_tokens:
+            logging.warning(
+                "No valid percentage tokens (integers 0-100) in the model's "
+                "response; returning 0.0."
+            )
+            return 0.0
+
+        # Reconstruct chosen tokens per position to walk the response text
+        # deterministically. `tokenizer_vocab` on the WebAPI backend is a
+        # synthetic map (token string → sequential id) built from the top-K
+        # entries actually returned for this row, so the inverse is total
+        # on the ids that appear as argmax.
+        inverse_vocab = {tid: tok for tok, tid in tokenizer_vocab.items()}
+
+        passed_anchor = False
+        accumulated_text = ""
+        for ltp in last_token_probs:
+            chosen_id = int(np.argmax(ltp))
+            chosen_tok = inverse_vocab.get(chosen_id, "")
+            accumulated_text += chosen_tok
+
+            if not passed_anchor:
+                if self._ANSWER_ANCHOR.search(accumulated_text):
+                    passed_anchor = True
+                # Everything before/at the anchor is prompt echo (label
+                # digits like `0`/`100`, punctuation, preamble words) —
+                # never the answer, even when it's a valid percentage.
+                continue
+
+            probs_by_value: dict[int, float] = {}
+            for tok, tid in valid_percent_tokens.items():
+                p = float(ltp[tid])
+                if p > 0:
+                    probs_by_value[int(tok)] = probs_by_value.get(int(tok), 0.0) + p
+            total_mass = sum(probs_by_value.values())
+            # Positions between the label and the answer (whitespace,
+            # `):`, `%`, etc.) carry no numeric mass; skip them.
+            if total_mass < 0.1:
+                continue
+
+            expected = sum(v * p for v, p in probs_by_value.items()) / total_mass
+            return min(expected / 100.0, 1.0)
+
+        logging.warning(
+            f"No post-anchor digit position found in percentage-mode "
+            f"response (accumulated_text={accumulated_text!r}); returning 0.0."
+        )
+        return 0.0
 
 
 @dataclass(frozen=True, eq=True)

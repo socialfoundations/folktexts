@@ -2,20 +2,81 @@
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 import os
 import re
 import time
+from functools import partial
 from typing import Callable
 
 import numpy as np
 import pandas as pd
 
 from folktexts.llm_utils import decode_topk_logprobs_to_risk_estimate
+from folktexts.prompting import VarySystemPrompt
+from folktexts.prompting import encode_row_prompt as default_encode_row_prompt
 from folktexts.qa_interface import ChainOfThoughtQA, DirectNumericQA, MultipleChoiceQA
 from folktexts.task import TaskMetadata
 
 from .base import LLMClassifier
+
+# System prompt used when `numeric_percentage_mode` is auto-enabled. Reasoning
+# models under `reasoning_effort='none'` (gpt-5.x) do not reliably continue the
+# user-turn prefill `'Probability (0-100): '` — they preamble or wrap in
+# markdown, and the fixed `max_tokens` budget then truncates the response
+# before any digit is emitted. Instructing the model to reply with ONLY the
+# format line (no preamble, no reasoning) short-circuits the preamble and
+# gives the anchor-based decoder a predictable `probability<...>:` span.
+NUMERIC_PERCENTAGE_SYSTEM_PROMPT = (
+    "You are a helpful assistant. You provide numeric probability estimates "
+    "based on the information provided. Reply with ONLY the single line "
+    "'Probability (0-100): X%' where X is an integer between 0 and 100. "
+    "Do NOT include any preamble, reasoning, restatement of the question, "
+    "or any other text — just that single line."
+)
+
+# OpenAI reasoning-model families impose per-family quirks that litellm's
+# `get_supported_openai_params` can't surface — they are value-level (or
+# combination-level), not key-level. Verified live against gpt-5.4-{mini,nano}:
+#   - `top_logprobs > 5` → BadRequestError.
+#   - Any logprobs request without `reasoning_effort='none'` → UnsupportedParams.
+#   - A ~3-token hidden preamble consumes from `max_completion_tokens` even
+#     when `reasoning_effort='none'` (`reasoning_tokens=0`) — a 1-token MCQ
+#     request needs `max_tokens=4`, a 5-token numeric one needs `max_tokens=8`,
+#     or the completion is truncated before any visible content is emitted.
+# Extend as further families exhibit similar caps.
+@dataclasses.dataclass(frozen=True)
+class _WebAPIQuirks:
+    """Per-family value-level API constraints for the WebAPI backend."""
+    top_logprobs_max: int = 20
+    max_tokens_overhead: int = 0
+    force_reasoning_none: bool = False
+    # When True, `WebAPILLMClassifier.__init__` swaps a `DirectNumericQA`
+    # for its `percentage=True` variant: gpt-5 under `reasoning_effort='none'`
+    # collapses the standard `Answer (between 0 and 1): 0.` prefill to
+    # `'0.0'` regardless of input (AUC ~chance on ACSIncome). Reframing as
+    # an integer percentage (0-100, no prefill) unblocks the full digit
+    # range and restores discrimination (probe → HIGH-income '92', LOW '12').
+    numeric_percentage_mode: bool = False
+
+
+_OPENAI_MODEL_FAMILY_QUIRKS: dict[str, _WebAPIQuirks] = {
+    "gpt-5": _WebAPIQuirks(
+        top_logprobs_max=5,
+        max_tokens_overhead=3,
+        force_reasoning_none=True,
+        numeric_percentage_mode=True,
+    ),
+}
+_DEFAULT_FAMILY_QUIRKS = _WebAPIQuirks()
+
+
+def _resolve_family_quirks(model_name: str) -> _WebAPIQuirks:
+    for family, quirks in _OPENAI_MODEL_FAMILY_QUIRKS.items():
+        if family in model_name:
+            return quirks
+    return _DEFAULT_FAMILY_QUIRKS
 
 
 class WebAPILLMClassifier(LLMClassifier):
@@ -106,9 +167,82 @@ class WebAPILLMClassifier(LLMClassifier):
             )
         self.supported_params = set(supported_params)
         self._warned_unsupported_params: set[str] = set()
+        self._warned_unvalidated_reasoning = False
+        self._family_quirks = _resolve_family_quirks(self.model_name)
+
+        # Some model families need the numeric QA prompt reframed as an
+        # integer percentage rather than the default `Answer: 0.<digits>`
+        # prefill (see `_OPENAI_MODEL_FAMILY_QUIRKS`). Swap the current
+        # prompt config's question if it is a `DirectNumericQA` and the
+        # user did not already set `percentage=True`.
+        if (
+            self._family_quirks.numeric_percentage_mode
+            and isinstance(self._prompt_config.suffix.question, DirectNumericQA)
+            and not self._prompt_config.suffix.question.percentage
+        ):
+            self._enable_numeric_percentage_mode()
 
         # Set litellm logger level to WARNING
         logging.getLogger("LiteLLM").setLevel(logging.WARNING)
+
+    def _enable_numeric_percentage_mode(self) -> None:
+        """Swap the current numeric QA for a `percentage=True` variant and
+        install an explicit answer-format instruction on the system prompt.
+
+        Use `num_forward_passes=15`: gpt-5 under `reasoning_effort='none'`
+        wraps the answer in markdown (`'**Probability (0-100): 28**'`), so
+        the digit lands ~8-10 tokens in. Fewer passes truncate the response
+        before the digit. The percentage decoder then locates the highest-
+        confidence answer position from the returned top-K logprobs.
+
+        The swapped question lives in `_prompt_config.suffix.question`; the
+        base classifier reads it from there at prediction time (see
+        `LLMClassifier.compute_risk_estimates_for_dataframe`), and the
+        rebuilt `_encode_row` partial ensures encoding sees the same swap.
+
+        The default numeric system prompt is also replaced with one that
+        explicitly names the required answer format (mirroring what CoT
+        already does). Reasoning models don't reliably continue the
+        user-turn prefill `'Probability (0-100): '` — they preamble or wrap
+        in markdown — so an explicit instruction reduces zero-fallback
+        rows. Any user-supplied `system_prompt` (via `PromptConfig` /
+        `--system-prompt`) is preserved: the swap only fires when the
+        current system prompt is the numeric QA's own default, so callers
+        who deliberately override it are never silently clobbered.
+        """
+        original_q = self._prompt_config.suffix.question
+        new_q = dataclasses.replace(
+            original_q, percentage=True, num_forward_passes=15
+        )
+        replace_kwargs = {
+            "suffix": dataclasses.replace(self._prompt_config.suffix, question=new_q),
+        }
+        # Replace the numeric system prompt ONLY if the current one is the QA
+        # subclass default (i.e. the caller didn't set --system-prompt): callers
+        # who deliberately override it are never silently clobbered.
+        current_sys = self._prompt_config.system_prompt
+        is_default_sys = (
+            current_sys is not None
+            and current_sys.system_prompt == type(original_q).default_system_prompt
+        )
+        if is_default_sys:
+            replace_kwargs["system_prompt"] = VarySystemPrompt(
+                system_prompt=NUMERIC_PERCENTAGE_SYSTEM_PROMPT
+            )
+        self._prompt_config = dataclasses.replace(self._prompt_config, **replace_kwargs)
+        # `_encode_row` was built via `partial(...)` capturing the OLD
+        # prompt_config; rebuild it against the swapped one.
+        self._encode_row = partial(
+            default_encode_row_prompt,
+            task=self.task,
+            prompt_config=self._prompt_config,
+        )
+        sys_note = "system prompt updated" if is_default_sys else "user system prompt preserved"
+        logging.info(
+            f"Enabled numeric-percentage mode for '{self.model_name}': "
+            f"prompt reframed as integer percentage (0-100) to work around "
+            f"reasoning_effort='none' decimal-prefill degeneration; {sys_note}."
+        )
 
     @staticmethod
     def check_webAPI_deps() -> bool:
@@ -167,8 +301,10 @@ class WebAPILLMClassifier(LLMClassifier):
         responses_batch : list[dict]
             The returned JSON responses for each prompt in the batch.
         """
-        # Handle ChainOfThoughtQA with longer text generation
-        if isinstance(question, ChainOfThoughtQA):
+        is_cot = isinstance(question, ChainOfThoughtQA)
+
+        if is_cot:
+            # CoT: free-form text generation, no logprobs.
             api_call_params = dict(
                 temperature=self._resolve_temperature(question),
                 max_tokens=question.max_new_tokens,
@@ -185,58 +321,76 @@ class WebAPILLMClassifier(LLMClassifier):
                     "and provide your final probability estimate. Your response MUST end "
                     "with 'Probability: X%' where X is a number between 0 and 100."
                 )
-        # Adapt number of forward passes for token-probability based methods.
-        # Temperature is always 0 here: MC/numeric decode from the returned
-        # top_logprobs (which OpenAI-style APIs report untempered), so sampling
-        # would only add noise to the multi-pass token trajectory.
-        elif question.num_forward_passes == 1:
-            # Single token answers should require only one forward pass
-            num_forward_passes = 1
-            api_call_params = dict(
-                temperature=0,
-                max_tokens=num_forward_passes,
-                stream=False,
-                seed=self.seed,
-                logprobs=True,
-                top_logprobs=20,
-            )
         else:
-            # NOTE: Models often generate "0." instead of directly outputting the fractional part
-            # > Therefore: for multi-token answers, extra forward passes may be required
-            # Add extra tokens for textual prefix, e.g., "The probability is: ..."
-            num_forward_passes = question.num_forward_passes + 2
+            # MCQ / DirectNumericQA: token-probability decoding.
+            # Temperature is always 0: MC/numeric decode from the returned
+            # top_logprobs (which OpenAI-style APIs report untempered), so
+            # sampling would only add noise to the multi-pass trajectory.
+            # For multi-token numeric answers, add 2 extra passes to cover
+            # the "0." (or paraphrase) prefix the model may emit before digits.
+            num_forward_passes = (
+                1 if question.num_forward_passes == 1
+                else question.num_forward_passes + 2
+            )
             api_call_params = dict(
                 temperature=0,
-                max_tokens=num_forward_passes,
+                max_tokens=num_forward_passes + self._family_quirks.max_tokens_overhead,
                 stream=False,
                 seed=self.seed,
                 logprobs=True,
-                top_logprobs=20,
+                top_logprobs=self._family_quirks.top_logprobs_max,
             )
 
-        api_call_params = self._filter_supported_params(api_call_params)
+            # Warn once when running against a reasoning-capable model whose
+            # WebAPI quirks haven't been explicitly validated. Reasoning
+            # models preamble/wrap the answer, exhausting the tight
+            # `max_tokens` budget — token-probability decoding can silently
+            # collapse to chance-level AUC. (CoT skips this branch entirely.)
+            if (
+                "reasoning_effort" in self.supported_params
+                and self._family_quirks is _DEFAULT_FAMILY_QUIRKS
+                and not self._warned_unvalidated_reasoning
+            ):
+                self._warned_unvalidated_reasoning = True
+                logging.warning(
+                    f"Model '{self.model_name}' advertises `reasoning_effort` "
+                    f"support (likely a reasoning/thinking model) but has no "
+                    f"validated entry in `_OPENAI_MODEL_FAMILY_QUIRKS`. "
+                    f"Multiple-choice / numeric prompting on reasoning models "
+                    f"can degrade to chance-level AUC (models preamble or wrap "
+                    f"the answer in markdown, exhausting the small `max_tokens` "
+                    f"budget). If results look wrong, use chain-of-thought "
+                    f"prompting (`--cot-prompting`) instead, or add an entry "
+                    f"to `_OPENAI_MODEL_FAMILY_QUIRKS` (see the gpt-5 entry "
+                    f"for reference)."
+                )
 
-        # `logprobs` are load-bearing for token-probability decoding: dropping
-        # them would only fail later, deep inside response decoding. Fail fast
-        # instead (e.g. OpenAI o1/o3 don't support logprobs).
-        if not isinstance(question, ChainOfThoughtQA) and "logprobs" not in api_call_params:
-            raise RuntimeError(
-                f"Model '{self.model_name}' does not support `logprobs`, which "
-                f"are required to decode multiple-choice/numeric risk estimates. "
-                f"Use chain-of-thought prompting (--cot-prompting) instead."
-            )
+            # gpt-5.x refuses `logprobs` requests unless reasoning_effort='none'
+            # is set. CoT keeps the model's default reasoning budget.
+            if self._family_quirks.force_reasoning_none:
+                api_call_params["reasoning_effort"] = "none"
 
-        # Get system prompt depending on Q&A type (if not already set for ChainOfThoughtQA)
-        if not isinstance(question, ChainOfThoughtQA):
-            # Use the system prompt carried by PromptConfig (always the QA subclass
-            # default unless the caller explicitly cleared it). `None` disables the
-            # system role entirely. Bind unconditionally so it is always defined.
+            # System prompt for MCQ/Numeric: use the one carried by
+            # PromptConfig (the QA subclass default unless explicitly
+            # cleared). `None` disables the system role entirely.
             system_prompt = (
                 self.prompt_config.system_prompt()
                 if self.prompt_config.system_prompt is not None
                 else None
             )
             logging.debug(f"System prompt: {system_prompt}")
+
+        api_call_params = self._filter_supported_params(api_call_params)
+
+        # `logprobs` are load-bearing for token-probability decoding: dropping
+        # them would only fail later, deep inside response decoding. Fail fast
+        # instead (e.g. OpenAI o1/o3 don't support logprobs).
+        if not is_cot and "logprobs" not in api_call_params:
+            raise RuntimeError(
+                f"Model '{self.model_name}' does not support `logprobs`, which "
+                f"are required to decode multiple-choice/numeric risk estimates. "
+                f"Use chain-of-thought prompting (--cot-prompting) instead."
+            )
 
         # Query model for each prompt in the batch
         responses_batch = []
@@ -320,8 +474,13 @@ class WebAPILLMClassifier(LLMClassifier):
             question=question,
         )
 
-        # Sanity check numeric answers based on global model response:
-        if isinstance(question, DirectNumericQA):
+        # Sanity check numeric answers based on global model response.
+        # Skip for percentage mode: the model wraps the digit in markdown
+        # (e.g. `'**Probability (0-100): 28**'`), so the naive `re.match`
+        # here yields no match and the anchored parse below returns a
+        # non-answer literal like `100` from the `(0-100)` range label.
+        # The percentage decoder already recovers the correct answer.
+        if isinstance(question, DirectNumericQA) and not question.percentage:
             try:
                 numeric_response = re.match(
                     r"[-+]?\d*\.\d+|\d+", response_message
