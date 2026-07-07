@@ -1,0 +1,601 @@
+
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>folktexts.acs.acs_columns_simplified &mdash; folktexts 0.7.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/sg_gallery.css?v=fd6457a4" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=41710f8f" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5a057da9"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script src="../../../_static/custom.js?v=882eb7ae"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+  <a href="../../../index.html" class="icon icon-home">
+    folktexts
+  </a>
+    <div class="version">0.7.1</div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">🏠 Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">📖 Readme file</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../configuring_prompts.html">🎛️ Configuring prompts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../updates.html">📝 Updates</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../source/modules.html">⚙️ API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebooks.html">📓 Example notebooks</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">folktexts</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">folktexts.acs.acs_columns_simplified</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for folktexts.acs.acs_columns_simplified</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Module to hold ACS column mappings from values to natural text.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">folktexts.acs.acs_columns</span><span class="w"> </span><span class="kn">import</span> <span class="n">acs_place_of_birth</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">._utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_pums_code</span>
+
+<span class="c1"># Path to ACS codebook files</span>
+<span class="n">ACS_CODEBOOK_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;data&quot;</span>
+
+
+<div class="viewcode-block" id="transform_age">
+<a class="viewcode-back" href="../../../source/folktexts.acs.html#folktexts.acs.acs_columns_simplified.transform_age">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">transform_age</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">bin_width</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">min_age</span><span class="o">=</span><span class="mi">18</span><span class="p">,</span> <span class="n">max_age</span><span class="o">=</span><span class="mi">90</span><span class="p">):</span>
+    <span class="c1"># Create age bins including min and max</span>
+    <span class="c1"># Find the first bin edge &gt;= min_age that is a multiple of bin_width</span>
+    <span class="n">first_bin_edge</span> <span class="o">=</span> <span class="p">((</span><span class="n">min_age</span> <span class="o">+</span> <span class="n">bin_width</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">bin_width</span><span class="p">)</span> <span class="o">*</span> <span class="n">bin_width</span>
+    <span class="c1"># skip if too close to min age</span>
+    <span class="k">if</span> <span class="n">first_bin_edge</span> <span class="o">-</span> <span class="n">min_age</span> <span class="o">&gt;</span> <span class="n">bin_width</span> <span class="o">/</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">age_bins</span> <span class="o">=</span> <span class="p">[</span><span class="n">min_age</span><span class="p">,</span> <span class="n">first_bin_edge</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">age_bins</span> <span class="o">=</span> <span class="p">[</span><span class="n">min_age</span><span class="p">]</span>
+    <span class="n">age_bins</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">first_bin_edge</span> <span class="o">+</span> <span class="n">bin_width</span><span class="p">,</span> <span class="n">max_age</span><span class="p">,</span> <span class="n">bin_width</span><span class="p">))</span>
+    <span class="n">age_bins</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">max_age</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="n">min_age</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Less than </span><span class="si">{</span><span class="n">min_age</span><span class="si">}</span><span class="s2"> years old&quot;</span>
+    <span class="k">elif</span> <span class="n">x</span> <span class="o">&gt;=</span> <span class="n">max_age</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">max_age</span><span class="si">}</span><span class="s2"> or more years old&quot;</span>
+
+    <span class="c1"># Find the index of the bin this age falls into</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">age_bins</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">lower</span> <span class="o">=</span> <span class="n">age_bins</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+    <span class="n">upper</span> <span class="o">=</span> <span class="n">age_bins</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">lower</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">upper</span><span class="si">}</span><span class="s2"> years old&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="transform_cow">
+<a class="viewcode-back" href="../../../source/folktexts.acs.html#folktexts.acs.acs_columns_simplified.transform_cow">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">transform_cow</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="n">map_to_lower_res</span> <span class="o">=</span> <span class="p">{</span><span class="mi">1</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">7</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">8</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">:</span> <span class="mi">9</span><span class="p">}</span>
+    <span class="n">simplified_cow_map</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Employed&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Self-employed&quot;</span><span class="p">,</span>
+        <span class="mi">8</span><span class="p">:</span> <span class="s2">&quot;Unpaid worker&quot;</span><span class="p">,</span>
+        <span class="mi">9</span><span class="p">:</span> <span class="s2">&quot;Unemployed or not in the labor force&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">simplified_cow_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">map_to_lower_res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="s2">&quot;N/A&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="transform_schooling">
+<a class="viewcode-back" href="../../../source/folktexts.acs.html#folktexts.acs.acs_columns_simplified.transform_schooling">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">transform_schooling</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="n">simplified_schl_map</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;No formal education&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Early childhood education&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Primary education (Grades 1-5)&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;Middle school education (Grades 6-8)&quot;</span><span class="p">,</span>
+        <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;Some high school, no diploma&quot;</span><span class="p">,</span>
+        <span class="mi">6</span><span class="p">:</span> <span class="s2">&quot;High school graduate or equivalent&quot;</span><span class="p">,</span>
+        <span class="mi">7</span><span class="p">:</span> <span class="s2">&quot;Some college, no degree&quot;</span><span class="p">,</span>
+        <span class="mi">8</span><span class="p">:</span> <span class="s2">&quot;Associate&#39;s degree&quot;</span><span class="p">,</span>
+        <span class="mi">9</span><span class="p">:</span> <span class="s2">&quot;Bachelor&#39;s degree&quot;</span><span class="p">,</span>
+        <span class="mi">10</span><span class="p">:</span> <span class="s2">&quot;Graduate or professional degree&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">map_to_lower_res</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>  <span class="c1"># No schooling -&gt; No formal education</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>  <span class="c1"># Nursery school -&gt; Early childhood education</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>  <span class="c1"># Kindergarten -&gt; Early childhood education</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>  <span class="c1"># 1st grade -&gt; Primary education</span>
+        <span class="mi">5</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>  <span class="c1"># 2nd grade -&gt; Primary education</span>
+        <span class="mi">6</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>  <span class="c1"># 3rd grade -&gt; Primary education</span>
+        <span class="mi">7</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>  <span class="c1"># 4th grade -&gt; Primary education</span>
+        <span class="mi">8</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>  <span class="c1"># 5th grade -&gt; Primary education</span>
+        <span class="mi">9</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>  <span class="c1"># 6th grade -&gt; Middle school education</span>
+        <span class="mi">10</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>  <span class="c1"># 7th grade -&gt; Middle school education</span>
+        <span class="mi">11</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>  <span class="c1"># 8th grade -&gt; Middle school education</span>
+        <span class="mi">12</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>  <span class="c1"># 9th grade -&gt; Some high school, no diploma</span>
+        <span class="mi">13</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>  <span class="c1"># 10th grade -&gt; Some high school, no diploma</span>
+        <span class="mi">14</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>  <span class="c1"># 11th grade -&gt; Some high school, no diploma</span>
+        <span class="mi">15</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>  <span class="c1"># 12th grade, no diploma -&gt; Some high school, no diploma</span>
+        <span class="mi">16</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>  <span class="c1"># High school diploma -&gt; High school graduate or equivalent</span>
+        <span class="mi">17</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>  <span class="c1"># GED -&gt; High school graduate or equivalent</span>
+        <span class="mi">18</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>  <span class="c1"># Some college, less than 1 year -&gt; Some college, no degree</span>
+        <span class="mi">19</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>  <span class="c1"># Some college, 1+ years -&gt; Some college, no degree</span>
+        <span class="mi">20</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>  <span class="c1"># Associate’s degree -&gt; Associate’s degree</span>
+        <span class="mi">21</span><span class="p">:</span> <span class="mi">9</span><span class="p">,</span>  <span class="c1"># Bachelor&#39;s degree -&gt; Bachelor&#39;s degree</span>
+        <span class="mi">22</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>  <span class="c1"># Master&#39;s degree -&gt; Graduate or professional degree</span>
+        <span class="mi">23</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>  <span class="c1"># Professional degree -&gt; Graduate or professional degree</span>
+        <span class="mi">24</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>  <span class="c1"># Doctorate degree -&gt; Graduate or professional degree</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">simplified_schl_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">map_to_lower_res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="s2">&quot;N/A&quot;</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_occp_get_prefix</span><span class="p">(</span><span class="n">occp</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">occp</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">cat</span><span class="p">,</span> <span class="n">desc</span> <span class="o">=</span> <span class="n">occp</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cat</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># catch cases in OCCP.txt not following the format</span>
+        <span class="k">if</span> <span class="n">occp</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;Engineering&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s2">&quot;ENG&quot;</span>
+        <span class="k">elif</span> <span class="n">occp</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;Grinding&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s2">&quot;PRD&quot;</span>
+        <span class="k">elif</span> <span class="n">occp</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;Unemployed&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s2">&quot;UNEMPL&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">occp</span>
+
+
+<span class="c1"># Module-scope partial so parse_pums_code&#39;s (file, postprocess) cache key is stable across</span>
+<span class="c1"># rows: defining get_prefix per call made a new postprocess identity every row, defeating the</span>
+<span class="c1"># cache and re-parsing OCCP.txt for every single row.</span>
+<span class="n">_occp_map_to_lower_res</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
+    <span class="n">parse_pums_code</span><span class="p">,</span>
+    <span class="n">file</span><span class="o">=</span><span class="n">ACS_CODEBOOK_DIR</span> <span class="o">/</span> <span class="s2">&quot;OCCP.txt&quot;</span><span class="p">,</span>
+    <span class="n">postprocess</span><span class="o">=</span><span class="n">_occp_get_prefix</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="transform_occp">
+<a class="viewcode-back" href="../../../source/folktexts.acs.html#folktexts.acs.acs_columns_simplified.transform_occp">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">transform_occp</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="n">simplified_occp_map</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;MGR&quot;</span><span class="p">:</span> <span class="s2">&quot;Management Occupations&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;BUS&quot;</span><span class="p">:</span> <span class="s2">&quot;Business and Financial Operations&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;FIN&quot;</span><span class="p">:</span> <span class="s2">&quot;Finance and Accounting&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;CMM&quot;</span><span class="p">:</span> <span class="s2">&quot;Computer and Mathematical Occupations&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ENG&quot;</span><span class="p">:</span> <span class="s2">&quot;Engineering and Architecture&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;SCI&quot;</span><span class="p">:</span> <span class="s2">&quot;Science and Research&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;CMS&quot;</span><span class="p">:</span> <span class="s2">&quot;Community and Social Services&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;LGL&quot;</span><span class="p">:</span> <span class="s2">&quot;Legal Occupations&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;EDU&quot;</span><span class="p">:</span> <span class="s2">&quot;Education and Training&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ENT&quot;</span><span class="p">:</span> <span class="s2">&quot;Arts, Design, Entertainment, Sports, and Media&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;MED&quot;</span><span class="p">:</span> <span class="s2">&quot;Healthcare Practitioners and Technicians&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;HLS&quot;</span><span class="p">:</span> <span class="s2">&quot;Healthcare Support&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;PRT&quot;</span><span class="p">:</span> <span class="s2">&quot;Protective Services&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;EAT&quot;</span><span class="p">:</span> <span class="s2">&quot;Food Preparation and Serving&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;CLN&quot;</span><span class="p">:</span> <span class="s2">&quot;Building and Grounds Cleaning and Maintenance&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;PRS&quot;</span><span class="p">:</span> <span class="s2">&quot;Personal Care and Service&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;SAL&quot;</span><span class="p">:</span> <span class="s2">&quot;Sales and Related Occupations&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;OFF&quot;</span><span class="p">:</span> <span class="s2">&quot;Office and Administrative Support&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;FFF&quot;</span><span class="p">:</span> <span class="s2">&quot;Farming, Fishing, and Forestry&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;CON&quot;</span><span class="p">:</span> <span class="s2">&quot;Construction&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;EXT&quot;</span><span class="p">:</span> <span class="s2">&quot;Mining and Extraction&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;RPR&quot;</span><span class="p">:</span> <span class="s2">&quot;Installation, Maintenance, and Repair&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;PRD&quot;</span><span class="p">:</span> <span class="s2">&quot;Production and Manufacturing&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;TRN&quot;</span><span class="p">:</span> <span class="s2">&quot;Transportation and Material Moving&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;MIL&quot;</span><span class="p">:</span> <span class="s2">&quot;Military Occupations&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;UNEMPL&quot;</span><span class="p">:</span> <span class="s2">&quot;Unemployed, Not worked for at least 5 years or Never Worked&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">simplified_occp_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">_occp_map_to_lower_res</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="s2">&quot;N/A&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="transform_pobp">
+<a class="viewcode-back" href="../../../source/folktexts.acs.html#folktexts.acs.acs_columns_simplified.transform_pobp">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">transform_pobp</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="n">simplified_pobp_map</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Northeast USA&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Midwest USA&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;South USA&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;West USA&quot;</span><span class="p">,</span>
+        <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;US Territories&quot;</span><span class="p">,</span>
+        <span class="mi">6</span><span class="p">:</span> <span class="s2">&quot;European Union&quot;</span><span class="p">,</span>
+        <span class="mi">7</span><span class="p">:</span> <span class="s2">&quot;Europe, non EU&quot;</span><span class="p">,</span>
+        <span class="mi">8</span><span class="p">:</span> <span class="s2">&quot;Asia&quot;</span><span class="p">,</span>
+        <span class="mi">9</span><span class="p">:</span> <span class="s2">&quot;North America (excluding USA)&quot;</span><span class="p">,</span>
+        <span class="mi">10</span><span class="p">:</span> <span class="s2">&quot;Central America &amp; Caribbean&quot;</span><span class="p">,</span>
+        <span class="mi">11</span><span class="p">:</span> <span class="s2">&quot;South America&quot;</span><span class="p">,</span>
+        <span class="mi">12</span><span class="p">:</span> <span class="s2">&quot;Africa&quot;</span><span class="p">,</span>
+        <span class="mi">13</span><span class="p">:</span> <span class="s2">&quot;Oceania&quot;</span><span class="p">,</span>
+        <span class="mi">14</span><span class="p">:</span> <span class="s2">&quot;Other/Unspecified&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="n">map_to_lower_res</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="c1"># Northeast USA</span>
+        <span class="o">**</span><span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">9</span><span class="p">,</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">33</span><span class="p">,</span> <span class="mi">34</span><span class="p">,</span> <span class="mi">36</span><span class="p">,</span> <span class="mi">42</span><span class="p">,</span> <span class="mi">44</span><span class="p">,</span> <span class="mi">50</span><span class="p">]},</span>
+        <span class="c1"># CT, ME, MA, NH, NJ, NY, PA, RI, VT</span>
+        <span class="c1"># Midwest USA</span>
+        <span class="o">**</span><span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">17</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">19</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">26</span><span class="p">,</span> <span class="mi">27</span><span class="p">,</span> <span class="mi">29</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="mi">38</span><span class="p">,</span> <span class="mi">39</span><span class="p">,</span> <span class="mi">46</span><span class="p">,</span> <span class="mi">55</span><span class="p">]},</span>
+        <span class="c1"># IL, IN, IA, KS, MI, MN, MO, NE, ND, OH, SD, WI</span>
+        <span class="c1"># South USA</span>
+        <span class="o">**</span><span class="p">{</span>
+            <span class="n">i</span><span class="p">:</span> <span class="mi">3</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">21</span><span class="p">,</span> <span class="mi">22</span><span class="p">,</span> <span class="mi">24</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">37</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">45</span><span class="p">,</span> <span class="mi">47</span><span class="p">,</span> <span class="mi">48</span><span class="p">,</span> <span class="mi">51</span><span class="p">,</span> <span class="mi">54</span><span class="p">]</span>
+        <span class="p">},</span>
+        <span class="c1"># AL, AR, DE, DC, FL, GA, KY, LA, MD, MS, NC, OK, SC, TN, TX, VA, WV</span>
+        <span class="c1"># West USA</span>
+        <span class="o">**</span><span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="mi">4</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">35</span><span class="p">,</span> <span class="mi">41</span><span class="p">,</span> <span class="mi">49</span><span class="p">,</span> <span class="mi">53</span><span class="p">,</span> <span class="mi">56</span><span class="p">]},</span>
+        <span class="c1"># AK, AZ, CA, CO, HI, ID, MT, NV, NM, OR, UT, WA, WY</span>
+        <span class="c1"># US Territories</span>
+        <span class="mi">60</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="mi">66</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="mi">69</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="mi">72</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="mi">78</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>  <span class="c1"># American Samoa, Guam, N. Mariana Islands, Puerto Rico, US Virgin Islands</span>
+        <span class="c1"># European Union (EU)</span>
+        <span class="o">**</span><span class="p">{</span>
+            <span class="n">i</span><span class="p">:</span> <span class="mi">6</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span>
+                <span class="mi">102</span><span class="p">,</span>
+                <span class="mi">103</span><span class="p">,</span>
+                <span class="mi">104</span><span class="p">,</span>
+                <span class="mi">151</span><span class="p">,</span>
+                <span class="mi">208</span><span class="p">,</span>
+                <span class="mi">148</span><span class="p">,</span>
+                <span class="mi">106</span><span class="p">,</span>
+                <span class="mi">108</span><span class="p">,</span>
+                <span class="mi">109</span><span class="p">,</span>
+                <span class="mi">110</span><span class="p">,</span>
+                <span class="mi">116</span><span class="p">,</span>
+                <span class="mi">117</span><span class="p">,</span>
+                <span class="mi">119</span><span class="p">,</span>
+                <span class="mi">120</span><span class="p">,</span>
+                <span class="mi">156</span><span class="p">,</span>
+                <span class="mi">157</span><span class="p">,</span>
+                <span class="mi">126</span><span class="p">,</span>
+                <span class="mi">128</span><span class="p">,</span>
+                <span class="mi">129</span><span class="p">,</span>
+                <span class="mi">130</span><span class="p">,</span>
+                <span class="mi">132</span><span class="p">,</span>
+                <span class="mi">149</span><span class="p">,</span>
+                <span class="mi">134</span><span class="p">,</span>
+                <span class="mi">136</span><span class="p">,</span>
+            <span class="p">]</span>
+        <span class="p">},</span>
+        <span class="c1"># Austria, Belgium, Bulgaria, Croatia, Cyprus (2016 or earlier), Czech Republic, Denmark,</span>
+        <span class="c1"># Finland, France, Germany, Greece, Hungary, Ireland, Italy, Latvia, Lithuania,</span>
+        <span class="c1"># Netherlands, Poland, Portugal, Azores Islands, Romania, Slovakia, Spain, Sweden</span>
+        <span class="c1"># missing: Estonia, Luxembourg, Slovenia missing</span>
+        <span class="c1"># Non-EU Europe or unclear</span>
+        <span class="o">**</span><span class="p">{</span>
+            <span class="n">i</span><span class="p">:</span> <span class="mi">7</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span>
+                <span class="mi">100</span><span class="p">,</span>
+                <span class="mi">105</span><span class="p">,</span>
+                <span class="mi">118</span><span class="p">,</span>
+                <span class="mi">127</span><span class="p">,</span>
+                <span class="mi">137</span><span class="p">,</span>
+                <span class="mi">138</span><span class="p">,</span>
+                <span class="mi">139</span><span class="p">,</span>
+                <span class="mi">140</span><span class="p">,</span>
+                <span class="mi">142</span><span class="p">,</span>
+                <span class="mi">147</span><span class="p">,</span>
+                <span class="mi">150</span><span class="p">,</span>
+                <span class="mi">152</span><span class="p">,</span>
+                <span class="mi">154</span><span class="p">,</span>
+                <span class="mi">158</span><span class="p">,</span>
+                <span class="mi">159</span><span class="p">,</span>
+                <span class="mi">160</span><span class="p">,</span>
+                <span class="mi">161</span><span class="p">,</span>
+                <span class="mi">162</span><span class="p">,</span>
+                <span class="mi">163</span><span class="p">,</span>
+                <span class="mi">164</span><span class="p">,</span>
+                <span class="mi">165</span><span class="p">,</span>
+                <span class="mi">166</span><span class="p">,</span>
+                <span class="mi">167</span><span class="p">,</span>
+                <span class="mi">168</span><span class="p">,</span>
+                <span class="mi">169</span><span class="p">,</span>
+            <span class="p">]</span>
+        <span class="p">},</span>
+        <span class="c1"># Albania, Czechoslovakia, Iceland, Norway, Switzerland, United Kingdom, Not Specified, England,</span>
+        <span class="c1"># Scotland, Northern Ireland (2017 or later), Yugoslavia, Bosnia and Herzegovina, Macedonia,</span>
+        <span class="c1"># Serbia, Armenia, Azerbaijan, Belarus, Georgia, Moldova, Russia, Ukraine, USSR,</span>
+        <span class="c1"># Europe (2017 or later), Kosovo (2017 or later), Montenegro, Other Europe, Not Specified</span>
+        <span class="c1"># Asia</span>
+        <span class="o">**</span><span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="mi">8</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">250</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="mi">208</span><span class="p">},</span>  <span class="c1"># Asian countries (200-249)</span>
+        <span class="mi">253</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+        <span class="mi">254</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+        <span class="c1"># North America (excluding USA)</span>
+        <span class="mi">300</span><span class="p">:</span> <span class="mi">9</span><span class="p">,</span>
+        <span class="mi">301</span><span class="p">:</span> <span class="mi">9</span><span class="p">,</span>
+        <span class="mi">303</span><span class="p">:</span> <span class="mi">9</span><span class="p">,</span>  <span class="c1"># Bermuda, Canada, Mexico</span>
+        <span class="c1"># Central America &amp; Caribbean</span>
+        <span class="o">**</span><span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="mi">10</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">310</span><span class="p">,</span> <span class="mi">345</span><span class="p">)},</span>  <span class="c1"># Central America &amp; Caribbean (310-344)</span>
+        <span class="c1"># South America</span>
+        <span class="o">**</span><span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="mi">11</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">360</span><span class="p">,</span> <span class="mi">375</span><span class="p">)},</span>  <span class="c1"># South America (360-374)</span>
+        <span class="c1"># Africa</span>
+        <span class="o">**</span><span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="mi">12</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">400</span><span class="p">,</span> <span class="mi">470</span><span class="p">)},</span>  <span class="c1"># Africa (400-469)</span>
+        <span class="mi">462</span><span class="p">:</span> <span class="mi">14</span><span class="p">,</span>
+        <span class="c1"># Oceania</span>
+        <span class="o">**</span><span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="mi">13</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">501</span><span class="p">,</span> <span class="mi">528</span><span class="p">)},</span>  <span class="c1"># Australia, New Zealand, Pacific Islands</span>
+        <span class="c1"># Other / Unspecified</span>
+        <span class="mi">399</span><span class="p">:</span> <span class="mi">14</span><span class="p">,</span>
+        <span class="mi">554</span><span class="p">:</span> <span class="mi">14</span><span class="p">,</span>  <span class="c1"># Misc. unspecified regions</span>
+    <span class="p">}</span>
+
+    <span class="k">return</span> <span class="n">simplified_pobp_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">map_to_lower_res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">14</span><span class="p">),</span> <span class="s2">&quot;N/A&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="transform_pobp_unsd">
+<a class="viewcode-back" href="../../../source/folktexts.acs.html#folktexts.acs.acs_columns_simplified.transform_pobp_unsd">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">transform_pobp_unsd</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="n">original_value_map</span> <span class="o">=</span> <span class="n">acs_place_of_birth</span><span class="o">.</span><span class="n">value_map</span>
+    <span class="n">unsd_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">ACS_CODEBOOK_DIR</span> <span class="o">/</span> <span class="s2">&quot;UNSD.csv&quot;</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;;&quot;</span><span class="p">)</span>
+
+    <span class="n">manually_matched_area_names</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;Commonwealth of the Northern Mariana Islands&quot;</span><span class="p">:</span> <span class="s2">&quot;Northern Mariana Islands&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;US Virgin Islands&quot;</span><span class="p">:</span> <span class="s2">&quot;United States Virgin Islands&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Azores Islands&quot;</span><span class="p">:</span> <span class="s2">&quot;Portugal&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;United Kingdom, Not Specified&quot;</span><span class="p">:</span> <span class="s2">&quot;United Kingdom of Great Britain and Northern Ireland&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;England&quot;</span><span class="p">:</span> <span class="s2">&quot;United Kingdom of Great Britain and Northern Ireland&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Scotland&quot;</span><span class="p">:</span> <span class="s2">&quot;United Kingdom of Great Britain and Northern Ireland&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Czech Republic&quot;</span><span class="p">:</span> <span class="s2">&quot;Czechia&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Laos&quot;</span><span class="p">:</span> <span class="s2">&quot;Lao People&#39;s Democratic Republic&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Turkey&quot;</span><span class="p">:</span> <span class="s2">&quot;Türkiye&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Vietnam&quot;</span><span class="p">:</span> <span class="s2">&quot;Viet Nam&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;St. Kitts-Nevis&quot;</span><span class="p">:</span> <span class="s2">&quot;Saint Kitts and Nevis&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;St. Lucia&quot;</span><span class="p">:</span> <span class="s2">&quot;Saint Lucia&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;St. Vincent and the Grenadines&quot;</span><span class="p">:</span> <span class="s2">&quot;Saint Vincent and the Grenadines&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Ivory Coast&quot;</span><span class="p">:</span> <span class="s2">&quot;Côte d’Ivoire&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Democratic Republic of Congo&quot;</span><span class="p">:</span> <span class="s2">&quot;Democratic Republic of the Congo&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">manually_matched_name_to_subregion</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;Kosovo&quot;</span><span class="p">:</span> <span class="s2">&quot;Southern Europe&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Yugoslavia&quot;</span><span class="p">:</span> <span class="s2">&quot;Southern Europe&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Taiwan&quot;</span><span class="p">:</span> <span class="s2">&quot;Eastern Asia&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;West Indies&quot;</span><span class="p">:</span> <span class="s2">&quot;Latin America and the Caribbean&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;USSR&quot;</span><span class="p">:</span> <span class="s2">&quot;Eastern Europe&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Czechoslovakia&quot;</span><span class="p">:</span> <span class="s2">&quot;Eastern Europe&quot;</span><span class="p">,</span>
+        <span class="c1"># Region Names</span>
+        <span class="s2">&quot;Europe&quot;</span><span class="p">:</span> <span class="s2">&quot;Europe, not specified&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Other Europe, Not Specified&quot;</span><span class="p">:</span> <span class="s2">&quot;Europe, not specified&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Caribbean, Not Specified&quot;</span><span class="p">:</span> <span class="s2">&quot;Latin America and the Caribbean&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Northern Africa, Not Specified&quot;</span><span class="p">:</span> <span class="s2">&quot;Northern Africa&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Western Africa, Not Specified&quot;</span><span class="p">:</span> <span class="s2">&quot;Sub-Saharan Africa&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Eastern Africa, Not Specified&quot;</span><span class="p">:</span> <span class="s2">&quot;Sub-Saharan Africa&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Other Africa, Not Specified&quot;</span><span class="p">:</span> <span class="s2">&quot;Africa, not specified&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Asia&quot;</span><span class="p">:</span> <span class="s2">&quot;Asia, not specified&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;South Central Asia, Not Specified&quot;</span><span class="p">:</span> <span class="s2">&quot;Asia, not specified&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Other Asia, Not Specified&quot;</span><span class="p">:</span> <span class="s2">&quot;Asia, not specified&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;South America&quot;</span><span class="p">:</span> <span class="s2">&quot;Latin America and the Caribbean&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Other US Island Areas, Oceania, Not Specified, or at Sea&quot;</span><span class="p">:</span> <span class="s2">&quot;Not specified&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Americas, Not Specified&quot;</span><span class="p">:</span> <span class="s2">&quot;Not specified&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">57</span><span class="p">):</span>  <span class="c1"># US states</span>
+        <span class="k">return</span> <span class="s2">&quot;United States of America&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">original_value_map</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;(&quot;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="p">[:</span> <span class="n">name</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;(&quot;</span><span class="p">)]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">manually_matched_area_names</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">manually_matched_area_names</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">name_area_pairs</span> <span class="o">=</span> <span class="n">unsd_data</span><span class="p">[[</span><span class="s2">&quot;Sub-region Name&quot;</span><span class="p">,</span> <span class="s2">&quot;Country or Area&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">exact_matches</span> <span class="o">=</span> <span class="p">[</span><span class="n">region</span> <span class="k">for</span> <span class="n">region</span><span class="p">,</span> <span class="n">area</span> <span class="ow">in</span> <span class="n">name_area_pairs</span> <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="n">area</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">exact_matches</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">exact_matches</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># Substring fallback: &quot;Guinea&quot; in &quot;Equatorial Guinea&quot; is ambiguous, so</span>
+        <span class="c1"># collect all hits and warn if more than one distinct sub-region matches.</span>
+        <span class="n">substring_matches</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">region</span><span class="p">,</span> <span class="n">area</span><span class="p">)</span> <span class="k">for</span> <span class="n">region</span><span class="p">,</span> <span class="n">area</span> <span class="ow">in</span> <span class="n">name_area_pairs</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">area</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">substring_matches</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">substring_matches</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">substring_matches</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">regions</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">substring_matches</span><span class="p">]</span>
+            <span class="n">areas</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">substring_matches</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">regions</span><span class="p">))</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">regions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># all hits agree on sub-region</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Ambiguous country name &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; substring-matches multiple areas &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;with different sub-regions: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">areas</span><span class="p">,</span><span class="w"> </span><span class="n">regions</span><span class="p">))</span><span class="si">}</span><span class="s2">. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Using first match: &#39;</span><span class="si">{</span><span class="n">areas</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39; → &#39;</span><span class="si">{</span><span class="n">regions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">regions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">manually_matched_name_to_subregion</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">manually_matched_name_to_subregion</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Could not find code &#39;</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2">&#39; or name &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; in file &#39;</span><span class="si">{</span><span class="n">ACS_CODEBOOK_DIR</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="s1">&#39;UNSD.csv&#39;</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="s2">&quot;N/A&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="transform_relp">
+<a class="viewcode-back" href="../../../source/folktexts.acs.html#folktexts.acs.acs_columns_simplified.transform_relp">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">transform_relp</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="n">simplified_relp_map</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;Reference person&quot;</span><span class="p">,</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;Spouse or partner&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Child (biological, adpoted or stepchild)&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Siblings&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;Parent&quot;</span><span class="p">,</span>
+        <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;Grandchild&quot;</span><span class="p">,</span>
+        <span class="mi">6</span><span class="p">:</span> <span class="s2">&quot;Parent-in-law&quot;</span><span class="p">,</span>
+        <span class="mi">7</span><span class="p">:</span> <span class="s2">&quot;Son-in-law or daughter-in-law&quot;</span><span class="p">,</span>
+        <span class="mi">8</span><span class="p">:</span> <span class="s2">&quot;Other relative&quot;</span><span class="p">,</span>
+        <span class="mi">9</span><span class="p">:</span> <span class="s2">&quot;Non-relative (e.g., roommate, boarder)&quot;</span><span class="p">,</span>
+        <span class="mi">10</span><span class="p">:</span> <span class="s2">&quot;Group quarters population&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">map_to_lower_res</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="mi">0</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>  <span class="c1"># &quot;The reference person itself&quot; -&gt; &quot;Reference person&quot;</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>  <span class="c1"># &quot;Husband/wife&quot; -&gt; &quot;Spouse/Partner&quot;</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>  <span class="c1"># &quot;Biological son or daughter&quot; -&gt; &quot;Children&quot;</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>  <span class="c1"># &quot;Adopted son or daughter&quot; -&gt; &quot;Children&quot;</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>  <span class="c1"># &quot;Stepson or stepdaughter&quot; -&gt; &quot;Children&quot;</span>
+        <span class="mi">5</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>  <span class="c1"># &quot;Brother or sister&quot; -&gt; &quot;Siblings&quot;</span>
+        <span class="mi">6</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>  <span class="c1"># &quot;Father or mother&quot; -&gt; &quot;Parents&quot;</span>
+        <span class="mi">7</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>  <span class="c1"># &quot;Grandchild&quot; -&gt; &quot;Grandchild&quot;</span>
+        <span class="mi">8</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>  <span class="c1"># &quot;Parent-in-law&quot; -&gt; &quot;Parent-in-law&quot;</span>
+        <span class="mi">9</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>  <span class="c1"># &quot;Son-in-law or daughter-in-law&quot; -&gt; &quot;Son-in-law or daughter-in-law&quot;</span>
+        <span class="mi">10</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>  <span class="c1"># &quot;Other relative&quot; -&gt; &quot;Other relatives&quot;</span>
+        <span class="mi">11</span><span class="p">:</span> <span class="mi">9</span><span class="p">,</span>  <span class="c1"># &quot;Roomer or boarder&quot; -&gt; &quot;Non-relatives (e.g., roommate, boarder)&quot;</span>
+        <span class="mi">12</span><span class="p">:</span> <span class="mi">9</span><span class="p">,</span>  <span class="c1"># &quot;Housemate or roommate&quot; -&gt; &quot;Non-relatives (e.g., roommate, boarder)&quot;</span>
+        <span class="mi">13</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>  <span class="c1"># &quot;Unmarried partner&quot; -&gt; &quot;Spouse/Partner&quot;</span>
+        <span class="mi">14</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>  <span class="c1"># &quot;Foster child&quot; -&gt; &quot;Children&quot;</span>
+        <span class="mi">15</span><span class="p">:</span> <span class="mi">9</span><span class="p">,</span>  <span class="c1"># &quot;Other non-relative&quot; -&gt; &quot;Non-relatives (e.g., roommate, boarder)&quot;</span>
+        <span class="mi">16</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>  <span class="c1"># &quot;Institutionalized group quarters population&quot; -&gt; &quot;Group quarters population&quot;</span>
+        <span class="mi">17</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span>  <span class="c1"># &quot;Non-institutionalized group quarters population&quot; -&gt; &quot;Group quarters population&quot;</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">simplified_relp_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">map_to_lower_res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="s2">&quot;N/A&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="transform_wkhp">
+<a class="viewcode-back" href="../../../source/folktexts.acs.html#folktexts.acs.acs_columns_simplified.transform_wkhp">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">transform_wkhp</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">bin_width</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">max_hours</span><span class="o">=</span><span class="mi">60</span><span class="p">):</span>
+    <span class="c1"># Generate bin edges incl max_hours</span>
+    <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_hours</span> <span class="o">+</span> <span class="n">bin_width</span><span class="p">,</span> <span class="n">bin_width</span><span class="p">)</span>
+
+    <span class="c1"># Handle non-working or underage responses</span>
+    <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;N/A (less than 16 years old, or did not work during the past 12 months)&quot;</span>
+    <span class="k">elif</span> <span class="n">x</span> <span class="o">&gt;=</span> <span class="n">bins</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;more than </span><span class="si">{</span><span class="n">bins</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2"> hours&quot;</span>
+
+    <span class="c1"># Find appropriate bin</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">bins</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">side</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">lower</span> <span class="o">=</span> <span class="n">bins</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+    <span class="n">upper</span> <span class="o">=</span> <span class="n">bins</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">lower</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">upper</span><span class="si">}</span><span class="s2"> hours&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="transform_rac1p_binary">
+<a class="viewcode-back" href="../../../source/folktexts.acs.html#folktexts.acs.acs_columns_simplified.transform_rac1p_binary">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">transform_rac1p_binary</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="c1"># binarize</span>
+    <span class="n">binary_value_map</span> <span class="o">=</span> <span class="p">{</span><span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;White&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Non-White&quot;</span><span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">map_to_binary</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="mi">2</span>
+
+    <span class="k">return</span> <span class="n">binary_value_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">map_to_binary</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="s2">&quot;N/A&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="transform_rac1p">
+<a class="viewcode-back" href="../../../source/folktexts.acs.html#folktexts.acs.acs_columns_simplified.transform_rac1p">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">transform_rac1p</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="n">simplified_rac1p_map</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;White&quot;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;Black or African American&quot;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Indigenous (American Indian or Alaska Native)&quot;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;Asian&quot;</span><span class="p">,</span>
+        <span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;Pacific Islander&quot;</span><span class="p">,</span>
+        <span class="mi">6</span><span class="p">:</span> <span class="s2">&quot;Some other race alone&quot;</span><span class="p">,</span>
+        <span class="mi">7</span><span class="p">:</span> <span class="s2">&quot;Two or more races&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">map_to_lower_res</span> <span class="o">=</span> <span class="p">{</span><span class="mi">1</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">6</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">7</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">8</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">9</span><span class="p">:</span> <span class="mi">7</span><span class="p">}</span>
+    <span class="k">return</span> <span class="n">simplified_rac1p_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">map_to_lower_res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="s2">&quot;N/A&quot;</span><span class="p">)</span></div>
+
+
+
+<span class="n">simplified_value_maps</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;AGEP&quot;</span><span class="p">:</span> <span class="n">transform_age</span><span class="p">,</span>
+    <span class="s2">&quot;COW&quot;</span><span class="p">:</span> <span class="n">transform_cow</span><span class="p">,</span>
+    <span class="s2">&quot;SCHL&quot;</span><span class="p">:</span> <span class="n">transform_schooling</span><span class="p">,</span>
+    <span class="s2">&quot;OCCP&quot;</span><span class="p">:</span> <span class="n">transform_occp</span><span class="p">,</span>
+    <span class="s2">&quot;POBP&quot;</span><span class="p">:</span> <span class="n">transform_pobp</span><span class="p">,</span>
+    <span class="s2">&quot;RELP&quot;</span><span class="p">:</span> <span class="n">transform_relp</span><span class="p">,</span>
+    <span class="s2">&quot;WKHP&quot;</span><span class="p">:</span> <span class="n">transform_wkhp</span><span class="p">,</span>
+    <span class="s2">&quot;RAC1P&quot;</span><span class="p">:</span> <span class="n">transform_rac1p</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Social Foundations of Computation, at MPI-IS.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
