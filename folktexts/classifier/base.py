@@ -385,12 +385,13 @@ class LLMClassifier(BaseEstimator, ClassifierMixin, ABC):
         context_size = self._inference_kwargs["context_size"]
         num_batches = math.ceil(len(df) / batch_size)
 
-        # Get questions to ask. Backends may override the task's question at
-        # `__init__` time via `_active_question` — e.g. `WebAPILLMClassifier`
-        # swaps a decimal-prefill numeric QA for a percentage variant on the
-        # gpt-5 family (see `_enable_numeric_percentage_mode`). Falls back to
-        # the task's default question when no override is set.
-        q = getattr(self, "_active_question", None) or self.task.question
+        # Read the active question from `prompt_config.suffix.question`
+        # rather than `task.question`: backends may swap it at `__init__` time
+        # (e.g. `WebAPILLMClassifier` reframes numeric QA as an integer
+        # percentage for the gpt-5 family; see `_enable_numeric_percentage_mode`).
+        # `prompt_config.suffix.question` defaults to `task.question`, so this
+        # is a no-op for the standard construction path.
+        q = self.prompt_config.suffix.question
         questions = [q]
         if self.correct_order_bias:
             if isinstance(q, DirectNumericQA):

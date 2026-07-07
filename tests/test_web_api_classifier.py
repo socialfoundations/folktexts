@@ -16,6 +16,7 @@ from __future__ import annotations
 import pytest
 
 from folktexts.classifier import WebAPILLMClassifier
+from folktexts.classifier.web_api_classifier import _DEFAULT_FAMILY_QUIRKS
 from folktexts.prompting import PromptConfig
 from folktexts.qa_interface import ChainOfThoughtQA
 
@@ -40,13 +41,10 @@ def _make_classifier(prompt_config: PromptConfig, *, supported_params: set | Non
         "reasoning_effort",
     }
     clf._warned_unsupported_params = set()
-    clf._family_quirks = {  # default quirks (matches _DEFAULT_FAMILY_QUIRKS)
-        "top_logprobs_max": 20,
-        "max_tokens_overhead": 0,
-        "force_reasoning_none": False,
-        "numeric_percentage_mode": False,
-    }
-    clf._active_question = None  # no override; falls back to task.question
+    clf._warned_unvalidated_reasoning = False
+    # Bind the module-level default so identity checks in prod code
+    # (`self._family_quirks is _DEFAULT_FAMILY_QUIRKS`) work under tests.
+    clf._family_quirks = _DEFAULT_FAMILY_QUIRKS
 
     calls: list[list[dict]] = []
 
@@ -404,6 +402,106 @@ def test_unsupported_param_warning_fires_once_across_batches(mcq_task, caplog):
     assert len(warnings) == 1
 
 
+# --- Unvalidated-reasoning-model warning ------------------------------------
+
+def test_unvalidated_reasoning_warning_fires_for_mcq(mcq_task, caplog):
+    """MCQ on a model that advertises `reasoning_effort` but is NOT in the
+    quirks table must emit a one-time warning — MCQ/Numeric can silently
+    collapse to chance on reasoning models we haven't tuned for."""
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task)
+    clf, _ = _make_classifier(cfg)  # default quirks, reasoning_effort in supported
+    clf._model_name = "future-reasoning-model-vX"
+
+    with caplog.at_level("WARNING"):
+        clf._query_webapi_batch(["p"], question=mcq_task.multiple_choice_qa)
+
+    matches = [
+        rec for rec in caplog.records
+        if "reasoning_effort" in rec.getMessage()
+        and "no validated entry" in rec.getMessage()
+    ]
+    assert len(matches) == 1
+    assert clf._model_name in matches[0].getMessage()
+
+
+def test_unvalidated_reasoning_warning_fires_once_across_batches(mcq_task, caplog):
+    """The warning must be capped at one emission per classifier lifetime."""
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task)
+    clf, _ = _make_classifier(cfg)
+    clf._model_name = "future-reasoning-model-vX"
+
+    with caplog.at_level("WARNING"):
+        clf._query_webapi_batch(["p1"], question=mcq_task.multiple_choice_qa)
+        clf._query_webapi_batch(["p2"], question=mcq_task.multiple_choice_qa)
+        clf._query_webapi_batch(["p3"], question=mcq_task.multiple_choice_qa)
+
+    matches = [
+        rec for rec in caplog.records
+        if "no validated entry" in rec.getMessage()
+    ]
+    assert len(matches) == 1
+
+
+def test_unvalidated_reasoning_warning_silent_for_non_reasoning_model(mcq_task, caplog):
+    """Models that don't advertise `reasoning_effort` must NOT trigger it."""
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task)
+    clf, _ = _make_classifier(
+        cfg,
+        supported_params={"temperature", "max_tokens", "stream", "seed",
+                          "logprobs", "top_logprobs"},  # no reasoning_effort
+    )
+    clf._model_name = "gpt-4o-mini"
+
+    with caplog.at_level("WARNING"):
+        clf._query_webapi_batch(["p"], question=mcq_task.multiple_choice_qa)
+
+    matches = [
+        rec for rec in caplog.records
+        if "no validated entry" in rec.getMessage()
+    ]
+    assert matches == []
+
+
+def test_unvalidated_reasoning_warning_silent_for_validated_family(monkeypatch, mcq_task, caplog):
+    """gpt-5 (an explicitly-entered family) must NOT trigger the warning —
+    it's already validated and its quirks are applied automatically."""
+    from folktexts.classifier.web_api_classifier import (
+        _OPENAI_MODEL_FAMILY_QUIRKS,
+    )
+    cfg = PromptConfig.from_dict(pv={}, task=mcq_task)
+    clf, _ = _make_classifier(cfg)
+    clf._model_name = "gpt-5.4-nano"
+    # Simulate init having resolved the gpt-5 quirks (identity to module dict)
+    clf._family_quirks = _OPENAI_MODEL_FAMILY_QUIRKS["gpt-5"]
+
+    with caplog.at_level("WARNING"):
+        clf._query_webapi_batch(["p"], question=mcq_task.multiple_choice_qa)
+
+    matches = [
+        rec for rec in caplog.records
+        if "no validated entry" in rec.getMessage()
+    ]
+    assert matches == []
+
+
+def test_unvalidated_reasoning_warning_silent_for_cot(mcq_task, caplog):
+    """CoT reads free-form text and is robust to preambles — no warning."""
+    cfg = PromptConfig.from_dict(
+        pv={}, task=mcq_task, question=_cot_question(mcq_task),
+    )
+    clf, _ = _make_classifier(cfg)  # reasoning_effort in supported, default quirks
+    clf._model_name = "future-reasoning-model-vX"
+
+    with caplog.at_level("WARNING"):
+        clf._query_webapi_batch(["p"], question=_cot_question(mcq_task))
+
+    matches = [
+        rec for rec in caplog.records
+        if "no validated entry" in rec.getMessage()
+    ]
+    assert matches == []
+
+
 # --- Numeric percentage mode (gpt-5 workaround) -----------------------------
 
 def test_directnumericqa_percentage_prefix_has_no_decimal_prefill():
@@ -585,8 +683,8 @@ def test_enable_numeric_percentage_mode_swaps_question(mcq_task):
     assert new_q.num_forward_passes >= 10
     # `_encode_row` should now be a partial closed over the NEW config
     assert clf._encode_row.keywords["prompt_config"] is clf._prompt_config
-    # `_active_question` is the override the base classifier consults
-    assert clf._active_question is new_q
+    # The base classifier reads the swapped question from prompt_config.suffix
+    assert clf._prompt_config.suffix.question is new_q
 
 
 def test_enable_numeric_percentage_mode_installs_format_system_prompt(mcq_task):

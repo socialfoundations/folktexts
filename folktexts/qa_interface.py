@@ -364,7 +364,7 @@ class DirectNumericQA(QAInterface):
 
         passed_anchor = False
         accumulated_text = ""
-        for pos_idx, ltp in enumerate(last_token_probs):
+        for ltp in last_token_probs:
             chosen_id = int(np.argmax(ltp))
             chosen_tok = inverse_vocab.get(chosen_id, "")
             accumulated_text += chosen_tok

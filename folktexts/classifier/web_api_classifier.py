@@ -162,6 +162,7 @@ class WebAPILLMClassifier(LLMClassifier):
             )
         self.supported_params = set(supported_params)
         self._warned_unsupported_params: set[str] = set()
+        self._warned_unvalidated_reasoning = False
         self._family_quirks = _resolve_family_quirks(self.model_name)
 
         # Some model families need the numeric QA prompt reframed as an
@@ -189,11 +190,10 @@ class WebAPILLMClassifier(LLMClassifier):
         before the digit. The percentage decoder then locates the highest-
         confidence answer position from the returned top-K logprobs.
 
-        The swapped question is stored on `_active_question` — that's what
-        the base classifier consults at prediction time (see
-        `LLMClassifier.compute_risk_estimates_for_dataframe`). We also
-        propagate it into `_prompt_config` so any code path that inspects
-        the classifier's config sees a consistent view.
+        The swapped question lives in `_prompt_config.suffix.question`; the
+        base classifier reads it from there at prediction time (see
+        `LLMClassifier.compute_risk_estimates_for_dataframe`), and the
+        rebuilt `_encode_row` partial ensures encoding sees the same swap.
 
         The default numeric system prompt is also replaced with one that
         explicitly names the required answer format (mirroring what CoT
@@ -209,7 +209,6 @@ class WebAPILLMClassifier(LLMClassifier):
         new_q = dataclasses.replace(
             original_q, percentage=True, num_forward_passes=15
         )
-        self._active_question = new_q
         new_suffix = dataclasses.replace(self._prompt_config.suffix, question=new_q)
 
         # Replace the numeric system prompt ONLY if the current one is the
@@ -352,6 +351,34 @@ class WebAPILLMClassifier(LLMClassifier):
                 top_logprobs=self._family_quirks["top_logprobs_max"],
             )
 
+        # Warn once when MCQ/Numeric is run against a reasoning-capable model
+        # whose WebAPI quirks haven't been explicitly validated. Reasoning
+        # models tend to preamble/wrap the answer, exhausting the tight
+        # `max_tokens` budget used by token-probability decoding — even with
+        # `logprobs` support the numbers can silently collapse to chance.
+        # Only fires for MCQ/Numeric (CoT is robust) and when the model was
+        # NOT matched by an explicit entry in `_OPENAI_MODEL_FAMILY_QUIRKS`.
+        if (
+            not isinstance(question, ChainOfThoughtQA)
+            and "reasoning_effort" in self.supported_params
+            and self._family_quirks is _DEFAULT_FAMILY_QUIRKS
+            and not self._warned_unvalidated_reasoning
+        ):
+            self._warned_unvalidated_reasoning = True
+            logging.warning(
+                f"Model '{self.model_name}' advertises `reasoning_effort` "
+                f"support (likely a reasoning/thinking model) but has no "
+                f"validated entry in `_OPENAI_MODEL_FAMILY_QUIRKS`. "
+                f"Multiple-choice / numeric prompting on reasoning models "
+                f"can degrade to chance-level AUC (models preamble or wrap "
+                f"the answer in markdown, exhausting the small `max_tokens` "
+                f"budget). If results look wrong, use chain-of-thought "
+                f"prompting (`--cot-prompting`) instead, or add an entry to "
+                f"`_OPENAI_MODEL_FAMILY_QUIRKS` (see the gpt-5 entry for "
+                f"reference: `numeric_percentage_mode`, `force_reasoning_none`, "
+                f"`max_tokens_overhead`, `top_logprobs_max`)."
+            )
+
         # gpt-5.x refuses `logprobs` requests unless reasoning_effort='none'
         # is set — pass it only for MCQ/numeric (CoT reads free-form text and
         # benefits from the model's default reasoning budget).
@@ -473,10 +500,7 @@ class WebAPILLMClassifier(LLMClassifier):
         # here yields no match and the anchored parse below returns a
         # non-answer literal like `100` from the `(0-100)` range label.
         # The percentage decoder already recovers the correct answer.
-        if (
-            isinstance(question, DirectNumericQA)
-            and not getattr(question, "percentage", False)
-        ):
+        if isinstance(question, DirectNumericQA) and not question.percentage:
             try:
                 numeric_response = re.match(
                     r"[-+]?\d*\.\d+|\d+", response_message
